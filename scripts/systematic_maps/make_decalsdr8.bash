@@ -5,10 +5,10 @@ address=/Volumes/TimeMachine/data/DR8/
 make_maps=/Users/rezaie/github/LSSutils/scripts/systematic_maps/make_sysmaps.py
 #
 # First two loops took 1143m55.753s 
-# Aug: give up oversampling, combine new ccd with new cols
+# Aug 7, 2019: give up oversampling, combine new ccd with new cols
 # dr8_combined is probably enough
 # we create separate maps for debugging purposes
-#
+# took 150 min
 
 for DR in dr8_combined decam-dr8
   do 
