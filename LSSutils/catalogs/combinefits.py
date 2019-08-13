@@ -110,10 +110,11 @@ class Readfits(object):
         
         
         
-def hd5_2_fits(myfit, cols, fitname, hpmask, hpfrac, fitnamekfold, res=256, k=5):
+def hd5_2_fits(myfit, cols, fitname=None, hpmask=None, hpfrac=None, fitnamekfold=None, res=256, k=5):
     from LSSutils.utils import split2Kfolds
     for output_i in [fitname, hpmask, hpfrac, fitnamekfold]:
-        if os.path.isfile(output_i):raise RuntimeError('%s exists'%output_i)
+        if output_i is not None:
+            if os.path.isfile(output_i):raise RuntimeError('%s exists'%output_i)
     #
     hpind    = myfit.index.values
     label    = (myfit.ngal / (myfit.nran * (myfit.ngal.sum()/myfit.nran.sum()))).values
@@ -130,21 +131,111 @@ def hd5_2_fits(myfit, cols, fitname, hpmask, hpfrac, fitnamekfold, res=256, k=5)
     outdata['features'] = features
     outdata['fracgood'] = fracgood    
 
-    ft.write(fitname, outdata, clobber=True)
-    print('wrote %s'%fitname)
+    if fitname is not None:
+        ft.write(fitname, outdata, clobber=True)
+        print('wrote %s'%fitname)
 
-    mask = np.zeros(12*res*res, '?')
-    mask[hpind] = True
-    hp.write_map(hpmask, mask, overwrite=True, fits_IDL=False)
-    print('wrote %s'%hpmask)
+    if hpmask is not None:
+        mask = np.zeros(12*res*res, '?')
+        mask[hpind] = True
+        hp.write_map(hpmask, mask, overwrite=True, fits_IDL=False)
+        print('wrote %s'%hpmask)
 
-    frac = np.zeros(12*res*res)
-    frac[hpind] = fracgood
-    hp.write_map(hpfrac, frac, overwrite=True, fits_IDL=False)
-    print('wrote %s'%hpfrac)  
+    if hpfrac is not None:
+        frac = np.zeros(12*res*res)
+        frac[hpind] = fracgood
+        hp.write_map(hpfrac, frac, overwrite=True, fits_IDL=False)
+        print('wrote %s'%hpfrac)  
     
-    outdata_kfold = split2Kfolds(outdata, k=k)
-    np.save(fitnamekfold, outdata_kfold)
-    print('wrote %s'%fitnamekfold)  
+    if fitnamekfold is not None:
+        outdata_kfold = split2Kfolds(outdata, k=k)
+        np.save(fitnamekfold, outdata_kfold)
+        print('wrote %s'%fitnamekfold)  
     
-    
+   
+class EBOSSCAT(object):
+    '''
+        Class to facilitate reading eBOSS cats
+    '''
+    def __init__(self, gals, weights=['weight_noz', 'weight_cp']):
+        #
+        self.weightnames = weights
+
+        print('len of gal cats %d'%len(gals))
+        gal = []
+        for gali in gals:
+            gald = ft.read(gali, lower=True)
+            gal.append(gald)
+            
+        #    
+        #
+        gal  = np.concatenate(gal)
+        self.cols = gal.dtype.names
+        for colname in ['ra', 'dec', 'z', 'nz']+weights:
+            if colname not in self.cols:raise RuntimeError('%s not in columns'%colname)
+        self.num  = gal['ra'].size
+        self.ra   = gal['ra']
+        self.dec  = gal['dec']
+        self.z    = gal['z']
+        self.nz   = gal['nz']
+        #
+        #
+        print('num of gal obj %d'%self.num)
+        value     = np.ones(self.num)
+        for weight_i in weights:
+            if weight_i in self.cols:
+                value *= gal[weight_i]
+            else:
+                print('col %s not in columns'%weight_i)
+        #
+        self.w = value
+        
+    def apply_zcut(self, zcuts=[None, None]):
+        #
+        # if no limits were provided
+        zmin = self.z.min()
+        zmax = self.z.max()
+        if (zcuts[0] is None):
+            zcuts[0] = zmin-1.e-7
+        if (zcuts[1] is None):
+            zcuts[1] = zmax+1.e-7
+        print('going to apply z-cuts : {}'.format(zcuts))
+        #
+        #
+        zmask    = (self.z > zcuts[0]) & (self.z < zcuts[1])
+        self.z   = self.z[zmask]
+        self.ra  = self.ra[zmask]
+        self.dec = self.dec[zmask]
+        self.w   = self.w[zmask]
+        self.nz  = self.nz[zmask]
+        self.num = self.z.size 
+        print('num of gal obj after cut %d'%self.num)
+
+    def project2hp(self, nside=512):
+        from LSSutils.utils import hpixsum
+        print('projecting into a healpix map with nside of %d'%nside)
+        self.galm = hpixsum(nside, self.ra, self.dec, value=self.w).astype('f8')
+        
+    def writehp(self, filename, overwrite=True):
+        if os.path.isfile(filename):
+            print('%s already exists'%filename, end=' ')
+            if not overwrite:
+                print('please change the filename!')
+                return
+            else:
+                print('going to rewrite....')
+        hp.write_map(filename, self.galm, overwrite=True, fits_IDL=False)
+            
+    def plot_hist(self, titles=['galaxy map', 'Ngal distribution']):
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots(ncols=2, figsize=(8,3))
+        plt.sca(ax[0])
+        hp.mollview(self.galm, title=titles[0], hold=True)
+        ax[1].hist(self.galm[self.galm!=0.0], histtype='step')
+        ax[1].text(0.7, 0.8, r'%.1f $\pm$ %.1f'%(np.mean(self.galm[self.galm!=0.0]),\
+                                          np.std(self.galm[self.galm!=0.0], ddof=1)),
+                  transform=ax[1].transAxes)
+        ax[1].set_yscale('log')
+        ax[1].set_title(titles[1])
+        plt.show()
+ 
