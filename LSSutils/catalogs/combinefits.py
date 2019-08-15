@@ -7,6 +7,9 @@ import fitsio as ft
 import numpy as np
 import healpy as hp
 
+from LSSutils.utils import radec2hpix
+
+
 def extract_keys_dr8(mapi):
     band = mapi.split('/')[-1].split('_')[4]
     sysn = mapi.split('/')[-1].split('_')[7]
@@ -152,7 +155,7 @@ def hd5_2_fits(myfit, cols, fitname=None, hpmask=None, hpfrac=None, fitnamekfold
         np.save(fitnamekfold, outdata_kfold)
         print('wrote %s'%fitnamekfold)  
     
-   
+#   
 class EBOSSCAT(object):
     '''
         Class to facilitate reading eBOSS cats
@@ -170,6 +173,9 @@ class EBOSSCAT(object):
         #    
         #
         gal  = np.concatenate(gal)
+        
+        # 
+        self.gal  = gal
         self.cols = gal.dtype.names
         for colname in ['ra', 'dec', 'z', 'nz']+weights:
             if colname not in self.cols:raise RuntimeError('%s not in columns'%colname)
@@ -208,8 +214,13 @@ class EBOSSCAT(object):
         self.dec = self.dec[zmask]
         self.w   = self.w[zmask]
         self.nz  = self.nz[zmask]
+        self.gal = self.gal[zmask]
         self.num = self.z.size 
         print('num of gal obj after cut %d'%self.num)
+    
+    def swap_keys(self, key, array):
+        if key not in self.cols:raise RuntimeWarning('$s not in columns'%key)
+        self.gal[key] = array
 
     def project2hp(self, nside=512):
         from LSSutils.utils import hpixsum
@@ -238,4 +249,36 @@ class EBOSSCAT(object):
         ax[1].set_yscale('log')
         ax[1].set_title(titles[1])
         plt.show()
- 
+
+
+class swap_weights(object):    
+    def __init__(self, catalog):
+        print('going to read %s'%catalog)
+        self.data = ft.read(catalog)
+        
+    def run(self, weights, zcuts, colname='WEIGHT_SYSTOT'):
+        self.orgcol = self.data[colname].copy()
+        for keyi in zcuts.keys():
+            assert keyi in weights.keys(), '%s not available'%keyi
+            #
+            my_wmap   = hp.read_map(weights[keyi], verbose=False)
+            nside     = hp.get_nside(my_wmap)
+
+            my_zcut   = zcuts[keyi]
+            my_mask   = (self.data['Z'] > my_zcut[0])\
+                      & (self.data['Z'] < my_zcut[1])
+            #
+            data_hpix = radec2hpix(nside, 
+                                   self.data['RA'][my_mask],
+                                   self.data['DEC'][my_mask])
+            # swap
+            self.wmap_data = my_wmap[data_hpix]    
+            #print((self.wmap_data ==0.0).sum())
+            self.wmap_data = self.wmap_data.clip(0.5, 2.0)
+            assert np.all(self.wmap_data > 0.0),'the weights are zeros!'
+            self.data[colname][my_mask] = 1./self.wmap_data            
+            print('number of objs w zcut {} : {}'.format(my_zcut, my_mask.sum()))
+            
+    def to_fits(self, filename):
+        if os.path.isfile(filename):raise RuntimeError('%s exists'%filename)
+        ft.write(filename, self.data)             
