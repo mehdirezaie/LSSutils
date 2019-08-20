@@ -65,6 +65,8 @@ class NNBAR(object):
             bins = np.array(bins)
             if verbose:print('min sys : %.2f  max sys : %.2f'%(ss[0], ss[npts-1]))
             if verbose:print('num of pts : %d, num of bins : %d'%(i, j))
+        else:
+            raise ValueError('%s not among [simple, equi-area]'%binning)
         self.avnden = np.sum([np.sum(self.sysl[i]) for i in np.arange(0,2*nbins, 2)])\
                       /np.sum([np.sum(self.sysl[i]) for i in np.arange(1,2*nbins, 2)])
         self.bins = bins
