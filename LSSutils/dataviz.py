@@ -194,7 +194,7 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
 
 def hyper_params_data(files1=None, tl=['eBOSS QSO V6'], verbose=False, labels=None):
     def get_all(ablationlog):
-        d = np.load(ablationlog).item()
+        d = np.load(ablationlog, allow_pickle=True).item()
         indices = None
         for il, l in enumerate(d['validmin']):
             m = (np.array(l) - d['RMSEall']) > 0.0
@@ -231,6 +231,10 @@ def hyper_params_data(files1=None, tl=['eBOSS QSO V6'], verbose=False, labels=No
     axes1, num_f = get_axes(files1, verbose=verbose)
     
     def add_plot(axes, ax, **kw):
+        '''
+        Aug 20: https://stackoverflow.com/questions/52876985/
+                matplotlib-warning-using-pandas-dataframe-plot-scatter/52879804#52879804
+        '''
         
         m = 0
         for i in range(len(axes)):
@@ -242,7 +246,7 @@ def hyper_params_data(files1=None, tl=['eBOSS QSO V6'], verbose=False, labels=No
                 colors = np.array([plt.cm.Reds(i/n) for i in range(n)])
                 m += n
                 for j in range(n):
-                    ax.scatter(i, axes[i][j], c=colors[j], marker='o', **kw)    
+                    ax.scatter(i, axes[i][j], c=[colors[j]], marker='o', **kw)    
         
 
     #labels = ['EBV', 'lnHI', 'nstar']
@@ -275,7 +279,7 @@ def hyper_params_data(files1=None, tl=['eBOSS QSO V6'], verbose=False, labels=No
 
 def ablation_plot(filename, odir, labels=False):    
     import seaborn as sns
-    ab1 = np.load(filename).item()
+    ab1 = np.load(filename, allow_pickle=True).item()
     #
     INDICES = ab1['indices']
     VALUES  = ab1['validmin']

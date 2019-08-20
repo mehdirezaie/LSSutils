@@ -272,9 +272,14 @@ class swap_weights(object):
                                    self.data['RA'][my_mask],
                                    self.data['DEC'][my_mask])
             # swap
-            self.wmap_data = my_wmap[data_hpix]    
-            #print((self.wmap_data ==0.0).sum())
-            self.wmap_data = self.wmap_data.clip(0.5, 2.0)
+            # get the neighbors mean for non-probed pixels
+            self.wmap_data = my_wmap[data_hpix]  
+            nanweights     = np.argwhere(np.isnan(self.wmap_data)).flatten()
+            nanhpix        = data_hpix[nanweights]
+            neighbors      = hp.get_all_neighbours(nside, nanhpix)            
+            self.wmap_data[nanweights] = np.nanmean(my_wmap[neighbors], axis=0)
+
+            #self.wmap_data = self.wmap_data.clip(0.5, 2.0)
             assert np.all(self.wmap_data > 0.0),'the weights are zeros!'
             self.data[colname][my_mask] = 1./self.wmap_data            
             print('number of objs w zcut {} : {}'.format(my_zcut, my_mask.sum()))

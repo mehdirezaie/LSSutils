@@ -15,6 +15,11 @@ cols_eboss_v6_qso = ['sky_g', 'sky_r', 'sky_i', 'sky_z',
                      'w1_med', 'w1_covmed',
                      'star_density', 'ebv', 'airmass', 'loghi', 'run']
 
+cols_eboss_v6_qso_simp = ['sky_g', 'sky_r', 'sky_i', 'sky_z', 
+                         'depth_g', 'depth_r', 'depth_i','depth_z',
+                         'psf_g','psf_r', 'psf_i', 'psf_z',
+                         'nstar', 'ebv', 'airmass', 'loghi', 'run']
+
 
 class Columns(object):
     def __init__(self, dr='dr8'):

@@ -75,7 +75,7 @@ if rank == 0:
     INDICES  = ns.axfit
     #
     foldname = 'fold'+ns.rank
-    data = np.load(ns.data).item()
+    data = np.load(ns.data, allow_pickle=True).item()
     train = data['train'][foldname]
     test  = data['test'][foldname]
     valid = data['validation'][foldname]

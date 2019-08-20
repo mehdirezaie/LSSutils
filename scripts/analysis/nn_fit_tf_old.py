@@ -17,7 +17,7 @@ from time import time
 
    
 def get_all(ablationlog):
-    d = np.load(ablationlog).item()
+    d = np.load(ablationlog, allow_pickle=True).item()
     indices = None
     for il, l in enumerate(d['validmin']):
         m = (np.array(l) - d['RMSEall']) > 0.0
@@ -72,7 +72,7 @@ if __name__ == '__main__':
                   tol=1.e-4, scale=0.0, learning_rate=0.001)
         log += 'reading input : {} with nside : {} \n'.format(ns.input, NSIDE)
         log += 'the fiducial config is {}\n'.format(config)
-        data   = np.load(ns.input).item()
+        data   = np.load(ns.input, allow_pickle=True).item()
         Ablog  = ns.ablog    
         Axfit  = ns.axfit
         oupath = ns.output
@@ -219,8 +219,8 @@ if __name__ == '__main__':
                          ('weight',('f8', ngal.shape[0]))])
         oudata['hpind']   = hpix
         oudata['weight']  = ngal.T
-        oumap             = np.zeros(12*NSIDE*NSIDE)
-        oumap[hpix]      = np.median(ngal, axis=0)
+        oumap             = np.zeros(12*NSIDE*NSIDE)*np.nan
+        oumap[hpix]       = np.median(ngal, axis=0)
         ft.write(oupath+'nn-weights'+str(NSIDE)+'.fits', oudata, clobber=True)
         hp.write_map(oupath+'nn-weights.hp'+str(NSIDE)+'.fits', oumap,\
                      fits_IDL=False, overwrite=True, dtype=np.float64)
