@@ -45,10 +45,10 @@ catalog['Position'] = np.column_stack([catalog['x'], catalog['y'], catalog['z']]
 # Inputs for Corrfunc
 #
 mode  = '2d'      # r, mu
-nbin  = 100       
+nbin  = 200       
 nmu   = 120
-rmin  = 1.e-1
-rmax  = 200 
+rmin  = 0.0
+rmax  = 200. 
 box   = 1000      # 1000 Mpc/h 
 
 
