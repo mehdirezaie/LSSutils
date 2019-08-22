@@ -20,7 +20,7 @@ def get_all(ablationlog):
     d = np.load(ablationlog, allow_pickle=True).item()
     indices = None
     for il, l in enumerate(d['validmin']):
-        m = (np.array(l) - d['RMSEall']) > 0.0
+        m = (np.array(l) - d['MSEall']) > 0.0
         #print(np.any(m), np.all(m))
         if np.all(m):
             #print(il, d['indices'][il])
