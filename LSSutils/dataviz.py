@@ -4,6 +4,7 @@ import healpy as hp
 from matplotlib.projections.geo import GeoAxes
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
+import seaborn as sns
 
 
 def hpmollview(map1, unit, ax, smooth=False, cmap=plt.cm.bwr, **kw):
@@ -191,13 +192,14 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
 
 
 
-
-def hyper_params_data(files1=None, tl=['eBOSS QSO V6'], verbose=False, labels=None):
+def get_selected_maps(files1=None, tl=['eBOSS QSO V6'], 
+                      verbose=False, labels=None, ax=None,
+                     hold=False, saveto=None):
     def get_all(ablationlog):
         d = np.load(ablationlog, allow_pickle=True).item()
         indices = None
         for il, l in enumerate(d['validmin']):
-            m = (np.array(l) - d['RMSEall']) > 0.0
+            m = (np.array(l) - d['MSEall']) > 0.0
             #print(np.any(m), np.all(m))
             if np.all(m):
                 #print(il, d['indices'][il])
@@ -215,21 +217,7 @@ def hyper_params_data(files1=None, tl=['eBOSS QSO V6'], verbose=False, labels=No
             return FEAT[num_f-len(indices):], num_f
         else:
             return FEAT[num_f:], num_f
-    
-    def get_axes(files, verbose=False):    
-        axes = []
-        for filei in files:
-            axi, num_f = get_all(filei)
-            if verbose:print(axi)
-            if axi is not None:
-                axes.append(axi)
-            else:
-                axes.append(np.nan)
-        return axes, num_f
-    
-    if verbose:print(files1)
-    axes1, num_f = get_axes(files1, verbose=verbose)
-    
+        
     def add_plot(axes, ax, **kw):
         '''
         Aug 20: https://stackoverflow.com/questions/52876985/
@@ -246,18 +234,27 @@ def hyper_params_data(files1=None, tl=['eBOSS QSO V6'], verbose=False, labels=No
                 colors = np.array([plt.cm.Reds(i/n) for i in range(n)])
                 m += n
                 for j in range(n):
-                    ax.scatter(i, axes[i][j], c=[colors[j]], marker='o', **kw)    
+                    ax.scatter(i, axes[i][j], c=[colors[j]], marker='o', **kw)   
+                    
+    def get_axes(files, verbose=False):    
+        axes = []
+        for filei in files:
+            axi, num_f = get_all(filei)
+            if verbose:print(axi)
+            if axi is not None:
+                axes.append(axi)
+            else:
+                axes.append(np.nan)
+        return axes, num_f
+    
+    if verbose:print(files1)
+    axes1, num_f = get_axes(files1, verbose=verbose)
+     
         
-
-    #labels = ['EBV', 'lnHI', 'nstar']
-    #labels += [''.join((s,'-',b)) for s in ['depth', 'seeing', 'skymag', 'exptime', 'mjd']\
-    #           for b in 'rgz']
-    #labels = ['sky_g', 'sky_r', 'sky_i', 'sky_z', 
-    #    'depth_g', 'depth_r', 'depth_i','depth_z',
-    #    'psf_g','psf_r', 'psf_i', 'psf_z',
-    #    'w1_med', 'w1_covmed',
-    #    'star_density', 'ebv', 'airmass']
-    fig, ax = plt.subplots(ncols=1, sharey=True, figsize=(6, 4))
+    if ax is None:
+        fig, ax = plt.subplots(ncols=1, 
+                               sharey=True, 
+                               figsize=(6, 4))
     ax = [ax]
     add_plot(axes1, ax[0])
     ax[0].set_yticks(np.arange(num_f))
@@ -269,18 +266,14 @@ def hyper_params_data(files1=None, tl=['eBOSS QSO V6'], verbose=False, labels=No
         #axi.set_title(tl[i])
         axi.grid()
         axi.set_xlabel(tl[i]+' Partition-ID')    
-    #plt.savefig('./figs/hyper-params_data.pdf', bbox_inches='tight')
-    plt.show()
+    if saveto is not None:plt.savefig(saveto, bbox_inches='tight')
+    if not hold:plt.show()
 
 
 
-
-
-
-def ablation_plot(filename, odir, labels=False):    
-    import seaborn as sns
-    ab1 = np.load(filename, allow_pickle=True).item()
-    #
+def read_ablation_file(filename, 
+                       allow_pickle=True):
+    ab1     = np.load(filename, allow_pickle=allow_pickle).item()
     INDICES = ab1['indices']
     VALUES  = ab1['validmin']
     num_f   = len(ab1['importance'])+1
@@ -296,17 +289,26 @@ def ablation_plot(filename, odir, labels=False):
     for i in range(num_f-1):
         for j, sys_i in enumerate(FEAT):
             if str(i)+'-'+str(sys_i) in matric_dict.keys():
-                matric[i,j] = (matric_dict['%d-%d'%(i,sys_i)][0]/ab1['RMSEall'])-1.#-ab1['baselineRMSE']
-    matric *= 1.e4
-    #bands = ['r','g','z']
-    #labels = ['ebv','lnHI','nstar']
-    #labels += ['depth-'+b for b in bands]
-    #labels += ['seeing-'+b for b in bands]
-    #labels += ['airmass-'+b for b in bands]
-    #labels += ['skymag-'+b for b in bands]
-    #labels += ['exptime-'+b for b in bands]
-    #labels += ['mjd-'+b for b in bands]
+                matric[i,j] = (matric_dict['%d-%d'%(i,sys_i)][0]/ab1['MSEall'])-1.
 
+    return matric, FEAT
+
+
+
+def ablation_plot(filename,  
+                  labels=None, 
+                  allow_pickle=True,
+                  annot=True,
+                  hold=False,
+                  saveto=None,
+                  ax=None):    
+    
+    matric, FEAT = read_ablation_file(filename, allow_pickle=allow_pickle)
+    
+    matric *= 1.e4
+    if labels is None:
+        labels = [str(i) for i in range(len(FEAT))]
+        
     xlabels = [labels[j] for j in FEAT]
     mask = ~np.zeros_like(matric, dtype=np.bool)
     #mask[np.triu_indices_from(mask)] = False
@@ -314,7 +316,9 @@ def ablation_plot(filename, odir, labels=False):
     vmin = np.minimum(np.abs(np.min(matric)), np.abs(np.max(matric))) #* 0.1
     print(np.max(matric), np.min(matric))
     # Set up the matplotlib figure
-    f, ax = plt.subplots()
+    if ax is None:
+        f, ax = plt.subplots()
+        
     #plt.title('Correlation Matrix of DR5')
     # Generate a custom diverging colormap
     kw = dict(mask=~mask, cmap=plt.cm.seismic, xticklabels=xlabels, #PRGn_r,get_cmap('PRGn_r', 20)
@@ -322,30 +326,69 @@ def ablation_plot(filename, odir, labels=False):
                vmax=20, center=0.0,#vmin=-1.*vmin, vmax=vmin, center=0.0,
                square=True, linewidths=.5, 
                cbar_kws={"shrink": .5, 
-               "label":r'$10^{4} \times \delta$RMSE', "extend":"max"})
+               "label":r'$10^{4} \times \delta$MSE', "extend":"max"},
+               ax=ax)
     # Draw the heatmap with the mask and correct aspect ratio
     sns.heatmap(matric, **kw)
     ax.set_xticklabels(xlabels, rotation=90)
     ax.set_yticks([])
     ax.xaxis.tick_top()
-    bbox_props = dict(boxstyle="rarrow", fc="white", ec="k", lw=2)
-    t = ax.text(0.4, 0.2, "Importance",
-                ha="center", va="center", rotation=0,
-                transform=ax.transAxes,
-                bbox=bbox_props, fontsize=15)
-    bb = t.get_bbox_patch()
-    bb.set_boxstyle("rarrow", pad=0.6)
-    t1 = ax.text(0.1, 0.5, "Iteration",
-                ha="center", va="center", rotation=-90,
-                transform=ax.transAxes,
-                bbox=bbox_props, fontsize=15)
-    bb1 = t1.get_bbox_patch()
-    bb1.set_boxstyle("rarrow", pad=0.6)
-    fname = filename.split('/')[-1][:-8]  # drop .log.npy
-    #ou = ''.join([filename[:-4], '.pdf']) # drop .npy
-    #ou = ''.join([odir, fname, '.pdf'])
-    #print('save ... ', ou)
-    #plt.savefig('./figs/dr7ablation.pdf', bbox_inches='tight') 
-    plt.show()
+    
+    # add annotation
+    if annot:        
+        bbox_props = dict(boxstyle="rarrow", fc="white", ec="k", lw=2)
+        t = ax.text(0.4, 0.2, "Importance",
+                    ha="center", va="center", rotation=0,
+                    transform=ax.transAxes,
+                    bbox=bbox_props, fontsize=15)
+        bb = t.get_bbox_patch()
+        bb.set_boxstyle("rarrow", pad=0.6)
+        t1 = ax.text(0.1, 0.5, "Iteration",
+                    ha="center", va="center", rotation=-90,
+                    transform=ax.transAxes,
+                    bbox=bbox_props, fontsize=15)
+        bb1 = t1.get_bbox_patch()
+        bb1.set_boxstyle("rarrow", pad=0.6)
+        
+    if saveto is not None: plt.savefig(saveto, bbox_inches='tight') 
+    if not hold:plt.show()
 
+def ablation_plot_all(files, labels=None, title=None, saveto=None, hold=False):
+    from   matplotlib.gridspec import GridSpec
+    f = plt.figure(figsize=(12, 6))
+    gs = GridSpec(2, 6, figure=f)
+    gs.update(wspace=0.15, hspace=0.35)
+    ax1 = plt.subplot(gs[0, 1:3])
+    ax2 = plt.subplot(gs[0, 3:5])
+    ax3 = plt.subplot(gs[1, 0:2])
+    ax4 = plt.subplot(gs[1, 2:4])
+    ax5 = plt.subplot(gs[1, 4:6])
+    for ax in [ax2, ax4, ax5]:
+        ax.tick_params(labelleft=False)
+    ax = [ax1, ax2, ax3, ax4, ax5]    
+    for i, axi in enumerate(ax):
+        annot = True if i == 2 else False # make the annotation
+        ablation_plot(files[i],  
+                  labels=labels, 
+                  allow_pickle=True,
+                  annot=annot,
+                  hold=True,
+                  saveto=None,
+                  ax=axi)
 
+    ax1.text(0., 0.2, title, color='k', transform=ax1.transAxes)    
+    # bbox_props = dict(boxstyle="rarrow", fc="white", ec="k", lw=2)
+    # t = ax3.text(0.5, 0.1, "Importance",
+    #             ha="center", va="center", rotation=0,
+    #             transform=ax3.transAxes,
+    #             bbox=bbox_props, fontsize=10)
+    # bb = t.get_bbox_patch()
+    # bb.set_boxstyle("rarrow", pad=0.6)
+    # t1 = ax3.text(0.1, 0.5, "Iteration",
+    #             ha="center", va="center", rotation=-90,
+    #             transform=ax3.transAxes,
+    #             bbox=bbox_props, fontsize=10)
+    # bb1 = t1.get_bbox_patch()
+    # bb1.set_boxstyle("rarrow", pad=0.6)    
+    if saveto is not None:plt.savefig(saveto, bbox_inches='tight')
+    if not hold:plt.show()
