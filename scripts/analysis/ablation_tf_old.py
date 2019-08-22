@@ -11,7 +11,7 @@ from   time import time
 
 
 #
-CONFIG = dict(nchain=1, batchsize=1024,
+CONFIG = dict(nchain=10, batchsize=1024,
               nepoch=500, Units=[0], tol=1.e-4, 
               learning_rate=0.001, scale=0.0)
 # 
@@ -111,7 +111,6 @@ while len(INDICES_temp) > 1:
     print('indices on rank {} are {}'.format(rank, my_chunk))
     #if rank==0:print('INDICES_temp', INDICES_temp)
     validmin   = []
-    valid_rmse = []
     for j in my_chunk:
         All = INDICES_temp.copy()
         All.remove(j)
@@ -123,36 +122,28 @@ while len(INDICES_temp) > 1:
         t1 = time()
         net = Netregression(train_2, valid_2, test_2)
         net.train_evaluate(**CONFIG)
-        rmse = []
+        mse = []
         for a in net.epoch_MSEs:
-            rmse.append(np.sqrt(a[2][:,2]))
-        RMSE  = np.column_stack(rmse)
-        RMSEm = np.mean(RMSE, axis=1)
-        #RMSEe = np.std(RMSE, axis=1)/np.sqrt(RMSE.shape[1])
-        baseline = np.sqrt(net.optionsdic['baselineMSE'][1])
-        #valid_rmse.append([net.epoch_MSEs[0][2][:,0], RMSEm/baseline, RMSEe/baseline])
-        valid_rmse.append([net.epoch_MSEs[0][2][:,0], RMSEm/baseline])
-        validmin.append([np.min(RMSEm)])
+            mse.append(np.min(a[2][:,2])) # pick up the minimum
+        MSEm = np.mean(mse)
+        validmin.append([MSEm])
         print('{} is done in {} s'.format(j, time()-t1))
-        del rmse
+        del mse
         del train_2
         del valid_2
         del test_2
         del All
-        del RMSE
-        del RMSEm
+        del MSEm
         del net
      
     comm.Barrier()
     #
-    valid_rmse=comm.gather(valid_rmse, root=0)
     validmin=comm.gather(validmin, root=0)
     #
     #comm.Barrier()
     if rank ==0:
         validmin = [validj for validi in validmin for validj in validi]
         arg      = np.argmin(validmin)
-        np.save(ns.output+ns.rmses+str(INDICES_temp[arg])+'_'+foldname, valid_rmse)
         LOGS['validmin'].append(validmin)
         #print('valid mins are : {}'.format(validmin))
         print('removing {}th systematic'.format(INDICES_temp[arg]))
@@ -168,16 +159,11 @@ while len(INDICES_temp) > 1:
 if rank == 0:
     net = Netregression(train, valid, test)
     net.train_evaluate(**CONFIG)
-    rmse = []
+    mse = []
     for a in net.epoch_MSEs:
-        rmse.append(np.sqrt(a[2][:,2]))
-    RMSE  = np.column_stack(rmse)
-    RMSEm = np.mean(RMSE, axis=1)
-    #RMSEe = np.std(RMSE, axis=1)/np.sqrt(RMSE.shape[1])
-    baseline = np.sqrt(net.optionsdic['baselineMSE'][1])
-    #valid_rmse = [net.epoch_MSEs[0][2][:,0], RMSEm/baseline, RMSEe/baseline]
-    valid_rmse = [net.epoch_MSEs[0][2][:,0], RMSEm/baseline]
-    LOGS['RMSEall'] = np.min(RMSEm)
-    LOGS['baselineRMSE'] = baseline
+        mse.append(np.min(a[2][:,2]))
+    MSEm  = np.mean(mse)
+    baseline = net.optionsdic['baselineMSE'][1]
+    LOGS['MSEall']      = MSEm
+    LOGS['baselineMSE'] = baseline
     np.save(ns.output + ns.log +'_'+foldname, LOGS)
-    np.save(ns.output + ns.rmses+ '_all'+'_'+foldname, valid_rmse)
