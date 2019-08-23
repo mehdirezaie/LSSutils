@@ -25,19 +25,26 @@ size = comm.size
 if rank == 0:
     input_name  = sys.argv[1]
     output_name = sys.argv[2]
+    action      = sys.argv[3]
 else:
     input_name  = None
     output_name = None
+    action      = None
+
+# bcast
 input_name  = comm.bcast(input_name,  root=0)
 outout_name = comm.bcast(output_name, root=0) 
-
+action      = comm.bcast(action,      root=0)
 
 # read data
 catalog = nb.FITSCatalog(input_name)
-for col in ['x', 'y', 'z']:
+for col in ['x', 'y', 'z', 'z_rsd']:
     if not col in catalog.columns:raise RuntimeError('%s not available'%col)
 
-catalog['Position'] = np.column_stack([catalog['x'], catalog['y'], catalog['z']])
+if action == 'ddrmu':
+    catalog['Position'] = np.column_stack([catalog['x'], catalog['y'], catalog['z']])
+elif action == 'ddsmu':
+    catalog['Position'] = np.column_stack([catalog['x'], catalog['y'], catalog['z_rsd']])
 
 
 
@@ -50,14 +57,12 @@ nmu   = 120
 rmin  = 0.0
 rmax  = 200. 
 box   = 1000      # 1000 Mpc/h 
-
-
-edges   = np.linspace(rmin, rmax, nbin+1) 
+edges = np.linspace(rmin, rmax, nbin+1, endpoint=True) 
 
 if rank==0:t0=time()
 results = nb.SimulationBox2PCF(mode, catalog, edges, Nmu=nmu,
                                periodic=True, BoxSize=box, los='z', 
                                weight='Weight', position='Position', 
                                show_progress=True)
-if rank==0:print('took {} sec'.format(time()-t0))
 results.save(output_name)
+if rank==0:print('took {} sec'.format(time()-t0))
