@@ -52,7 +52,7 @@ class Netregression(object):
         
     def train_evaluate(self, learning_rate=0.001,
                        batchsize=100, nepoch=10, nchain=5,
-                      Units=[10,10], tol=1.e-5, scale=0.0,
+                       Units=[10,10], tol=1.e-5, scale=0.0,
                        actfunc=tf.nn.relu, patience=10):
         #
         #from tensorflow.python.framework import ops

@@ -272,7 +272,8 @@ def get_selected_maps(files1=None, tl=['eBOSS QSO V6'],
 
 
 def read_ablation_file(filename, 
-                       allow_pickle=True):
+                       allow_pickle=True, 
+                       versus='MSEall'):
     ab1     = np.load(filename, allow_pickle=allow_pickle).item()
     INDICES = ab1['indices']
     VALUES  = ab1['validmin']
@@ -289,7 +290,7 @@ def read_ablation_file(filename,
     for i in range(num_f-1):
         for j, sys_i in enumerate(FEAT):
             if str(i)+'-'+str(sys_i) in matric_dict.keys():
-                matric[i,j] = (matric_dict['%d-%d'%(i,sys_i)][0]/ab1['MSEall'])-1.
+                matric[i,j] = (matric_dict['%d-%d'%(i,sys_i)][0]/ab1[versus])-1.
 
     return matric, FEAT
 
@@ -301,9 +302,10 @@ def ablation_plot(filename,
                   annot=True,
                   hold=False,
                   saveto=None,
-                  ax=None):    
+                  ax=None, 
+                  versus='MSEall'):    
     
-    matric, FEAT = read_ablation_file(filename, allow_pickle=allow_pickle)
+    matric, FEAT = read_ablation_file(filename, allow_pickle=allow_pickle, versus=versus)
     
     matric *= 1.e4
     if labels is None:
@@ -323,10 +325,10 @@ def ablation_plot(filename,
     # Generate a custom diverging colormap
     kw = dict(mask=~mask, cmap=plt.cm.seismic, xticklabels=xlabels, #PRGn_r,get_cmap('PRGn_r', 20)
                yticklabels=xlabels[::-1], 
-               vmax=20, center=0.0,#vmin=-1.*vmin, vmax=vmin, center=0.0,
+               vmax=20, center=0.0, vmin=-20.,#*vmin, vmax=vmin, center=0.0,
                square=True, linewidths=.5, 
                cbar_kws={"shrink": .5, 
-               "label":r'$10^{4} \times \delta$MSE', "extend":"max"},
+               "label":r'$10^{4} \times \delta$MSE', "extend":"both"},
                ax=ax)
     # Draw the heatmap with the mask and correct aspect ratio
     sns.heatmap(matric, **kw)
@@ -353,7 +355,7 @@ def ablation_plot(filename,
     if saveto is not None: plt.savefig(saveto, bbox_inches='tight') 
     if not hold:plt.show()
 
-def ablation_plot_all(files, labels=None, title=None, saveto=None, hold=False):
+def ablation_plot_all(files, labels=None, title=None, saveto=None, hold=False, versus='MSEall'):
     from   matplotlib.gridspec import GridSpec
     f = plt.figure(figsize=(12, 6))
     gs = GridSpec(2, 6, figure=f)
@@ -374,7 +376,8 @@ def ablation_plot_all(files, labels=None, title=None, saveto=None, hold=False):
                   annot=annot,
                   hold=True,
                   saveto=None,
-                  ax=axi)
+                  ax=axi,
+                  versus=versus)
 
     ax1.text(0., 0.2, title, color='k', transform=ax1.transAxes)    
     # bbox_props = dict(boxstyle="rarrow", fc="white", ec="k", lw=2)
