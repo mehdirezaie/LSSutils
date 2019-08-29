@@ -7,102 +7,129 @@
 #  does the linear/quadratic fit 
 #  does a NN fit 
 #
-#  1) run Lin fit, nnbar w weights, Cl w weights
-#  $>  mpirun -np 2 python run_pipeline.py --verbose --hpfit linfit
-#       --nnbar nnbar-fit --clfile cllin --wmap weights.hp.256.fits
 
-'''
-python run_pipeline.py --galmap /Volumes/TimeMachine/data/eboss/eBOSS_DR7/eBOSSDR7.256.fits --ranmap /Volumes/TimeMachine/data/eboss/eBOSS_DR7/random.256.fits --photattrs /Volumes/TimeMachine/data/eboss/eBOSS_DR7/ngal.features.256.fits --oudir /Volumes/TimeMachine/data/eboss/eBOSS_DR7/clustering/ --nnbar eboss22wnn --verbose --mask /Volumes/TimeMachine/data/eboss/eBOSS_DR7/hpmask.256.fits --wmap /Volumes/TimeMachine/data/eboss/eBOSS_DR7/regression/nn-weights.hp256.fits
-'''
 import os
 import numpy as np
 from   time import time
 import sys
-sys.path.append('/Users/rezaie/github/SYSNet/src')
-sys.path.append('/Users/rezaie/github/LSSutils')
-from LSSutils.catalogs.datarelease import cols_dr8 as labels  
+
+home = os.getenv("HOME")
+sys.path.append(home + '/github/SYSNet/src')
+sys.path.append(home + '/github/LSSutils')
 
 if not sys.warnoptions:
     import warnings
     warnings.simplefilter("ignore")
 
+def fakelabels(n):
+    return ['sys'+str(i) for i in range(n)]
 
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
-size = comm.Get_size()
-rank = comm.Get_rank()
+def read1(ns):
+    feat, h   = ft.read(ns.photattrs, header=True, lower=True)
+    feats     = feat['features'].shape
+    mask1     = hp.read_map(ns.mask,   verbose=False).astype('bool')
+    hpmask1   = np.in1d(feat['hpind'], np.argwhere(mask1).flatten())
+    galmap    = hp.read_map(ns.galmap, verbose=False)
+    ranmap    = hp.read_map(ns.ranmap, verbose=False)
+    labels    = fakelabels(feats[1])
+    return galmap, ranmap, hpmask1, mask1, feat, h, feats, labels
 
-#labels = ['sky_g', 'sky_r', 'sky_i', 'sky_z', 
-#        'depth_g', 'depth_r', 'depth_i','depth_z',
-#        'psf_g','psf_r', 'psf_i', 'psf_z',
-#        'w1_med', 'w1_covmed', 
-#        'star_density', 'ebv', 'airmass', 'loghi', 'run'] 
+
+def read2(ns):
+    feat, h = ft.read(ns.photattrs, header=True, lower=True)
+    feats = feat['features'].shape
+    mask1   = hp.read_map(ns.mask,   verbose=False).astype('bool')
+    mask2   = np.zeros_like(mask1).astype('bool')
+    mask2[feat['hpind']] = True
+    mask    = mask1 & mask2         # overlap 
+    galmap  = hp.read_map(ns.galmap, verbose=False)
+    ranmap  = hp.read_map(ns.ranmap, verbose=False)
+    labels    = fakelabels(feats[1])
+    return galmap, ranmap, mask, feat, h, feats, labels, mask1, mask2
 
 
-# greetings
-print('Hi from %d'%rank)
-if rank == 0:
-    print('There are %d workers'%size)
-    print('Features are {}'.format(labels))
+
+
+def linear(x, *w):
+    return np.dot(x, w)       
+
+def linfit(ns, labels=None, model=linear):
+    '''
+        Performs linear regression
+    '''
+    from scipy.optimize import curve_fit
+    fo   = open(ns.oudir + ns.hpfit + '.log', 'w')
+    fo.write(log)
+    galmap, ranmap, hpmask1, mask1, feat, h, feats, labels = read1(ns)
+ 
+
+    log  = 2*'\n'
+    log += '{:15s}{:40s}{:15s}\n'.format(15*'=',\
+          'Fit a multivariate on Ngal-sys',15*'=')
+    log += '{:15s} : \n'.format('HEADER of PHOT attrs')
+    log += '{}\n'.format(h)
+    log += '{:35s} : {}\n'.format('Phot attrs names', labels)
+    log += '\n'
+    log += '{:35s} : {}\n'.format('Shape of the phot. attrs', feats)
+    log += '{:35s} : {}\n'.format('Total number of mask pixels',  mask1.sum())
+    log += '{:35s} : {}\n'.format('Total number of feat pixels',  feats[0])
+    log += '{:35s} : {}\n'.format('Total number of overlap mask', hpmask1.sum())
     
+    
+    hpix = feat['hpind'][hpmask1]
+    x    = feat['features'][hpmask1][:,ns.axfit]
+    xstat= np.mean(x, axis=0), np.std(x, axis=0)
+    xs   = (x-xstat[0])/xstat[1]
+    xsb  = np.concatenate([np.ones(xs.shape[0])[:,np.newaxis], xs],\
+                         axis=1) # add bias feature
+    avg  = ranmap[hpix].sum()/galmap[hpix].sum()
+    y    = (galmap[hpix]/ranmap[hpix]) * avg
+    ystat= np.mean(y, axis=0), np.std(y, axis=0)
+    ys   = (y-ystat[0])/ystat[1]
+    ye   = 1./(ranmap[hpix]/np.mean(ranmap[hpix]))  # Nran/Nran_exp
+    
+    
+    rmse = lambda y1, y2, noise: np.sqrt(np.mean(((y1-y2)/noise)**2))
+    popt, pcov = curve_fit(model, xsb, ys,\
+                p0=[1.]+[0 for i in range(len(ns.axfit))],\
+                sigma=ye, absolute_sigma=True)
+    yp   = model(xsb, *popt)
+    wmap = np.zeros(12*ns.nside*ns.nside)
+    wmap[hpix] = (yp*ystat[1]) + ystat[0]   # scale back
+    hp.write_map(ns.wmap, wmap, overwrite=True, fits_IDL=False)
+    np.save(ns.oudir + ns.hpfit, dict(params=(popt, pcov),\
+           axfit=ns.axfit, xstat=xstat, ystat=ystat, avg=avg))
+    
+    log += '{:35s} : {}\n'.format('avg nran/ngal', avg)
+    log += '{:35s} : {}\n'.format('Index of features for fit', ns.axfit)
+    log += '{:35s} : {}\n'.format('Features for fitting', [labels[i] for i in ns.axfit])
+    log += '{:35s} : {}\n'.format('Best fit params', popt)
+    log += '{:35s} : {}\n'.format('RMSE ', rmse(yp, ys, ye))
+    log += '{:35s} : {}\n'.format('RMSE (baseline)', rmse(0, ys, ye))
+    log += '{:35s} : {}\n'.format('Write wmap ', ns.wmap)   
+    fo.write(log)
+    if ns.verbose:
+        print(log)
 
-if rank == 0:
-    # import rank 0 modules
-    import matplotlib as ml
-    ml.use('Agg')
-    import matplotlib.pyplot as plt
-    plt.rc('font', family='serif')
-    plt.rc('axes.spines', right=False, top=False)
-    import healpy as hp
-    import fitsio as ft
-    from argparse import ArgumentParser
-    ap = ArgumentParser(description='PHOT attr. correction pipeline')
-    ap.add_argument('--galmap',    default='galaxy.hp.256.fits')
-    ap.add_argument('--ranmap',    default='random.hp.256.fits')
-    ap.add_argument('--splitdata', default='gal-feat.hp.256.k5.fits')
-    ap.add_argument('--photattrs', default='phot-attrs.hp.256.fits')
-    ap.add_argument('--wmap',      default='weights.hp.256.fits')
-    ap.add_argument('--mask',      default='mask.hp.256.fits')
-    ap.add_argument('--log',       default='analysis')
-    ap.add_argument('--clfile',    default='none')
-    ap.add_argument('--clsys',     default='none')    
-    ap.add_argument('--corfile',   default='none')
-    ap.add_argument('--corsys',   default='none')
-    ap.add_argument('--nnbar',     default='none')
-    ap.add_argument('--hpfit',     default='none')
-    ap.add_argument('--oudir',     default='./output/')
-    ap.add_argument('--axfit',     nargs='*', type=int,\
-                                   default=[i for i in range(18)])
-    ap.add_argument('--nbin',      default=20, type=int)
-    ap.add_argument('--njack',     default=20, type=int)
-    ap.add_argument('--nside',     default=256, type=int)
-    ap.add_argument('--lmax',      default=512, type=int)
-    ap.add_argument('--smooth',    action='store_true')
-    ap.add_argument('--verbose',   action='store_true')
-    ns = ap.parse_args()
-    #
-    #
-    #fmt  = ['15', '30', '15']  # format list
+def initialize(ns):
+    '''
+        initialize(ns)
+    '''
     log  = 2*'\n'
     log += '!{:15s}{:30s}{:15s}!\n'.format(15*'=','verbose activated', 15*'=')
     log += '!{:15s}{:30s}{:15s}!\n'.format('','PHOT attr. correction pipeline','')
     log += '!{:15s}{:30s}{:15s}!\n'.format('','developed by Mehdi Rezaie', '')
     log += '!{:15s}{:30s}{:15s}!\n'.format('' ,'email : mr095415@ohio.edu','')
     log += '!{:60s}!\n'.format(60*'=')
-    # 
-    #
     log += '{:15s}\n'.format('INPUT PARAMS')
     args = ns.__dict__
     for (a,b) in zip(args.keys(), args.values()):
         log += '{:6s}{:15s} : {}\n'.format('', a, b) 
-    # 
-    #
     log += 2*'\n'
     log += '{:60s}\n'.format('Check if the inputs are correct')
+    
     err_flag = False
     wrn_flag = False
-    #
-    #
     if not os.path.exists(ns.oudir):
         wrn_flag = True
         log += '{:15s} : {:30s}{:15s}\n'.format('oudir',  ns.oudir, 'X\n')
@@ -139,166 +166,98 @@ if rank == 0:
         sys.exit('Exiting the program because there is an error!!!')
     elif wrn_flag:
         print('There is warning flag, anyhow the program will carry on!!!\n')
-else:
-    ns = None
-ns = comm.bcast(ns, root=0)
 
 
-# fit multivariate function
-if (ns.hpfit != 'none'):
-    if rank == 0:
-        from scipy.optimize import curve_fit
-        # log
-        fo   = open(ns.oudir + ns.hpfit + '.log', 'w')
-        fo.write(log)
-        # model
-        def model(x, *w):
-            return np.dot(x, w)        
+def run_nnbar(ns, labels=None):
+    fo   = open(ns.oudir + ns.nnbar + '.log', 'w')
+    fo.write(log)
+    from nnbar import NNBAR
+    log  = 2*'\n'
+    log += '{:15s}{:40s}{:15s}\n'.format(15*'=',\
+           'Look at Ngal vs. systematics',15*'=')
+    
+    galmap, ranmap, mask, feat, h, feats, labels, mask1, mask2 = read2(ns)
+    if not os.path.isfile(ns.wmap):
+        wmap = None
+        log += '{:35s} : {}\n'.format('Computing NNbar w/o wmap', ns.wmap)
+    else: 
+        wmap = hp.read_map(ns.wmap, verbose=False)
+        log += '{:35s} : {}\n'.format('Computing NNbar with wmap', ns.wmap)
+        if ns.smooth:
+            log += '{:35s}\n'.format('Smoothing the wmap')
+            wmap[~mask] = np.mean(wmap[mask]) # fill in empty pixels ?? required for smoothing 
+            sdeg = np.deg2rad(0.25)           # smooth with sigma of 1/4 of a deg
+            wmap = hp.sphtfunc.smoothing(wmap.copy(), sigma=sdeg)
+
+    # log
+    log += '{:15s} : \n'.format('HEADER of PHOT attrs')
+    log += '{}\n'.format(h)
+    log += '{:35s} : {}\n'.format('Phot attrs names', labels)
+    log += '\n'
+    log += '{:35s} : {}\n'.format('Shape of the phot. attrs', feats)
+    log += '{:35s} : {}\n'.format('Total number of mask pixels',  mask1.sum())
+    log += '{:35s} : {}\n'.format('Total number of feat pixels',  mask2.sum())
+    log += '{:35s} : {}\n'.format('Total number of overlap mask', mask.sum())      
+    #
+    # plot for nnbar vs. sys.
+    #
+    if feats[1] %  3 == 0:
+        nrows = feats[1] // 3
+    else:
+        nrows = feats[1] // 3 + 1
+        
+    fig, ax = plt.subplots(ncols=3, nrows=nrows, sharey=True, figsize=(12, 3*nrows))
+    plt.subplots_adjust(wspace=0.02, hspace=0.5)
+    ax = ax.flatten()
+    nnbar_res = {'nnbar':[], 'xlabels':labels}
+    #
+    # compute nnbar vs. systematics
+    for i in range(feats[1]):
+        sys_i = np.zeros_like(galmap)
+        sys_i[feat['hpind']] = feat['features'][:,i]
         #
-        # read phot. attributes file, must have hpix, features
-        feat, h   = ft.read(ns.photattrs, header=True, lower=True)
-        feats     = feat['features'].shape
-        mask1     = hp.read_map(ns.mask,   verbose=False).astype('bool')
-        hpmask1   = np.in1d(feat['hpind'], np.argwhere(mask1).flatten())
-        galmap    = hp.read_map(ns.galmap, verbose=False)
-        ranmap    = hp.read_map(ns.ranmap, verbose=False)
-        #
-        # log
-        log  = 2*'\n'
-        log += '{:15s}{:40s}{:15s}\n'.format(15*'=',\
-              'Fit a multivariate on Ngal-sys',15*'=')
-        log += '{:15s} : \n'.format('HEADER of PHOT attrs')
-        log += '{}\n'.format(h)
-        log += '{:35s} : {}\n'.format('Phot attrs names', labels)
-        log += '\n'
-        log += '{:35s} : {}\n'.format('Shape of the phot. attrs', feats)
-        log += '{:35s} : {}\n'.format('Total number of mask pixels',  mask1.sum())
-        log += '{:35s} : {}\n'.format('Total number of feat pixels',  feats[0])
-        log += '{:35s} : {}\n'.format('Total number of overlap mask', hpmask1.sum())
-        #
-        # multivariate fit on hp pixels
-        hpix = feat['hpind'][hpmask1]
-        x    = feat['features'][hpmask1][:,ns.axfit]
-        xstat= np.mean(x, axis=0), np.std(x, axis=0)
-        xs   = (x-xstat[0])/xstat[1]
-        xsb  = np.concatenate([np.ones(xs.shape[0])[:,np.newaxis], xs],\
-                             axis=1) # add bias feature
-        avg  = ranmap[hpix].sum()/galmap[hpix].sum()
-        y    = (galmap[hpix]/ranmap[hpix]) * avg
-        ystat= np.mean(y, axis=0), np.std(y, axis=0)
-        ys   = (y-ystat[0])/ystat[1]
-        ye   = 1./(ranmap[hpix]/np.mean(ranmap[hpix]))  # Nran/Nran_exp
-        #
-        # model
-        rmse = lambda y1, y2, noise: np.sqrt(np.mean(((y1-y2)/noise)**2))
-        popt, pcov = curve_fit(model, xsb, ys,\
-                    p0=[1.]+[0 for i in range(len(ns.axfit))],\
-                    sigma=ye, absolute_sigma=True)
-        yp   = model(xsb, *popt)
-        wmap = np.zeros(12*ns.nside*ns.nside)
-        wmap[hpix] = (yp*ystat[1]) + ystat[0]   # scale back
-        hp.write_map(ns.wmap, wmap, overwrite=True, fits_IDL=False)
-        np.save(ns.oudir + ns.hpfit, dict(params=(popt, pcov),\
-               axfit=ns.axfit, xstat=xstat, ystat=ystat, avg=avg))
-        #
-        # log
-        log += '{:35s} : {}\n'.format('avg nran/ngal', avg)
-        log += '{:35s} : {}\n'.format('Index of features for fit', ns.axfit)
-        log += '{:35s} : {}\n'.format('Features for fitting', [labels[i] for i in ns.axfit])
-        log += '{:35s} : {}\n'.format('Best fit params', popt)
-        log += '{:35s} : {}\n'.format('RMSE ', rmse(yp, ys, ye))
-        log += '{:35s} : {}\n'.format('RMSE (baseline)', rmse(0, ys, ye))
-        log += '{:35s} : {}\n'.format('Write wmap ', ns.wmap)   
-        fo.write(log)
-        if ns.verbose:
-            print(log)
-#      
-# NNbar 
-if (ns.nnbar != 'none'):
-    if rank == 0:
-        fo   = open(ns.oudir + ns.nnbar + '.log', 'w')
-        fo.write(log)
-        from nnbar import NNBAR
-        log  = 2*'\n'
-        log += '{:15s}{:40s}{:15s}\n'.format(15*'=',\
-               'Look at Ngal vs. systematics',15*'=')
-        #
-        # read phot. attributes file, must have hpix, features
-        feat, h = ft.read(ns.photattrs, header=True, lower=True)
-        feats = feat['features'].shape
-        #
-        # read mask, galaxy and random map
-        mask1   = hp.read_map(ns.mask,   verbose=False).astype('bool')
-        mask2   = np.zeros_like(mask1).astype('bool')
-        mask2[feat['hpind']] = True
-        mask    = mask1 & mask2         # overlap 
-        galmap  = hp.read_map(ns.galmap, verbose=False)
-        ranmap  = hp.read_map(ns.ranmap, verbose=False)
-        if not os.path.isfile(ns.wmap):
-            wmap = None
-            log += '{:35s} : {}\n'.format('Computing NNbar w/o wmap', ns.wmap)
-        else: 
-            wmap = hp.read_map(ns.wmap, verbose=False)
-            log += '{:35s} : {}\n'.format('Computing NNbar with wmap', ns.wmap)
-            if ns.smooth:
-                log += '{:35s}\n'.format('Smoothing the wmap')
-                wmap[~mask] = np.mean(wmap[mask]) # fill in empty pixels ?? required for smoothing 
-                sdeg = np.deg2rad(0.25)           # smooth with sigma of 1/4 of a deg
-                wmap = hp.sphtfunc.smoothing(wmap.copy(), sigma=sdeg)
-        #
-        # log
-        log += '{:15s} : \n'.format('HEADER of PHOT attrs')
-        log += '{}\n'.format(h)
-        log += '{:35s} : {}\n'.format('Phot attrs names', labels)
-        log += '\n'
-        log += '{:35s} : {}\n'.format('Shape of the phot. attrs', feats)
-        log += '{:35s} : {}\n'.format('Total number of mask pixels',  mask1.sum())
-        log += '{:35s} : {}\n'.format('Total number of feat pixels',  mask2.sum())
-        log += '{:35s} : {}\n'.format('Total number of overlap mask', mask.sum())      
-        #
-        # plot for nnbar vs. sys.
-        #
-        if feats[1] %  3 == 0:
-            nrows = feats[1] // 3
-        else:
-            nrows = feats[1] // 3 + 1
-            
-        fig, ax = plt.subplots(ncols=3, nrows=nrows, sharey=True, figsize=(12, 3*nrows))
-        plt.subplots_adjust(wspace=0.02, hspace=0.5)
-        ax = ax.flatten()
-        nnbar_res = {'nnbar':[], 'xlabels':labels}
-        #
-        # compute nnbar vs. systematics
-        for i in range(feats[1]):
-            sys_i = np.zeros_like(galmap)
-            sys_i[feat['hpind']] = feat['features'][:,i]
-            #
-            Nnbar = NNBAR(galmap, ranmap, mask, sys_i, nbins=ns.nbin, selection=wmap)
-            Nnbar.run(njack=20)
-            nnbar_res['nnbar'].append(Nnbar.output)
-            ax[i].errorbar(Nnbar.output['bin_edges'][:-1], Nnbar.output['nnbar'],
-                          yerr=Nnbar.output['nnbar_err'])
-            ax[i].axhline(1, linestyle=':', color='k')
-            ax2 = ax[i].twinx()
-            ax2.step(Nnbar.output['bin_edges'][:-1], Nnbar.output['area'],\
-                    where='post', linestyle='--')
-            ax2.set_yticks([])
-            if i%3 == 0:ax[i].set_ylabel(r'N/$\overline{N}$')
-            ax[i].set_xlabel(labels[i])
-            ax[i].set_ylim(0.6, 1.4)
-        #
-        #
-        log += '{:15s} : {}\n'.format('Outputs are under', ns.oudir)
-        fo.write(log)
-        plt.savefig(ns.oudir + ns.nnbar + '.png', bbox_inches='tight', dpi=300)
-        np.save(ns.oudir + ns.nnbar, nnbar_res)
-        if ns.verbose:print(log)
+        Nnbar = NNBAR(galmap, ranmap, mask, sys_i, nbins=ns.nbin, selection=wmap)
+        Nnbar.run(njack=20)
+        nnbar_res['nnbar'].append(Nnbar.output)
+        ax[i].errorbar(Nnbar.output['bin_edges'][:-1], Nnbar.output['nnbar'],
+                      yerr=Nnbar.output['nnbar_err'])
+        ax[i].axhline(1, linestyle=':', color='k')
+        ax2 = ax[i].twinx()
+        ax2.step(Nnbar.output['bin_edges'][:-1], Nnbar.output['area'],\
+                where='post', linestyle='--')
+        ax2.set_yticks([])
+        if i%3 == 0:ax[i].set_ylabel(r'N/$\overline{N}$')
+        ax[i].set_xlabel(labels[i])
+        ax[i].set_ylim(0.6, 1.4)
+    #
+    #
+    log += '{:15s} : {}\n'.format('Outputs are under', ns.oudir)
+    fo.write(log)
+    plt.savefig(ns.oudir + ns.nnbar + '.png', bbox_inches='tight', dpi=300)
+    np.save(ns.oudir + ns.nnbar, nnbar_res)
+    if ns.verbose:print(log)
 
 
-#
-# C_l
-if ns.clfile != 'none':
-    if rank == 0:
+def anafast(delta_ngal, ranmap, mask, lmax, njack=0):
+    map_i          = hp.ma(mask.astype('f8')) 
+    map_i.mask     = np.logical_not(mask) 
+    clmask         = hp.anafast(map_i.filled(), lmax=lmax)
+    sf             = ((2*np.arange(clmask.size)+1)*clmask).sum()/(4.*np.pi)
+
+    map_ngal       = hp.ma(delta_ngal * ranmap)
+    map_ngal.mask  = np.logical_not(mask)
+    cl_auto        = hp.anafast(map_ngal.filled(), lmax=lmax) / sf
+    #
+    if njack == 0:
+        cl_err = 0.0
+    else:
+        cl_err     = clerr_jack(delta_ngal, mask, ranmap, njack=njack, lmax=lmax)
+    return cl_auto, sf, cl_err
+
+
+def run_cl(comm, ns):
+    rank = comm.Get_rank()
+    if rank==0:
         fo   = open(ns.oudir + ns.clfile + '.log', 'w')
         fo.write(log)
         log  = 2*'\n'
@@ -308,14 +267,8 @@ if ns.clfile != 'none':
         #
         #
         # read phot. attributes file, must have hpix, features
-        feat, h   = ft.read(ns.photattrs, header=True, lower=True)
-        feats     = feat['features'].shape
-        mask1     = hp.read_map(ns.mask,   verbose=False).astype('bool')
-        mask2     = np.zeros_like(mask1).astype('bool')
-        mask2[feat['hpind']] = True
-        mask      = mask1 & mask2         # overlap 
-        galmap    = hp.read_map(ns.galmap, verbose=False)
-        ranmap    = hp.read_map(ns.ranmap, verbose=False)
+        galmap, ranmap, mask, feat, h, feats, labels, mask1, mask2 = read2(ns)
+
         #
         # check if weight is available
         if not os.path.isfile(ns.wmap):
@@ -334,20 +287,9 @@ if ns.clfile != 'none':
         delta_ngal = makedelta(galmap, ranmap, mask, select_fun=wmap)
         #
         # compute C_l
-        map_i  = hp.ma(mask.astype('f8')) 
-        map_i.mask = np.logical_not(mask) 
-        clmask = hp.anafast(map_i.filled(), lmax=ns.lmax)
-        sf = ((2*np.arange(clmask.size)+1)*clmask).sum()/(4.*np.pi)
-  
-        map_ngal       = hp.ma(delta_ngal * ranmap)
-        map_ngal.mask  = np.logical_not(mask)
-        cl_auto        = hp.anafast(map_ngal.filled(), lmax=ns.lmax) / sf
-        #
-        if ns.njack == 0:
-            cl_err = 0.0
-        else:
-            cl_err         = clerr_jack(delta_ngal, mask, ranmap, njack=ns.njack, lmax=ns.lmax)
-        #
+        cl_auto, sf, cl_err = anafast(delta_ngal, ranmap, mask, ns.lmax, njack=ns.njack):
+
+#
         # maps to do the cross correlation
         x    = feat['features'][:,ns.axfit]
         hpix = feat['hpind']
@@ -381,7 +323,7 @@ if ns.clfile != 'none':
     hpix       = comm.bcast(hpix, root=0)
     makedelta  = comm.bcast(makedelta, root=0)
     from healpy import ma, anafast
-    
+
     #
     # split the sysmaps (x) among workers
     if x.shape[1]%size ==0:
@@ -426,7 +368,8 @@ if ns.clfile != 'none':
         fo.write(log)
         if ns.verbose:print(log)
 
-if ns.clsys != 'none':
+def run_clsys(comm, ns, labels=None):
+    rank = comm.Get_rank()
     if rank == 0:
         fo   = open(ns.oudir + ns.clsys + '.log', 'w')
         fo.write(log)
@@ -524,10 +467,9 @@ if ns.clsys != 'none':
         log   += '{:35s} : {}\n'.format('Outpus saved under', ns.oudir)
         fo.write(log)
         if ns.verbose:print(log)    
-            
-#
-# Corr
-if ns.corfile != 'none':    
+ 
+def run_corr(comm, ns, labels=None):
+    rank = comm.Get_rank()
     from xi import run_XI
     if rank == 0:        
         fo   = open(ns.oudir + ns.corfile + '.log', 'w')
@@ -627,8 +569,9 @@ if ns.corfile != 'none':
         log   += '{:35s} : {}\n'.format('Outpus saved under', ns.oudir)
         fo.write(log)
         if ns.verbose:print(log)
-            
-if ns.corsys != 'none':    
+
+def run_corrsys(comm, ns):
+    rank = comm.Get_rank()
     from xi import run_XIsys
     if rank == 0:        
         fo   = open(ns.oudir + ns.corsys + '.log', 'w')
@@ -706,3 +649,90 @@ if ns.corsys != 'none':
         log   += '{:35s} : {}\n'.format('Outpus saved under', ns.oudir)
         fo.write(log)
         if ns.verbose:print(log)            
+
+
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
+size = comm.Get_size()
+rank = comm.Get_rank()
+
+
+
+# greetings
+print('Hi from %d'%rank)
+if rank == 0:
+    print('There are %d workers'%size)
+    
+
+if rank == 0:
+    import matplotlib as ml
+    import matplotlib.pyplot as plt
+    ml.use('Agg')
+    plt.rc('font', family='serif')
+    plt.rc('axes.spines', right=False, top=False)
+    
+    import healpy as hp
+    import fitsio as ft
+    
+    from LSSutils.catalogs.datarelease import Columns
+    from argparse import ArgumentParser
+
+    ap = ArgumentParser(description='PHOT attr. correction pipeline')
+    ap.add_argument('--galmap',    default='galaxy.hp.256.fits')
+    ap.add_argument('--ranmap',    default='random.hp.256.fits')
+    ap.add_argument('--splitdata', default='gal-feat.hp.256.k5.fits')
+    ap.add_argument('--photattrs', default='phot-attrs.hp.256.fits')
+    ap.add_argument('--wmap',      default='weights.hp.256.fits')
+    ap.add_argument('--mask',      default='mask.hp.256.fits')
+    ap.add_argument('--log',       default='analysis')
+    ap.add_argument('--clfile',    default='none')
+    ap.add_argument('--clsys',     default='none')    
+    ap.add_argument('--corfile',   default='none')
+    ap.add_argument('--corsys',    default='none')
+    ap.add_argument('--nnbar',     default='none')
+    ap.add_argument('--hpfit',     default='none')
+    ap.add_argument('--survey',    default='none')
+    ap.add_argument('--oudir',     default='./output/')
+    ap.add_argument('--axfit',     nargs='*', type=int,\
+                                   default=[i for i in range(18)])
+    ap.add_argument('--nbin',      default=8, type=int)
+    ap.add_argument('--njack',     default=20, type=int)
+    ap.add_argument('--nside',     default=256, type=int)
+    ap.add_argument('--lmax',      default=512, type=int)
+    ap.add_argument('--smooth',    action='store_true')
+    ap.add_argument('--verbose',   action='store_true')
+    ns = ap.parse_args()
+    
+    # initialize
+    initialize(ns)
+    labels = None     # fixme 
+else:
+    ns     = None
+    labels = None
+ns     = comm.bcast(ns,     root=0)
+labels = comm.bcast(labels, root=0)
+
+# fit multivariate function
+if (ns.hpfit != 'none'):
+    if rank == 0:
+        linfit(ns, labels)
+#      
+# NNbar 
+if (ns.nnbar != 'none'):
+    if rank == 0:
+        run_nnbar(ns, labels)
+#
+# C_l
+if ns.clfile != 'none':
+    run_cl(comm, ns, labels)
+
+if ns.clsys != 'none':
+    run_clsys(comm, ns, labels)
+
+#
+# Corr
+if ns.corfile != 'none':    
+    run_corr(comm, ns, labels)
+
+if ns.corsys != 'none':    
+    run_corrsys(comm, ns, labels)

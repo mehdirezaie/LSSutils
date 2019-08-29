@@ -30,9 +30,9 @@ def maskmap(filename, nside=256):
     if 'ivar' in filename:
         print('change ivar to depth ...')
         signal = IvarToDepth(data['signal'])
-#     elif 'fwhm' in filename:
-#         print('change fwhm to arcsec ...')
-#         signal = data['signal']*0.262
+    #elif 'fwhm' in filename:
+    #    print('change fwhm to arcsec ...')
+    #    signal = data['signal']*0.262
     else:
         signal = data['signal']
 
