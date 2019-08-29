@@ -18,9 +18,13 @@ import os
 import numpy as np
 from   time import time
 import sys
-sys.path.append('/Users/rezaie/github/SYSNet/src')
-sys.path.append('/Users/rezaie/github/LSSutils')
-from LSSutils.catalogs.datarelease import cols_dr8 as labels  
+
+home = os.getenv("HOME")
+
+sys.path.append(home + '/github/SYSNet/src')
+sys.path.append(home + '/github/LSSutils')
+#from LSSutils.catalogs.datarelease import cols_dr8 as labels  
+from LSSutils.catalogs.datarelease import cols_eboss_v6_qso_simp as labels  
 
 if not sys.warnoptions:
     import warnings
@@ -73,7 +77,7 @@ if rank == 0:
     ap.add_argument('--oudir',     default='./output/')
     ap.add_argument('--axfit',     nargs='*', type=int,\
                                    default=[i for i in range(18)])
-    ap.add_argument('--nbin',      default=20, type=int)
+    ap.add_argument('--nbin',      default=8, type=int)
     ap.add_argument('--njack',     default=20, type=int)
     ap.add_argument('--nside',     default=256, type=int)
     ap.add_argument('--lmax',      default=512, type=int)
@@ -409,6 +413,7 @@ if ns.clfile != 'none':
     comm.Barrier()
     my_cl = comm.gather(my_cl, root=0)
     if rank == 0:
+        my_cl  = [mycl for mycl in my_cl if len(mycl)!=0]
         all_cl = np.concatenate(my_cl, axis=0)
         colors = plt.cm.jet
         plt.figure()
@@ -508,6 +513,7 @@ if ns.clsys != 'none':
     comm.Barrier()
     my_cl = comm.gather(my_cl, root=0)
     if rank == 0:
+        my_cl  = [mycl for mycl in my_cl if len(mycl)!=0]
         all_cl = np.concatenate(my_cl, axis=0)
         colors = plt.cm.jet
         plt.figure()
@@ -621,6 +627,7 @@ if ns.corfile != 'none':
     my_xi = comm.gather(my_xi, root=0)
     if rank == 0:
         #print(my_xi, type(my_xi), len(my_xi))
+        my_xi  = [myxi for myxi in my_xi if len(myxi)!=0]
         all_xi = np.concatenate(my_xi, axis=0)
         All_xi = dict(cross=all_xi, auto=xi_auto, clabels=[labels[n] for n in ns.axfit])
         np.save(ns.oudir  + ns.corfile, All_xi)
@@ -700,6 +707,7 @@ if ns.corsys != 'none':
     my_xi = comm.gather(my_xi, root=0)
     if rank == 0:
         #print(my_xi, type(my_xi), len(my_xi))
+        my_xi  = [myxi for myxi in my_xi if len(myxi)!=0]
         all_xi = np.concatenate(my_xi, axis=0)
         All_xi = dict(cross=all_xi, auto=None, clabels=[labels[n] for n in ns.axfit])
         np.save(ns.oudir  + ns.corsys, All_xi)
