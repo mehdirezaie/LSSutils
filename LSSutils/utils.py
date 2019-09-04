@@ -165,13 +165,13 @@ def projectradec2hp(nside, ra, dec, value, statistic='mean'):
                                  bins=nmax, range=(0, nmax))[0]
     return result
 
-def hpixsum(nside, ra, dec, value=None): 
+def hpixsum(nside, ra, dec, value=None, nest=False): 
     '''
         make a healpix map from ra-dec
         default is RING format
         hpixsum(nside, ra, dec, value=None)
     '''
-    pix  = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra))
+    pix  = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra), nest=nest)
     npix = hp.nside2npix(nside)
     w    = np.bincount(pix, weights=value, minlength=npix)
     return w
