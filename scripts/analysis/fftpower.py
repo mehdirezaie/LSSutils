@@ -48,10 +48,10 @@ def read_BigFile(filename):
 from time import time
 from argparse import ArgumentParser
 ap = ArgumentParser(description='Power Spectrum Calculator using Nbodykit')
-ap.add_argument('--input', default='3dbox_nmesh1024_L5274.0_bias1.5_seed1')
-ap.add_argument('--output', default='power_3dbox_nmesh1024_L5274.0_bias1.5_seed1.json')
+ap.add_argument('--input',   default='3dbox_nmesh1024_L5274.0_bias1.5_seed1')
+ap.add_argument('--output',  default='power_3dbox_nmesh1024_L5274.0_bias1.5_seed1.json')
 ap.add_argument('--boxsize', type=float, default=5274)
-ap.add_argument('--nmesh', type=int, default=256)
+ap.add_argument('--nmesh',   type=int,   default=256)
 ns = ap.parse_args()
 #
 t1    = time()

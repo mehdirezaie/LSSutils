@@ -1,10 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy  as np
 import healpy as hp
+import seaborn as sns
+
+
 from matplotlib.projections.geo import GeoAxes
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
-import seaborn as sns
+
+from .utils import binit, binit_jac
 
 
 def hpmollview(map1, unit, ax, smooth=False, cmap=plt.cm.bwr, **kw):
@@ -392,3 +396,166 @@ def ablation_plot_all(files, labels=None, title=None, saveto=None, hold=False):
     # bb1.set_boxstyle("rarrow", pad=0.6)    
     if saveto is not None:plt.savefig(saveto, bbox_inches='tight')
     if not hold:plt.show()
+        
+        
+        
+def plot_cell(filen, clsysname, labels, bins=None, 
+              error=True, corrcoef=True, annot=True, 
+              title=r'Cross C$_\ell$', saveto=None):
+    '''
+    Example:
+    
+    cap    = 'ngc'
+    CAP    = cap.upper()
+    filen  = lambda l:'/home/mehdi/data/eboss/v6/results_'+cap+'.all/clustering/cl_'+CAP+'_'+l+'.npy'
+    clsys  = '/home/mehdi/data/eboss/v6/results_'+cap+'.all/clustering/cl_sys.npy'
+
+    labels = dict(lb = ['v6_wosys', 'v6', 'v6_wosys_z0.8', 'v6_wosys_z1.1', 'v6_wosys_z1.3',
+                        'v6_wosys_z1.5', 'v6_wosys_z1.7', 'v6_wosys_z1.9'],
+                  lt = ['No correction', 'systot (0.8<z<2.2)', '0.8<z<1.1', 
+                        '1.1<z<1.3', '1.3<z<1.5', '1.5<z<1.7', '1.7<z<1.9','1.9<z<2.2'],
+                  c  = ['k', 'k', 'purple', 'royalblue', 'crimson', 'olive', 'g', 'darkorange'],
+                  ls = 3*['-', '--', '-', '-.'],
+                  mk = 3*['.', 'o', '^', 'x'])
+
+    dataviz.plot_cell(filen, clsys, labels, corrcoef=False, title=CAP+'No correction')
+    dataviz.plot_cell(filen, clsys, labels, corrcoef=True,  title=CAP+'No correction')
+    
+    '''
+
+    clsys = np.load(clsysname, allow_pickle=True).item()
+    if bins is None:bins = np.logspace(0, 2.71, 9)
+    #plt.rc('font', size=20)
+    fig, ax = plt.subplots(ncols=4, nrows=5, figsize=(20, 20), sharey=True, sharex=True)
+    plt.subplots_adjust(hspace=0., wspace=0)
+    ax = ax.flatten()
+    
+    lb = labels['lb']
+    c  = labels['c']
+    mk = labels['mk']
+    ls = labels['ls']
+    lt = labels['lt']
+    n  = len(lb)-1
+    for j, lbi in enumerate(lb):
+        d = np.load(filen(lbi), allow_pickle=True).item()
+        
+        # show error-bar
+        if error:
+            if j==0:
+                lb, clbe = binit_jac(d['clerr']['cljks'], bins=bins)
+                for i in range(d['cross'].shape[0]):
+                    ax[i].fill_between(lb, 1.e-13, clbe, color='grey', label=r'Error on C$^{g,g}$', alpha=0.2)
+
+        # show cross power
+        for i in range(d['cross'].shape[0]):
+            l = np.arange(d['cross'][i, :].size)
+            if corrcoef:
+                cl= np.abs(d['cross'][i, :]) / np.sqrt((clsys['cross'][i, :]*d['auto']))
+            else:
+                cl= d['cross'][i, :]**2 / (clsys['cross'][i, :])
+                
+            lb, clb = binit(l, cl, bins=bins)
+            #print(lb, clb)
+            #a[i].plot(l, cl, color=color, label=label, linestyle=ls)
+            ax[i].plot(lb, clb, color=c[j], label=lt[j], marker=mk[j], linestyle=ls[j])
+            
+
+    #
+    if annot:
+        ax[0].legend(**dict(ncol=5, frameon=False,
+                     bbox_to_anchor=(0, 1.1, 4, 0.4), loc="lower left",
+                    mode="expand", borderaxespad=0, fontsize=20, title=title))
+        for i in range(d['cross'].shape[0]):
+            ax[i].set_xscale('log')
+            #ax[0].set_xlim(1, 3)
+            if corrcoef:
+                ax[i].set_ylim(-0.1, 1.)
+            else:
+                ax[i].set_ylim(8.e-9, 1.e-3)
+                #ax[i].set_ylim(1.e-5, 1.e1)
+                ax[i].set_yscale('log')
+            ax[i].text(0.5, 0.8, 'X %s'%d['clabels'][i], transform=ax[i].transAxes)
+            ax[i].grid()
+            
+        if corrcoef:
+            ax[8].set_ylabel(r'$|C^{g,s}_{\ell}|/[C^{s,s}_{\ell} C^{g,g}_{\ell}]^{1/2}$')
+        else:
+            ax[8].set_ylabel(r'$(C^{g,s}_{\ell})^{2}/C^{s,s}_{\ell}$')
+        ax[17].set_xlabel(r'$\ell$')                    
+    if saveto is not None:plt.savefig(saveto, bbox_inches='tight')
+        
+        
+        
+def plot_clxi(filen, filen2, ax, labels, hold=False, bins=None, saveto=None):
+    '''
+    
+    Example :
+    
+    fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(12, 8), sharex='col')
+    ax = ax.flatten()
+    # plt.subplots_adjust(hspace=0.0)
+
+    for i,cap in enumerate(['ngc', 'sgc']):
+        CAP = cap.upper()
+        # #'v6_wnn_p', 'v6_wnnz_p', 'v6_wnnz_abv2', 'v6_wnn_abv2', 'v6_zelnet'],
+        # #'nn (plain)', 'nn-z (plain)', 'nn-z', 'nn', 'elastic-z'],
+        kw     = dict(lb    = ['v6_wosys','v6', 'v6_wnnz_abv2'],
+                      lt    = ['No Correction', 'systot', 'nn-z'], 
+                      c     = ['k', 'k', 'purple', 'royalblue', 'crimson', 'olive', 'g', 'darkorange'],
+                      ls    = 2*['-', '--', '-', '-.', '--', '-'],
+                      mk    = 2*['.', 'o', '^', 'x'],
+                      title = CAP)    
+        filen  = lambda l:'/home/mehdi/data/eboss/v6/results_'+cap+'.all/clustering/cl_'+CAP+'_'+l+'.npy'
+        filen2 = lambda l:'/home/mehdi/data/eboss/v6/results_'+cap+'.all/clustering/xi_'+CAP+'_'+l+'.npy'
+        dataviz.plot_clxi(filen, filen2, [ax[2*i], ax[2*i+1]], kw, hold=True)
+    plt.show() 
+    
+    '''
+    if bins is None:bins=np.logspace(np.log10(0.9), np.log10(1030), 8)
+    
+    
+    lb  = labels['lb']
+    c   = labels['c']
+    mk  = labels['mk']
+    ls  = labels['ls']
+    lt  = labels['lt']
+    ttl = labels['title']
+    
+    #n  = len(lb)-1
+    #fig, ax = plt.subplots(ncols=2, figsize=(8, 4))
+    #plt.subplots_adjust(wspace=0.4)
+
+    kw = dict(bins=bins)
+    for i,lbi in enumerate(lb):
+        cl = np.load(filen(lbi), allow_pickle=True).item()
+        elb, clbe = binit_jac(cl['clerr']['cljks'], **kw)
+        elb, clb  = binit(np.arange(cl['auto'].size), cl['auto'], **kw)
+        #print(clb)
+        ax[0].errorbar(elb, clb, yerr=clbe, marker='.', linestyle=ls[i], color=c[i], label=lt[i])
+
+    ax[0].loglog()
+    ax[0].set_ylim(1.e-7, 1.e-2)
+    ax[0].set_xlabel(r'$\ell$')
+    ax[0].set_ylabel(r'$C_{\ell}$')
+
+    fc = 1.e2
+    for i, xii in enumerate(lb):
+        d = np.load(filen2(xii), allow_pickle=True).item()['auto']
+        t  = 0.5*np.degrees(d['t'][1:]+d['t'][:-1])
+        xi = fc*(d['w']-d['dmean']*d['dmean'])
+
+        xierr=d['werr']
+        #print(xi)
+        ax[1].errorbar(t, xi, yerr=fc*xierr, linestyle=ls[i], color=c[i], label=lt[i])
+        #ax[0].legend(bbox_to_anchor=(0, 1.1, 2, 0.4), loc="lower left",
+        #            mode="expand", borderaxespad=0, ncol=3, frameon=False)    
+        ax[1].set_xlabel(r'$\theta [deg]$')
+        ax[1].set_ylabel(r'$10^{2}\times \omega(\theta)$')
+        ax[1].set_xlim(-0.2, 10)
+        ax[1].set_ylim(-0.5, 2.0)
+        ax[1].grid(True)
+        ax[1].legend(bbox_to_anchor=(1.1,1.0), title=ttl)        
+    if saveto is not None:plt.savefig(saveto, bbox_inches='tight')
+    if not hold:plt.show()
+
+        
