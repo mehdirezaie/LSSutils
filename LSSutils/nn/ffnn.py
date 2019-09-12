@@ -81,7 +81,8 @@ class FFNN(object):
 
         self.early_stop = keras.callbacks.EarlyStopping(monitor=monitor, 
                                                         patience=patience, 
-                                                        min_delta=min_delta)
+                                                        min_delta=min_delta,
+                                                        verbose=1)
         if (len(units)==1) & (units[0]==0):
             logger.info('run linear model')
             model = model0(nfeature, units, **kwargs)
@@ -112,8 +113,9 @@ class FFNN(object):
         t0 = time.time()
         history = self.model.fit(
                                self.train.x, self.train.y,
-                               epochs=nepochs, 
-                               validation_data=(self.valid.x, self.valid.y),
+                               epochs=nepochs,
+                               sample_weight=self.train.w,
+                               validation_data=(self.valid.x, self.valid.y, self.valid.w),
                                verbose=verbose,
                                callbacks=[self.early_stop, PrintDot()],
                                batch_size=batch_size)
@@ -122,6 +124,7 @@ class FFNN(object):
         # perform on test
         Ypred = self.model.predict(self.test.x)    
         loss, mae, mse = self.model.evaluate(self.test.x, self.test.y, 
+                                             sample_weight=self.test.w,
                                              verbose=verbose)    
         self.result =  {'history':history, 
                         'eval':{'loss':loss, 'mae':mae, 'mse':mse}}
@@ -197,7 +200,7 @@ def TABLE(): # create mock
         d['features']=x
 
     d['hpind']=1.
-    d['fracgood']=1.
+    d['fracgood']=1.0
     return d
 
 def test():
@@ -232,6 +235,7 @@ def test():
     myffnn.run()
     myffnn.descale()
     myffnn.make_plots()
+    print(myffnn.model.inputs)
 
     plt.scatter(myffnn.train.x, myffnn.train.y, 2., alpha=0.5)   # plot data
     plt.scatter(myffnn.test.x,  myffnn.Ypred, 2)
