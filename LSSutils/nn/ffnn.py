@@ -1,10 +1,19 @@
+'''
+    Tensorflow 2.x Feed Forward Neural Network
 
+
+    (c) Mehdi Rezaie
+    mr095415@ohio.edu
+'''
 import tensorflow as tf
 from   tensorflow import keras
 from   tensorflow.keras import layers
 import time
 import numpy as np
 
+# to have repeatable results
+# set the graph level seed
+tf.random.set_seed(123456)  
 
 # set logger
 import logging
@@ -66,7 +75,7 @@ def model2(nfeature, units=[20, 20], **kwargs):
 class FFNN(object):
     def __init__(self, train, valid, test,
                   units=[0], monitor='val_loss',
-                  patience=10, min_delta=1.e-7, 
+                  patience=10, min_delta=1.e-8, 
                   learning_rate=0.01,
                   loss='mse', metrics=['mae', 'mse'],
                   **kwargs):
@@ -171,6 +180,17 @@ class FFNN(object):
         plt.show()
         utils.plot_prederr(self.test.y, self.Ypred)              # plot prediction error
         plt.show()
+        # 
+        # plot model
+        #tf.keras.utils.plot_model(
+        #                        self.model,
+        #                        to_file='model.png',
+        #                        show_shapes=False,
+        #                        show_layer_names=True,
+        #                        rankdir='TB',
+        #                        expand_nested=False,
+        #                        dpi=96
+        #                        )
 
 
 class DATA(object):
@@ -180,9 +200,11 @@ class DATA(object):
         self.w = data['fracgood']
         self.p = data['hpind']
 
+
 def TABLE(): # create mock
     # create data
     n = 512
+    np.random.seed(1234567)
     x = np.linspace(0., 2.*np.pi, n)
     np.random.shuffle(x) # inplace 
     y = np.sin(x)
@@ -203,6 +225,7 @@ def TABLE(): # create mock
     d['fracgood']=1.0
     return d
 
+
 def test():
     '''
         Test 
@@ -215,8 +238,6 @@ def test():
     import sys
     sys.path.append('/Users/mehdi/github/LSSutils')
     from LSSutils.utils import split2Kfolds 
-
-
 
     logger.info('Data created')
     # make table [label, features, fracgood, hpind]
@@ -235,7 +256,6 @@ def test():
     myffnn.run()
     myffnn.descale()
     myffnn.make_plots()
-    print(myffnn.model.inputs)
 
     plt.scatter(myffnn.train.x, myffnn.train.y, 2., alpha=0.5)   # plot data
     plt.scatter(myffnn.test.x,  myffnn.Ypred, 2)
