@@ -699,7 +699,8 @@ def plot_clxi(filen, filen2, ax, labels, hold=False, bins=None, saveto=None):
 
         
 def plot_nnbar(nnbars, title=None, axes=[i for i in range(17)],
-               figax=None, annot=False, lb=None, cl=None, err=False):
+               figax=None, annot=False, lb=None, cl=None, err=False,
+              hold=False, lgannot=False):
     '''
     All:
         dataviz.plot_nnbar(['/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z0.8.npy',
@@ -726,7 +727,27 @@ def plot_nnbar(nnbars, title=None, axes=[i for i in range(17)],
                        lb=['0.8<z<1.1', '1.1<z<1.3', '1.3<z<1.5', 
                             '1.5<z<1.7', '1.7<z<1.9', '1.9<z<2.2'],
                        axes=[6], figax=(fig, [ax]),
-                      cl=plt.cm.jet)                    
+                      cl=plt.cm.jet)    
+    Two:
+    fig, ax = plt.subplots(ncols=2, nrows=3, figsize=(16, 18),
+                          sharey=True, sharex='col')
+    plt.subplots_adjust(wspace=0.0, hspace=0.0)
+    ax=ax.flatten()
+    for i, k in enumerate(['v6_wosys', 'v6', 'v6_wnnz_p']):    
+        h = False if i==2 else True
+        lg= False if i==0 else True
+        dataviz.plot_nnbar(['/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_'+k+'_z0.8.npy',
+                           '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_'+k+'_z1.1.npy',
+                           '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_'+k+'_z1.3.npy',
+                           '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_'+k+'_z1.5.npy',
+                           '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_'+k+'_z1.7.npy',
+                           '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_'+k+'_z1.9.npy'
+                          ],
+                           title=k,
+                           lb=['0.8<z<1.1', '1.1<z<1.3', '1.3<z<1.5', 
+                                '1.5<z<1.7', '1.7<z<1.9', '1.9<z<2.2'],
+                           axes=[8, 13], figax=(fig, [ax[2*i], ax[2*i+1]]),
+                          cl=plt.cm.jet, hold=h, lgannot=lg)                          
     '''
     nrows = len(axes)// 4
     if len(axes)%4!=0:nrows +=1
@@ -736,7 +757,8 @@ def plot_nnbar(nnbars, title=None, axes=[i for i in range(17)],
         ax = ax.flatten()    
     else:
         fig, ax = figax
-    if title is not None:fig.suptitle(title)     
+    #if title is not None:fig.suptitle(title)     
+    if title is not None:ax[0].text(0.1, 0.9, title, transform=ax[0].transAxes)
     if cl is None:cl=plt.cm.Blues
     chi2 = lambda y1, y2, ye: np.sum((y1-y2)*(y1-y2)/(ye*ye))/ye.size
     #lt = ['lin', 'NN+Ablation', 'NN', 'quad', 'No Correction']
@@ -768,9 +790,9 @@ def plot_nnbar(nnbars, title=None, axes=[i for i in range(17)],
                         transform=ax[ji].transAxes, color=c)
             if j==n-1:
                 if len(axes)<2:
-                    ax[0].legend(bbox_to_anchor=(1.3, 1.0))
+                    if not lgannot:ax[0].legend(bbox_to_anchor=(1.3, 1.0))
                 else:
-                    ax[0].legend(**dict(ncol=4,frameon=False,
+                    if not lgannot:ax[0].legend(**dict(ncol=4,frameon=False,
                                  bbox_to_anchor=(0, 1.1, 3, 0.4), loc="lower left",
                                  mode="expand", borderaxespad=0, fontsize=20))
                 #ax[0].set_xlim(1, 3)
@@ -782,4 +804,4 @@ def plot_nnbar(nnbars, title=None, axes=[i for i in range(17)],
         print('%.1f  %d  %.1f'%(chi2tot, m, chi2tot/m))
         if annot:ax[-1].text(0.05, 0.9-0.1*j, '%.1f %d %.1f'%(chi2tot, m, chi2tot/m),
                              color=c, transform=ax[-1].transAxes)
-    plt.show()                            
+    if not hold:plt.show()                            
