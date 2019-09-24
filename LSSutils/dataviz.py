@@ -8,9 +8,25 @@ from matplotlib.projections.geo import GeoAxes
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
 
-from .utils import binit, binit_jac
+from .utils import binit, binit_jac, radec2hpix
 
 
+def plot_grid(galm, extent=[100, 275, 10, 70], cmap=plt.cm.Blues, 
+              interpolation='none' , aspect='auto', **kwarg):    
+    nside   = hp.get_nside(galm)
+    ra, dec = np.meshgrid(np.linspace(extent[0], extent[1], 500),
+                          np.linspace(extent[2], extent[3], 500))
+    hpix    = radec2hpix(nside, ra, dec)
+    mymap   = galm[hpix]
+    mymap   = mymap[::-1, :]
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    map1    = ax.imshow(mymap, extent=extent, cmap=cmap, 
+                        interpolation=interpolation, aspect=aspect, 
+                        **kwarg)
+    fig.colorbar(map1, label='Nqso', extend='both')
+    
+    
 def hpmollview(map1, unit, ax, smooth=False, cmap=plt.cm.bwr, **kw):
     '''
     Example:
@@ -484,7 +500,129 @@ def plot_cell(filen, clsysname, labels, bins=None,
         ax[17].set_xlabel(r'$\ell$')                    
     if saveto is not None:plt.savefig(saveto, bbox_inches='tight')
         
+def plot_cross_xi(config):
+    '''
+        from LSSutils.catalogs.datarelease import cols_eboss_v6_qso_simp as xticks
+        config = {
+            'crossxi':{
+                 'files_names':['/home/mehdi/data/eboss/v6/results_ngc.all/clustering/xi_NGC_v6_z0.8.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/xi_NGC_v6_z1.1.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/xi_NGC_v6_z1.3.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/xi_NGC_v6_z1.5.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/xi_NGC_v6_z1.7.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/xi_NGC_v6_z1.9.npy'
+                              ],
+                 'xisys':'/home/mehdi/data/eboss/v6/results_ngc.all/clustering/xi_sys.npy',
+                 'title':'NGC w Systot',
+                 'labels':['0.8<z<1.1', '1.1<z<1.3','1.3<z<1.5', '1.5<z<1.7', '1.7<z<1.9', '1.9<z<2.2'],
+                 'saveto':None,
+                 'colors':None,
+                 'xticks':xticks}          
+             }
+
+        dataviz.plot_cross_xi(config)
+    
+    '''
+    # mpl.rcParams.update(mpl.rcParamsDefault)
+    # params = {
+    # 'axes.spines.right':True,
+    # 'axes.spines.top':True,
+    # 'axes.labelsize': 20,
+    # #'text.fontsize': 8,
+    # 'legend.fontsize': 15,
+    # 'xtick.labelsize': 12,
+    # 'ytick.labelsize': 12,
+    # 'text.usetex': True,
+    # #'figure.figsize': [4, 3],
+    # 'font.family':'serif',
+    # 'font.size':12
+    # }
+    # plt.rcParams.update(params)
+    # plt.rc('xtick', labelsize='medium')
+    # plt.rc('ytick', labelsize='medium')
+    files_names = config['crossxi']['files_names']
+    labels      = config['crossxi']['labels']
+    num_files   = len(files_names)
+    colors      = config['crossxi']['colors']
+    if colors is None:
+        colors = [plt.cm.Blues((i+2)/(num_files+1)) for i in range(num_files)]
         
+    title      = config['crossxi']['title']    
+    linestyles = 10*['-','-.','--', '-']
+    markers    = 10*['^', 's', 'd', 'o']
+    file_xisys = config['crossxi']['xisys']
+    factor     = 1.e3
+    
+    pltarg = dict(ncols=3, nrows=6, sharex=True, figsize=(3*4, 6*3), sharey=True)
+    tckfmt = dict(style='sci', axis='y', scilimits=(0,0))
+    # lgnarg = dict(bbox_to_anchor=(1.1, 0.9), frameon=False, ncol=1, 
+    #               title=config['crossxi']['title'], fontsize=15)
+    lgnarg = dict(ncol=3, frameon=False,
+                  bbox_to_anchor=(0, 1.1, 3, 0.4), loc="lower left",
+                  mode="expand", borderaxespad=0,  title=title)        
+    xlim   = (-0.5, 10.5)
+    ylim   = (-0.5, 5.5)
+    
+    xi_sys  = np.load(file_xisys, allow_pickle=True).item()['cross']
+
+    def add_plot(filename, ax, color='b', label='none', linestyle='-',
+                 xi_sys=xi_sys, errorbar=False, addauto=False, marker='None',
+                factor=factor):    
+        '''
+            
+        '''
+        data     = np.load(filename, allow_pickle=True).item()
+        xi_auto  = data['auto']['werr']# - d['auto']['dmean']**2
+        xi_cross = data['cross']
+        assert data['auto']['dmean'] < 1.0e-8
+
+        for i in range(len(xi_cross)):
+            xi_sys_auto  = xi_sys[i]['w'][0]/xi_sys[i]['w'][1] - xi_sys[i]['dmean']**2
+            
+            myd         = xi_cross[i]
+            angle       = np.degrees(myd['t'][1:])            
+            xi_cross_i  = factor*(myd['w'][0]/myd['w'][1]-myd['dmean1']*myd['dmean2'])**2/xi_sys_auto
+            if errorbar:
+                xi_error = factor*myd['werr']**2/xi_sys_auto
+                ax[i].errorbar(angle, xi_cross_i, yerr=xi_error, 
+                              color=color, label=label,
+                              linestyle=linestyle, marker=marker)
+            else:
+                ax[i].plot(angle, xi_cross_i, color=color, label=label, 
+                          linestyle=linestyle, marker=marker)
+            if addauto:
+                ax[i].fill_between(angle, 0, factor*xi_auto, color='grey', alpha=0.2) #label=r'Error on $\omega^{g,g}$'
+
+    fig, ax = plt.subplots(**pltarg)
+    plt.subplots_adjust(hspace=0.0, wspace=0.0)
+    ax = ax.flatten()
+    for i, fi in enumerate(files_names):
+        if i == 0:
+            addauto=True
+        else:
+            addauto=False
+        add_plot(files_names[i], ax, color=colors[i],
+                 label=labels[i],
+                 linestyle=linestyles[i], addauto=addauto)
+        
+    for i in range(xi_sys.shape[0]):
+        if i ==6:ax[i].set_ylabel(r'$10^{}\times(\omega^{})^{}/\omega^{}$'\
+                                  .format('{%.1f}'%np.log10(factor), '{~g,s}','2', '{s,s}'))
+        if i ==16:ax[i].set_xlabel(r'$\theta$[deg]')
+        ax[i].text(0.65, 0.75, r'%s'\
+                          %config['crossxi']['xticks'][i],
+                           transform=ax[i].transAxes, fontsize=15)
+        ax[i].ticklabel_format(**tckfmt)
+        ax[i].tick_params(axis='y', pad=1.0)
+        ax[i].set_xlim(*xlim)
+        ax[i].set_ylim(*ylim) 
+        
+    ax[0].legend(**lgnarg)
+    #f.delaxes(a[17])
+
+    if config['crossxi']['saveto'] is not None:
+        plt.savefig(config['crossxi']['saveto'], bbox_inches='tight')
+    plt.show()            
         
 def plot_clxi(filen, filen2, ax, labels, hold=False, bins=None, saveto=None):
     '''
@@ -558,4 +696,112 @@ def plot_clxi(filen, filen2, ax, labels, hold=False, bins=None, saveto=None):
     if saveto is not None:plt.savefig(saveto, bbox_inches='tight')
     if not hold:plt.show()
 
+
         
+def plot_nnbar(nnbars, title=None, axes=[i for i in range(17)],
+               figax=None, annot=False, lb=None, cl=None, err=False,
+              hold=False, lgannot=False):
+    '''
+    All:
+        dataviz.plot_nnbar(['/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z0.8.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z1.1.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z1.3.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z1.5.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z1.7.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z1.9.npy'
+                              ],
+                       title='w/ systot',
+                    lb=['0.8<z<1.1', '1.1<z<1.3', '1.3<z<1.5', 
+                        '1.5<z<1.7', '1.7<z<1.9', '1.9<z<2.2'])
+
+    Single:
+        fig, ax = plt.subplots(ncols=1, figsize=(8, 6))
+        dataviz.plot_nnbar(['/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z0.8.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z1.1.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z1.3.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z1.5.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z1.7.npy',
+                               '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z1.9.npy'
+                              ],
+                       title='w/ systot',
+                       lb=['0.8<z<1.1', '1.1<z<1.3', '1.3<z<1.5', 
+                            '1.5<z<1.7', '1.7<z<1.9', '1.9<z<2.2'],
+                       axes=[6], figax=(fig, [ax]),
+                      cl=plt.cm.jet)    
+    Two:
+    fig, ax = plt.subplots(ncols=2, nrows=3, figsize=(16, 18),
+                          sharey=True, sharex='col')
+    plt.subplots_adjust(wspace=0.0, hspace=0.0)
+    ax=ax.flatten()
+    for i, k in enumerate(['v6_wosys', 'v6', 'v6_wnnz_p']):    
+        h = False if i==2 else True
+        lg= False if i==0 else True
+        dataviz.plot_nnbar(['/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_'+k+'_z0.8.npy',
+                           '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_'+k+'_z1.1.npy',
+                           '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_'+k+'_z1.3.npy',
+                           '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_'+k+'_z1.5.npy',
+                           '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_'+k+'_z1.7.npy',
+                           '/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_'+k+'_z1.9.npy'
+                          ],
+                           title=k,
+                           lb=['0.8<z<1.1', '1.1<z<1.3', '1.3<z<1.5', 
+                                '1.5<z<1.7', '1.7<z<1.9', '1.9<z<2.2'],
+                           axes=[8, 13], figax=(fig, [ax[2*i], ax[2*i+1]]),
+                          cl=plt.cm.jet, hold=h, lgannot=lg)                          
+    '''
+    nrows = len(axes)// 4
+    if len(axes)%4!=0:nrows +=1
+    if figax is None:
+        fig, ax = plt.subplots(ncols=4, nrows=nrows, figsize=(20, 4*nrows), sharey=True)
+        plt.subplots_adjust(hspace=0.3, wspace=0.1)
+        ax = ax.flatten()    
+    else:
+        fig, ax = figax
+    #if title is not None:fig.suptitle(title)     
+    if title is not None:ax[0].text(0.1, 0.9, title, transform=ax[0].transAxes)
+    if cl is None:cl=plt.cm.Blues
+    chi2 = lambda y1, y2, ye: np.sum((y1-y2)*(y1-y2)/(ye*ye))/ye.size
+    #lt = ['lin', 'NN+Ablation', 'NN', 'quad', 'No Correction']
+    #cl = ['r', 'b', 'k', 'g', 'purple']
+    ls = ['--', ':', '-', '-.', '-']
+    n  = len(nnbars)
+    for j,nnbar_i in enumerate(nnbars):
+        nnbar = np.load(nnbar_i, allow_pickle=True).item()
+        lt = lb[j]
+        #lt = '_'.join([nnbar_i.split('/')[-1].split('_')[1], nnbar_i.split('/')[-1].split('_')[-1][:-4]])
+        #print(lt, end=' ')
+        c  = cl((j+2)/(n+1))        
+        chi2tot = 0.0
+        m = 0
+        for ji,i in enumerate(axes):
+            mynnb = nnbar['nnbar'][i]
+            x     = 0.5*(mynnb['bin_edges'][1:]+mynnb['bin_edges'][:-1])
+            y     = mynnb['nnbar']
+            ye    = mynnb['nnbar_err']
+            chi2i = chi2(y, 1.0, ye)
+            chi2tot += chi2i
+            if err:
+                ax[ji].errorbar(x, y, yerr=ye, marker='.', color=c, label=lt)
+            else:
+                ax[ji].plot(x, y, marker='.', color=c, label=lt)
+                ax[ji].fill_between(x, 1-ye, 1+ye, color=c, alpha=0.2)
+            if annot:
+                ax[ji].text(0.05+0.15*j, 0.9, '%.1f'%chi2i, 
+                        transform=ax[ji].transAxes, color=c)
+            if j==n-1:
+                if len(axes)<2:
+                    if not lgannot:ax[0].legend(bbox_to_anchor=(1.3, 1.0))
+                else:
+                    if not lgannot:ax[0].legend(**dict(ncol=4,frameon=False,
+                                 bbox_to_anchor=(0, 1.1, 3, 0.4), loc="lower left",
+                                 mode="expand", borderaxespad=0, fontsize=20))
+                #ax[0].set_xlim(1, 3)
+                ax[ji].set_ylim(0.9, 1.1)
+                ax[ji].set_xlabel(nnbar['xlabels'][i])
+                ax[ji].grid()
+                if ji==0:ax[ji].set_ylabel(r'$\frac{n}{\overline{n}}$')
+            m +=1
+        print('%.1f  %d  %.1f'%(chi2tot, m, chi2tot/m))
+        if annot:ax[-1].text(0.05, 0.9-0.1*j, '%.1f %d %.1f'%(chi2tot, m, chi2tot/m),
+                             color=c, transform=ax[-1].transAxes)
+    if not hold:plt.show()                            
