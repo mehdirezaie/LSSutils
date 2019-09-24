@@ -54,7 +54,7 @@ class Netregression(object):
     def train_evaluate(self, learning_rate=0.001,
                        batchsize=100, nepoch=10, nchain=5,
                       Units=[10,10], tol=1.e-5, scale=0.0,
-                       actfunc=tf.nn.relu, patience=10):
+                       actfunc=tf.nn.relu, patience=10, verbose=False):
         #
         #from tensorflow.python.framework import ops
 
@@ -108,7 +108,7 @@ class Netregression(object):
         np.random.seed(global_seed)
         seeds = np.random.randint(0, 4294967295, size=nchain)
 
-        ichain = tqdm.tqdm(total=nchain, desc='Chain', position=0)
+        if verbose:ichain = tqdm.tqdm(total=nchain, desc='Chain', position=0)
         for ii in range(nchain): # loop on chains
             #tf.set_random_seed(seeds[ii]) # set the seed
             tf.compat.v1.set_random_seed(seeds[ii])
@@ -197,7 +197,7 @@ class Netregression(object):
             #sess = tf.InteractiveSession(config=config)
             sess = tf.compat.v1.InteractiveSession()
             tf.compat.v1.global_variables_initializer().run() 
-            iepoch = tqdm.tqdm(total=nepoch+1, desc='Epoch', position=1)
+            if verbose:iepoch = tqdm.tqdm(total=nepoch+1, desc='Epoch', position=1)
             for i in range(nepoch+1): # loop on training epochs
                 #
                 # save train & test MSE at each epoch
@@ -224,7 +224,7 @@ class Netregression(object):
                     batch_xs, batch_ys, batch_ws = train.X[ji:jj], train.Y[ji:jj], train.W[ji:jj]   # use up to the last element
                     # train NN at each update
                     sess.run(train_step, feed_dict={x: batch_xs, y_:batch_ys, w:batch_ws})
-                iepoch.update(1)
+                if verbose:iepoch.update(1)
             #
             
             # save the final test MSE and prediction for each chain 
@@ -233,7 +233,7 @@ class Netregression(object):
             self.epoch_MSEs.append([ii, y_mse, np.array(mse_list)])
             sess.close()
             tf.reset_default_graph()
-            ichain.update(1)
+            if verbose:ichain.update(1)
         # baseline model is the average of training label
         # baseline mse
         baselineY  = np.mean(train.Y)
