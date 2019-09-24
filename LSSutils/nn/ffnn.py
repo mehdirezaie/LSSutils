@@ -11,15 +11,28 @@ from   tensorflow.keras import layers
 import time
 import numpy as np
 
+# Keras
+#from tensorflow.keras.callbacks import CSVLogger
+#csv_logger = CSVLogger('log.csv', append=True, separator=';')
+
+
 # to have repeatable results
 # set the graph level seed
 tf.random.set_seed(123456)  
 
 # set logger
 import logging
+
+import absl.logging
+logging.root.removeHandler(absl.logging._absl_handler)
+absl.logging._warn_preinit_stderr = False
+
+
 logger = tf.get_logger()
 logger.setLevel(logging.INFO)
-logger.info('TensorFlow version: {}'.format(tf.__version__))
+
+# create formatter and add it to the handlers
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 
 
@@ -76,7 +89,7 @@ class FFNN(object):
     def __init__(self, train, valid, test,
                   units=[0], monitor='val_loss',
                   patience=10, min_delta=1.e-8, 
-                  learning_rate=0.01,
+                  learning_rate=0.001,
                   loss='mse', metrics=['mae', 'mse'],
                   **kwargs):
         '''
@@ -87,7 +100,8 @@ class FFNN(object):
             nfeature  = train.x.shape[1]
         except:
             nfeature  = 1
-
+        #logger = logging.getLogger(__name__)
+        logger.info('regression with %d features'%nfeature)
         self.early_stop = keras.callbacks.EarlyStopping(monitor=monitor, 
                                                         patience=patience, 
                                                         min_delta=min_delta,
@@ -135,17 +149,25 @@ class FFNN(object):
         loss, mae, mse = self.model.evaluate(self.test.x, self.test.y, 
                                              sample_weight=self.test.w,
                                              verbose=verbose)    
+
+        # baseline
+        assert np.mean(self.train.y) < 1.e-8
+        mse_base    = np.mean(self.test.y*self.test.y)
+
         self.result =  {'history':history, 
                         'eval':{'loss':loss, 'mae':mae, 'mse':mse}}
         self.Ypred  = Ypred.flatten()  # flatten the target
-        logger.info('Test LOSS : {:.3f} MAE : {:.3f} MSE : {:.3f}'\
+        logger.info('Test LOSS : {0:.3f} MAE : {1:.3f} MSE : {2:.3f}'\
                     .format(loss, mae, mse))
+        logger.info('Baseline test MSE : {:.3f}'.format(mse_base))
+
+
 
     def scale(self):
         #
         # Z-score
-        self.meanX   = np.mean(self.train.x)
-        self.stdX    =   np.std(self.train.x)
+        self.meanX   = np.mean(self.train.x, axis=0)
+        self.stdX    = np.std(self.train.x, axis=0)
 
         logger.info('scale features')
         self.train.x = (self.train.x - self.meanX)/self.stdX
@@ -226,6 +248,57 @@ def TABLE(): # create mock
     return d
 
 
+def run_nn():
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import sys
+    sys.path.append('/Users/mehdi/github/LSSutils')
+    from LSSutils.utils import split2Kfolds 
+
+
+
+    # create file handler which logs even debug messages
+    fh = logging.FileHandler('test.log')
+    fh.setLevel(logging.INFO)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+
+    logger.info('TensorFlow version: {}'.format(tf.__version__))
+
+
+
+    logger.info('Data created')
+    # make table [label, features, fracgood, hpind]
+    #Table  = TABLE()          # make table
+    #Data5f = split2Kfolds(Table, k=5)     # split
+    
+    fname  =sys.argv[1]
+    Data5f = np.load(fname, allow_pickle=True).item()
+
+    #print(Data5f.keys())
+    #sys.exit()
+    # take one fold for example
+    fold   = 'fold0'
+    train  = DATA(Data5f['train'][fold])
+    test   = DATA(Data5f['test'][fold])
+    valid  = DATA(Data5f['validation'][fold])
+
+    # run the FFNN
+    myffnn = FFNN(train, valid, test, units=[20], **kwargs)
+    myffnn.scale()
+    myffnn.run(verbose=1)
+    myffnn.descale()
+    myffnn.make_plots()
+
+
+    #plt.scatter(myffnn.train.x, myffnn.train.y, 2., alpha=0.5)   # plot data
+    #plt.scatter(myffnn.test.x,  myffnn.Ypred, 2)
+    #plt.show()
+     
+    print(myffnn.model.get_config())  # print config
+
+   
+
 def test():
     '''
         Test 
@@ -264,4 +337,5 @@ def test():
     print(myffnn.model.get_config())  # print config
 
 if __name__ == '__main__':
-    test()
+    #test()
+    run_nn()
