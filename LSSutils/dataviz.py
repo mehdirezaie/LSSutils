@@ -4,6 +4,7 @@ import healpy as hp
 import seaborn as sns
 
 
+from matplotlib.gridspec import GridSpec
 from matplotlib.projections.geo import GeoAxes
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
@@ -313,7 +314,64 @@ def read_ablation_file(filename,
 
     return matric, FEAT
 
+class plot_multivariate_params(object):
+    """"
+    files = glob('/home/mehdi/data/eboss/v6/imag_splits/regression/mult_ngc.*/regression_log.npy')
+    labels = {'0':'i<=%.2f'%19.948435,
+             '1':'%.2f<i<=%.2f'%(19.948435, 20.585423),
+             '2':'%.2f<i<=%.2f'%(20.585423, 21.108092),
+             '3':'%.2f<i'%21.108092}
+    colnames = ['b'] + colnames
 
+    m  = ['.', 'x', 's', '^']
+    ls = ['-', '--', ':', '-.']
+    mult_params = dataviz.plot_multivariate_params(colnames)
+
+    for i,f_i in enumerate(files):
+
+        d_i      = np.load(f_i, allow_pickle=True).item()    
+        lparams  = d_i['params']['lin'] # 
+        nparams  = np.arange(len(lparams[0]))+(-0.1+0.05*i)
+        arrays   = (nparams, lparams[0], np.diag(lparams[1])**0.5)
+        kwargs   = dict(marker=m[i], ls=ls[i], label=labels[str(i)])
+
+        mult_params(*arrays, **kwargs)
+
+    mult_params.show()
+    
+    """
+    def __init__(self, colnames, ylim1=(0.95, 1.05), ylim2=(-0.4, 0.4), d=0.01):
+        #
+        fig = plt.figure(figsize=(10, 6))
+        gs  = GridSpec(2, 1, height_ratios=[1, 4], figure=fig)
+        ax1 = plt.subplot(gs[0])
+        ax2 = plt.subplot(gs[1])
+        ax1.spines['bottom'].set_visible(False)
+        ax1.spines['top'].set_visible(False)
+        ax1.spines['right'].set_visible(False)
+        ax1.set_xticks([])
+        ax2.spines['top'].set_visible(False)
+        ax2.spines['right'].set_visible(False)
+        ax2.set_xticks([i for i in range(len(colnames))])
+        ax2.set_xticklabels(colnames, rotation=90)
+        kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
+        ax1.plot((-d, +d), (-d/2, +d/2), **kwargs)        # top-left diagonal
+        kwargs.update(transform=ax2.transAxes)            # switch to the bottom axes
+        ax2.plot((-d, +d), (1 - d/2, 1 + d/2), **kwargs)  # bottom-left diagonal
+        ax2.grid(True)
+        ax1.set_ylim(*ylim1)
+        ax2.set_ylim(*ylim2)
+        self.ax1 = ax1
+        self.ax2 = ax2
+        
+    def __call__(self, *arrays, **kwargs):        
+        self.ax1.errorbar(*arrays, **kwargs)
+        self.ax2.errorbar(*arrays, **kwargs)
+    
+    def show(self):
+        self.ax2.legend(bbox_to_anchor=(0.8, 1.2))
+        plt.show()
+    
 
 def ablation_plot(filename,  
                   labels=None, 
@@ -373,8 +431,7 @@ def ablation_plot(filename,
     if saveto is not None: plt.savefig(saveto, bbox_inches='tight') 
     if not hold:plt.show()
 
-def ablation_plot_all(files, labels=None, title=None, saveto=None, hold=False):
-    from   matplotlib.gridspec import GridSpec
+def ablation_plot_all(files, labels=None, title=None, saveto=None, hold=False):    
     f = plt.figure(figsize=(12, 6))
     gs = GridSpec(2, 6, figure=f)
     gs.update(wspace=0.15, hspace=0.35)
