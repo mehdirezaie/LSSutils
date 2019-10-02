@@ -255,7 +255,9 @@ def get_selected_maps(files1=None, tl=['eBOSS QSO V6'],
                 colors = np.array([plt.cm.Reds(i/n) for i in range(n)])
                 m += n
                 for j in range(n):
+                    ax.scatter(i, axes[i][j], c='k', marker='x')                    
                     ax.scatter(i, axes[i][j], c=[colors[j]], marker='o', **kw)   
+   
                     
     def get_axes(files, verbose=False):    
         axes = []
