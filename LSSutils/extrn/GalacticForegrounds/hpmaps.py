@@ -55,13 +55,13 @@ def G_to_C(mapi, res_in=1024, res_out=256):
 
 class logHI(object):
     ''' Reads Lenz et. al. HI column density '''
-    def __init__(self, nside=256):
+    def __init__(self, nside=256, name='/Volumes/TimeMachine/data/NHI_HPX.fits'):
 
         self.nside    = nside
         nside_in      = 1024        
         self.ordering = 'ring'
         self.unit     = 'Lenz et. al. HI'
-        self.name     = '/Volumes/TimeMachine/data/NHI_HPX.fits'
+        self.name     = name
         
         if nside!= nside_in:warnings.warn('upgrading/downgrading HI column density')
         nhi           = ft.FITS(self.name, lower=True)
