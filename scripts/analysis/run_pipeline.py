@@ -23,8 +23,8 @@ home = os.getenv("HOME")
 
 sys.path.append(home + '/github/SYSNet/src')
 sys.path.append(home + '/github/LSSutils')
-#from LSSutils.catalogs.datarelease import cols_dr8 as labels  
-from LSSutils.catalogs.datarelease import cols_eboss_v6_qso_simp as labels  
+from LSSutils.catalogs.datarelease import cols_dr8 as labels  
+#from LSSutils.catalogs.datarelease import cols_eboss_v6_qso_simp as labels  
 
 if not sys.warnoptions:
     import warnings

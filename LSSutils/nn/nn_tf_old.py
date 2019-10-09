@@ -232,7 +232,7 @@ class Netregression(object):
             self.chain_y.append([ii, y_pred])
             self.epoch_MSEs.append([ii, y_mse, np.array(mse_list)])
             sess.close()
-            tf.reset_default_graph()
+            tf.compat.v1.reset_default_graph()
             if verbose:ichain.update(1)
         # baseline model is the average of training label
         # baseline mse

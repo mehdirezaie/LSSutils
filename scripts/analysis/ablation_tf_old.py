@@ -4,15 +4,15 @@
 '''
 
 import sys
-sys.path.append('/Users/rezaie/github/LSSutils')
+sys.path.append('/home/mehdi/github/LSSutils')
 from LSSutils.nn.nn_tf_old import Netregression
 import numpy as np
 from   time import time
 
 
 #
-CONFIG = dict(nchain=10, batchsize=1024,
-              nepoch=500, Units=[0], tol=1.e-4, 
+CONFIG = dict(nchain=3,   batchsize=1024,
+              nepoch=500, Units=[0], tol=1.e-6, 
               learning_rate=0.001, scale=0.0)
 # 
 def fix(data, ax=list(range(18))):
