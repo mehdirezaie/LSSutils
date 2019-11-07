@@ -11,7 +11,7 @@ from   time import time
 
 
 #
-CONFIG = dict(nchain=3,   batchsize=1024,
+CONFIG = dict(nchain=5,   batchsize=1024,
               nepoch=500, Units=[0], tol=1.e-6, 
               learning_rate=0.001, scale=0.0)
 # 

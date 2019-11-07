@@ -39,6 +39,27 @@ from scipy.stats import binned_statistic
 
 
 
+def split_mask(mask_in, mask_ngc, mask_sgc, nside=256):    
+    mask = hp.read_map(mask_in, verbose=False).astype('bool')
+    mngc, msgc = split2caps(mask, nside=nside)
+    
+    hp.write_map(mask_ngc, mngc, fits_IDL=False, dtype='float64')
+    hp.write_map(mask_sgc, msgc, fits_IDL=False, dtype='float64')
+    print('done')
+    
+
+def split2caps(mask, coord='C', nside=256):
+    if coord != 'C':raise RuntimeError('check coord')
+    r = hp.Rotator(coord=['C', 'G'])
+    theta, phi = hp.pix2ang(256, np.arange(12*256*256))
+    theta_g, phi_g = r(theta, phi) # C to G
+    ngc = theta_g < np.pi/2
+    sgc = ~ngc
+    mngc = mask & ngc
+    msgc = mask & sgc   
+    return mngc, msgc
+
+
 def G_to_C(mapi, res_in=1024, res_out=256):
     '''
         Rotate the HI column density from G to C
@@ -177,7 +198,7 @@ def hpixsum(nside, ra, dec, value=None, nest=False):
     return w
 
 def makedelta(map1, weight1, mask, select_fun=None, is_sys=False):
-    delta = np.zeros_like(map1)
+    delta = np.zeros_like(map1)*np.nan
     if select_fun is not None:
         gmap = map1 / select_fun
     else:

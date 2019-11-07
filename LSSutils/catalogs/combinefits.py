@@ -274,8 +274,8 @@ class swap_weights(object):
             # swap
             # get the neighbors mean for non-probed pixels
             self.wmap_data = my_wmap[data_hpix]  
-            
-            NaNs = np.isnan(self.wmap_data)
+            NaNs = np.isnan(self.wmap_data) | (self.wmap_data < 0.0)
+
             if NaNs.sum() !=0:                
                 nanweights     = np.argwhere(NaNs).flatten()
                 nanhpix        = data_hpix[nanweights]
@@ -284,7 +284,8 @@ class swap_weights(object):
                 self.wmap_data[nanweights] = np.nanmean(my_wmap[neighbors], axis=0)
                 print('# NaNs (after)  : ', np.isnan(self.wmap_data).sum())
 
-
+            #print(keyi, self.wmap_data.min(), self.wmap_data.max(), NaNs.sum())
+            print(keyi, self.wmap_data.min(), self.wmap_data.max())
             #self.wmap_data = self.wmap_data.clip(0.5, 2.0)
             assert np.all(self.wmap_data > 0.0),'the weights are zeros!'
             self.data[colname][my_mask] = 1./self.wmap_data            
