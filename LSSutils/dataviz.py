@@ -164,6 +164,10 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
         fig = plt.figure(figsize=(width, 2/3*width))
         # matplotlib is doing the mollveide projection
         ax = fig.add_subplot(111, projection='mollweide')
+        spacing = 0.01
+        plt.subplots_adjust(bottom=spacing, top=1-spacing, 
+                            left=spacing,   right=1-spacing,
+                            hspace=0.0)
     else:
         fig = figax[0]
         ax  = figax[1]
@@ -184,7 +188,8 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
         #cax = plt.axes([.9, 0.2, 0.01, 0.6])  # vertical
         cax = plt.axes([0.2, 0.0, 0.6, 0.01])  # horizontal
         cb  = fig.colorbar(image, cax=cax, label=unit, 
-                           shrink=0.6, pad=0.05, ticks=[vmin, vmax], orientation='horizontal', extend='both')        
+                           shrink=0.6, pad=0.05, ticks=[vmin, vmax], 
+                           orientation='horizontal', extend='both')        
         #cb = fig.colorbar(image, orientation='horizontal', shrink=.6, pad=0.05, ticks=[vmin, vmax])
         #cb.ax.xaxis.set_label_text(unit)
         cb.ax.xaxis.labelpad = -8
