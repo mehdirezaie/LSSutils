@@ -607,12 +607,13 @@ def plot_cross_xi(config):
         colors = [plt.cm.Blues((i+2)/(num_files+1)) for i in range(num_files)]
         
     title      = config['crossxi']['title']    
-    linestyles = 10*['-','-.','--', '-']
-    markers    = 10*['^', 's', 'd', 'o']
+    linestyles = 50*['-','-.','--', '-']
+    markers    = 50*['^', 's', 'd', 'o']
     file_xisys = config['crossxi']['xisys']
     factor     = 1.e3
     
-    pltarg = dict(ncols=3, nrows=6, sharex=True, figsize=(3*4, 6*3), sharey=True)
+    nrows  = len(config['crossxi']['xticks']) // 3
+    pltarg = dict(ncols=3, nrows=nrows, sharex=True, figsize=(3*4, nrows*3), sharey=True)
     tckfmt = dict(style='sci', axis='y', scilimits=(0,0))
     # lgnarg = dict(bbox_to_anchor=(1.1, 0.9), frameon=False, ncol=1, 
     #               title=config['crossxi']['title'], fontsize=15)

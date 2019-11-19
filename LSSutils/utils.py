@@ -39,6 +39,50 @@ from scipy.stats import binned_statistic
 
 
 
+def radec2hpix(nside, ra, dec):
+    pix = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra))
+    return pix
+
+
+
+
+class SYSWEIGHT(object):
+    '''
+    Read the systematic weights in healpix
+    Assigns them to a set of RA and DEC (both in degrees)
+
+    ex:
+        > Mapper = SYSWEIGHT('nn-weights.hp256.fits')
+        > wsys = Mapper(ra, dec)    
+    '''
+    def __init__(self, filename, hpfile=False):
+        if hpfile:
+            self.wmap  = filename
+        else:
+            self.wmap  = hp.read_map(filename, verbose=False)
+        
+        self.nside = hp.get_nside(self.wmap)
+
+    def __call__(self, ra, dec):
+        hpix = radec2hpix(self.nside, ra, dec)
+        wsys = self.wmap[hpix]
+        # check if there is any NaNs
+        NaNs = np.isnan(wsys)
+        if NaNs.sum() !=0:
+            nan_wsys = np.argwhere(NaNs).flatten()
+            nan_hpix = hpix[nan_wsys]
+            
+            # use the average of the neighbors
+            print('# NaNs (before) : %d'%len(nan_hpix))
+            neighbors = hp.get_all_neighbours(self.nside, nan_hpix) 
+            wsys[nan_wsys] = np.nanmean(self.wmap[neighbors], axis=0)
+
+            NNaNs  = np.isnan(wsys).sum()
+            print('# NaNs (after)  : %d'%NNaNs)
+            if NNaNs != 0:raise RuntimeError('Uncovered sample')
+        return 1./wsys
+
+
 def split_mask(mask_in, mask_ngc, mask_sgc, nside=256):    
     mask = hp.read_map(mask_in, verbose=False).astype('bool')
     mngc, msgc = split2caps(mask, nside=nside)
