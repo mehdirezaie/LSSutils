@@ -39,6 +39,25 @@ from scipy.stats import binned_statistic
 
 
 
+
+
+def flux_to_mag(flux, band, ebv=None):
+    ''' Converts SDSS fluxes to magnitudes, correcting for extinction optionally (EBV)'''
+    #index_b = dict(zip(['u', 'g', 'r', 'i', 'z'], np.arange(5)))
+    #index_e = dict(zip(['u', 'g', 'r', 'i', 'z'], [4.239,3.303,2.285,1.698,1.263]))    
+    #-- coefs to convert from flux to magnitudes
+    b   = np.array([1.4, 0.9, 1.2, 1.8, 7.4])[band]*1.e-10
+    mag = -2.5/np.log(10.)*(np.arcsinh((flux/1.e9)/(2*b)) + np.log(b))
+    if ebv is not None:
+        #-- extinction coefficients for SDSS u, g, r, i, and z bands
+        ext_coeff = np.array([4.239, 3.303, 2.285, 1.698, 1.263])[band]
+        mag -= ext_coeff*ebv
+    return mag
+
+
+
+
+
 def radec2hpix(nside, ra, dec):
     pix = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra))
     return pix
