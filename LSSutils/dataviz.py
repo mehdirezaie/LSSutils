@@ -75,7 +75,8 @@ def cm2inch(cm):
 
 def mollview(m, vmin, vmax, unit, use_mask=False, 
              maskname=None, rotate=2/3*np.pi, xsize=1000,
-            width=7, figax=None, colorbar=False, cmap=plt.cm.bwr, **kwargs):
+             width=7, figax=None, colorbar=False, cmap=plt.cm.bwr,
+             galaxy=False, **kwargs):
     '''
         (c)Andrea Zonca, https://github.com/zonca/paperplots 
         modified by Mehdi Rezaie for galaxy counts
@@ -102,6 +103,44 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
         dataviz.mollview(d1, vmin, vmax, unit, figax=[fig, ax1], cmap=dataviz.mycolor(), colorbar=True)
         plt.savefig('./delta_dr8.png', bbox_inches='tight', dpi=300)
         
+        
+        
+        data = ft.read('/Users/mehdi/Dropbox/forMehdi/pixweight_ar-dr8-0.32.0-elgsv.fits')
+        wsys = hp.read_map('/Users/mehdi/Downloads/nn-weights.hp256.fits')
+        ebv = hp.reorder(data['EBV'], n2r=True)
+        ebv[ebv==-1] = np.nan
+
+        depth = hp.reorder(data['GALDEPTH_G'], n2r=True)
+        depth[depth==-1] = np.nan
+
+        frac = hp.reorder(data['FRACAREA'], n2r=True)
+        elg = hp.reorder(data['SV'], n2r=True)
+        elg[frac==0.0] = np.nan
+        fig = plt.figure(figsize=(5, 7))
+        # matplotlib is doing the mollveide projection
+        ax0  = fig.add_axes([0, 0, 1., 1],       projection='mollweide')
+        ax1  = fig.add_axes([0., -0.3, 1., 1], projection='mollweide')
+        ax2  = fig.add_axes([0., -0.6, 1., 1], projection='mollweide')
+        ax3  = fig.add_axes([0., -.9, 1., 1], projection='mollweide')
+        kw = {'unit':'', 'galaxy':False}
+        dataviz.mollview(elg, vmin=3000, vmax=7500, 
+                         cmap=dataviz.mycolor(), 
+                         figax=[fig, ax0], **kw)
+
+        dataviz.mollview(depth, vmin=0, vmax=2000, 
+                         cmap=plt.cm.viridis, 
+                         figax=[fig, ax1], **kw)
+
+        dataviz.mollview(ebv, vmin=0.0, vmax=0.05, 
+                         cmap=plt.cm.viridis,
+                         figax=[fig, ax2], **kw)
+
+        dataviz.mollview(wsys, vmin=0.8, vmax=1.2, 
+                         cmap=dataviz.mycolor(),
+                         figax=[fig, ax3], **kw)
+
+        for axi in [ax0, ax1, ax2, ax3]:axi.set(xticks=[], yticks=[])
+        
     '''    
     nside     = hp.npix2nside(len(m))
     rotatedeg = np.degrees(rotate)    
@@ -109,9 +148,10 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
 
     
     # galactic plane
-    r = hp.Rotator(coord=['G','C'])
-    theta_gal, phi_gal = np.zeros(1000)+np.pi/2, np.linspace(0, 360, 1000)
-    theta_cl,  phi_cl  = r(theta_gal, phi_gal)
+    if galaxy:        
+        r = hp.Rotator(coord=['G','C'])
+        theta_gal, phi_gal = np.zeros(1000)+np.pi/2, np.linspace(0, 360, 1000)
+        theta_cl,  phi_cl  = r(theta_gal, phi_gal)
     
     # set up the grid
     theta      = np.linspace(np.pi,  0.0,   ysize)
@@ -176,8 +216,10 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
     # flip longitude to the astro convention
     image = ax.pcolormesh(longitude, latitude, rot(grid_map, rotatedeg), 
                            vmin=vmin, vmax=vmax, rasterized=True, cmap=cmap)
-    ax.scatter(phi_cl-2/3*np.pi, np.pi/2-theta_cl, 2, color='r')
-    ax.scatter(phi_cl+4/3*np.pi, np.pi/2-theta_cl, 2, color='r')
+    
+    if galaxy:
+        ax.scatter(phi_cl-2/3*np.pi, np.pi/2-theta_cl, 2, color='r')
+        ax.scatter(phi_cl+4/3*np.pi, np.pi/2-theta_cl, 2, color='r')
     # graticule
     ax.set_longitude_grid(60)
     ax.set_latitude_grid(30)
