@@ -160,14 +160,14 @@ class EBOSSCAT(object):
     '''
         Class to facilitate reading eBOSS cats
     '''
-    def __init__(self, gals, weights=['weight_noz', 'weight_cp'], verbose=False):
+    def __init__(self, gals, weights=['weight_noz', 'weight_cp'], verbose=False, lower=True):
         #
         self.weightnames = weights
 
         if verbose:print('len of gal cats %d'%len(gals))
         gal = []
         for gali in gals:
-            gald = ft.read(gali, lower=True)
+            gald = ft.read(gali, lower=lower)
             gal.append(gald)
             
         #    
@@ -176,10 +176,10 @@ class EBOSSCAT(object):
         
         # 
         self.gal0  = gal
-        self.cols = gal.dtype.names
+        self.cols  = gal.dtype.names
         for colname in ['ra', 'dec', 'z', 'nz']+weights:
             if colname not in self.cols:raise RuntimeError('%s not in columns'%colname)
-        self.num  = gal['ra'].size
+        self.num   = gal['ra'].size
         self.ra0   = gal['ra']
         self.dec0  = gal['dec']
         self.z0    = gal['z']
@@ -196,20 +196,23 @@ class EBOSSCAT(object):
         #
         self.w0 = value
         self.verbose = verbose
+        self.iscut = False
         
-    def apply_zcut(self, zcuts=[None, None]):
+    def apply_zcut(self, zcuts=[None, None], column='z'):
+        self.iscut = True
         #
         # if no limits were provided
-        zmin = self.z0.min()
-        zmax = self.z0.max()
+        zmin = self.gal0[column].min()
+        zmax = self.gal0[column].max()
         if (zcuts[0] is None):
             zcuts[0] = zmin-1.e-7
         if (zcuts[1] is None):
             zcuts[1] = zmax+1.e-7
-        if self.verbose:print('going to apply z-cuts : {}'.format(zcuts))
+        if self.verbose:print('going to apply {}-cuts : {}'.format(column, zcuts))
         #
         #
-        zmask    = (self.z0 > zcuts[0]) & (self.z0 < zcuts[1])
+        #zmask    = (self.z0 > zcuts[0]) & (self.z0 < zcuts[1])
+        zmask    = (self.gal0[column] > zcuts[0]) & (self.gal0[column] < zcuts[1])
         self.z   = self.z0[zmask]
         self.ra  = self.ra0[zmask]
         self.dec = self.dec0[zmask]
@@ -226,7 +229,10 @@ class EBOSSCAT(object):
     def project2hp(self, nside=512):
         from LSSutils.utils import hpixsum
         if self.verbose:print('projecting into a healpix map with nside of %d'%nside)
-        self.galm = hpixsum(nside, self.ra, self.dec, value=self.w).astype('f8')
+        if self.iscut:
+            self.galm = hpixsum(nside, self.ra, self.dec, value=self.w).astype('f8')
+        else:
+            self.galm = hpixsum(nside, self.ra0, self.dec0, value=self.w0).astype('f8')
         
     def writehp(self, filename, overwrite=True):
         if os.path.isfile(filename):

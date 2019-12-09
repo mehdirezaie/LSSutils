@@ -38,7 +38,9 @@ except:
 from scipy.stats import binned_statistic
 
 
-
+def shiftra(x):
+    ''' (c) Julien Bautista Hack'''
+    return x-360*(x>300)
 
 
 def flux_to_mag(flux, band, ebv=None):
@@ -109,7 +111,20 @@ def split_mask(mask_in, mask_ngc, mask_sgc, nside=256):
     hp.write_map(mask_ngc, mngc, fits_IDL=False, dtype='float64')
     hp.write_map(mask_sgc, msgc, fits_IDL=False, dtype='float64')
     print('done')
+
     
+def hpix2caps(hpind, nside=256):
+    ra, dec = hpix2radec(nside, hpind)
+    theta   = np.pi/2 - np.radians(dec)
+    phi     = np.radians(ra)
+    r       = hp.Rotator(coord=['C', 'G'])
+    theta_g, phi_g = r(theta, phi)
+
+    north  = theta_g < np.pi/2
+    mzls   = dec > 34.7
+    decaln = (~mzls) & north
+    decals = (~mzls) & (~north)
+    return decaln, decals, mzls
 
 def split2caps(mask, coord='C', nside=256):
     if coord != 'C':raise RuntimeError('check coord')
