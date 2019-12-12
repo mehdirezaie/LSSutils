@@ -113,7 +113,7 @@ def split_mask(mask_in, mask_ngc, mask_sgc, nside=256):
     print('done')
 
     
-def hpix2caps(hpind, nside=256):
+def hpix2caps(hpind, nside=256, dec_cutoff=32.):
     ra, dec = hpix2radec(nside, hpind)
     theta   = np.pi/2 - np.radians(dec)
     phi     = np.radians(ra)
@@ -121,7 +121,7 @@ def hpix2caps(hpind, nside=256):
     theta_g, phi_g = r(theta, phi)
 
     north  = theta_g < np.pi/2
-    mzls   = dec > 34.7
+    mzls   = (dec > dec_cutoff) & north
     decaln = (~mzls) & north
     decals = (~mzls) & (~north)
     return decaln, decals, mzls

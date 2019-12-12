@@ -24,6 +24,7 @@ pk=${HOME}/github/LSSutils/scripts/analysis/run_pk.py
 
 path2data=/home/mehdi/data/alternative/
 
+# ablation + regression took 402 min
 for gal in elg lrg 
 do 
    for cap in decaln decals bmzls
@@ -59,37 +60,44 @@ do
       # du -h $maskc
        
         ## REGRESSION
-        echo 'ablation on ' $gal $cap 'with ' $axfit 
-        for rk in 0 1 2 3 4
-        do
-         echo $rk 'on ' $glmp5
-         mpirun -np 5 python $ablation --data $glmp5 --output $oudr_ab --log $log_ab --rank $rk --axfit $axfit
-        done
-        echo 'regression on ' $gal $cap
+        #echo 'ablation on ' $gal $cap 'with ' $axfit 
+        #for rk in 0 1 2 3 4
+        #do
+        # echo $rk 'on ' $glmp5
+        # mpirun -np 5 python $ablation --data $glmp5 --output $oudr_ab --log $log_ab --rank $rk --axfit $axfit
+        #done
+        #echo 'regression on ' $gal $cap
         #python $multfit --input $glmp5 --output ${oudr_r}${mult1}/ --split --nside $nside --axfit $axfit # we don't do lin regression
-        mpirun -np 5 python $nnfit --input $glmp5 --output ${oudr_r}${nn1}/ --ablog ${oudr_ab}${log_ab} --nside $nside
-        mpirun -np 5 python $nnfit --input $glmp5 --output ${oudr_r}${nn3}/ --nside $nside --axfit $axfit
+        #mpirun -np 5 python $nnfit --input $glmp5 --output ${oudr_r}${nn1}/ --ablog ${oudr_ab}${log_ab} --nside $nside
+        #mpirun -np 5 python $nnfit --input $glmp5 --output ${oudr_r}${nn3}/ --nside $nside --axfit $axfit
 
          ## remove the extreme weight pixels
          #python make_common_mask-data.py /Volumes/TimeMachine/data/DR8/alternative/mask_${gal}_${nside}.fits /Volumes/TimeMachine/data/DR8/alternative/mask_${gal}_${nside}.cut.fits ${oudr_r}*/*-weights.hp${nside}.fits > $maskclog
 
          ##Clustering
          ## no correction, linear, quadratic
-#         for wname in uni lin quad
+        #for wname in uni lin quad
 #         do
 #           wmap=${oudr_r}${mult1}/${wname}-weights.hp${nside}.fits
 #           python $docl --galmap $glmp --ranmap $rnmp --photattrs $drfeat --mask $maskc --oudir $oudr_c --verbose --wmap $wmap --nnbar nnbar_${wname}_${cap} --nside $nside --axfit $axfit 
 #         done
 #         # nn w ablation, nn plain
-#         for nni in $nn1 $nn3
-#         do
-#           wmap=${oudr_r}${nni}/nn-weights.hp${nside}.fits
-#           python $docl --galmap $glmp --ranmap $rnmp --photattrs $drfeat --mask $maskc --oudir $oudr_c --verbose --wmap $wmap --nnbar nnbar_${nni}_${cap} --nside $nside --axfit $axfit
-#         done
+        #for nni in uni $nn1 $nn3
+        #do
+        #  wmap=${oudr_r}${nni}/nn-weights.hp${nside}.fits
+        #  mpirun -np 8 python $docl --galmap $glmp --ranmap $rnmp --photattrs $drfeat --mask $maskc --oudir $oudr_c --verbose --wmap $wmap --nnbar nnbar_${gal}_${nni}_${cap} --clfile cl_${gal}_${nni}_${cap} --corfile xi_${gal}_${nni}_${cap} --nside $nside --axfit $axfit
+        #done
         #
         # auto C_l for systematics
-        #mpirun --oversubscribe -np 4 python $docl --galmap $glmp --ranmap $rnmp --photattrs $drfeat --mask $maskc --oudir $oudr_c --verbose --wmap none --clsys cl_sys --corsys xi_sys --nside ${nside} --lmax $lmax --axfit $axfit
+        #mpirun -np 8 python $docl --galmap $glmp --ranmap $rnmp --photattrs $drfeat --mask $maskc --oudir $oudr_c --verbose --wmap none --clsys cl_sys_${gal}_${cap} --corsys xi_sys_${gal}_${cap} --nside ${nside} --lmax $lmax --axfit $axfit
 
+
+        # maps trained on full sky applied on different chunks
+         oudr_r=${path2data}results_${gal}/regression/
+         nni=nn_p
+        
+         wmap=${oudr_r}${nni}/nn-weights.hp${nside}.fits
+         mpirun -np 8 python $docl --galmap $glmp --ranmap $rnmp --photattrs $drfeat --mask $maskc --oudir $oudr_c --verbose --wmap $wmap --nnbar nnbar_${gal}_${nni}_all_${cap} --clfile cl_${gal}_${nni}_all_${cap} --corfile xi_${gal}_${nni}_all_${cap} --nside $nside --axfit $axfit        
    
    done
 done
