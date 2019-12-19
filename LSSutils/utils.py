@@ -177,7 +177,7 @@ def hpixsum(nside, ra, dec, value=None, nest=False):
     return w
 
 def makedelta(map1, weight1, mask, select_fun=None, is_sys=False):
-    delta = np.zeros_like(map1)
+    delta = np.zeros_like(map1)*np.nan
     if select_fun is not None:
         gmap = map1 / select_fun
     else:
@@ -197,6 +197,27 @@ def makedelta(map1, weight1, mask, select_fun=None, is_sys=False):
         delta[mask] = gmap[mask]/(weight1[mask]*sf)  - 1   
     return delta
 
+
+def makennbar(map1, weight1, mask, select_fun=None, is_sys=False):
+    delta = np.zeros_like(map1)*np.nan
+    if select_fun is not None:
+        gmap = map1 / select_fun
+    else:
+        gmap = map1#.copy()
+
+    #assert((randc[mask]==0).sum() == 0) # make sure there is no empty pixel
+    if (weight1[mask]==0).sum() != 0:
+        print('there are empty weights')
+        m = weight1 == 0
+        weight1[m] = 1.0 # enforece one
+       
+    if is_sys:
+        sf = (gmap[mask]*weight1[mask]).sum() / weight1[mask].sum()
+        delta[mask] = gmap[mask] / sf
+    else:
+        sf = gmap[mask].sum()/weight1[mask].sum()
+        delta[mask] = gmap[mask]/(weight1[mask]*sf)   
+    return delta
 
 
 def clerr_jack(delta, mask, weight, njack=20, lmax=512):
