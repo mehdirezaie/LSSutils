@@ -13,6 +13,7 @@ class NNBAR(object):
                        sysmap, nbins=20, selection=None, binning='equi-area', verbose=False):
         #
         # inputs
+
         self.nside  = 256#get_nside(galmap)
         self.galmap = galmap[mask]
         self.ranmap = ranmap[mask]
@@ -38,6 +39,7 @@ class NNBAR(object):
             datat['gs'] = self.galmap
             datat['ws'] = self.ranmap
             #datat['rid'] = np.random.choice(np.arange(self.sysmap.size), size=self.sysmap.size, replace=False)
+            np.random.seed(123456)  #
             datat['rid'] = np.random.permutation(np.arange(self.sysmap.size)) # 2x faster
             datas = np.sort(datat, order=['ss', 'rid'])
             ss, gs, ws = datas['ss'], datas['gs'], datas['ws']
