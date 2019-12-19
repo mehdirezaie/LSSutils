@@ -24,13 +24,38 @@ comm = CurrentMPIComm.get()
 rank = comm.rank
 size = comm.size
 
+#  I/O 
+if rank == 0:
+    input_name  = sys.argv[1]
+    ouname1     = sys.argv[2]
+    ouname2     = sys.argv[3]
+    action      = sys.argv[4]
+    box     = float(sys.argv[5])
+else:
+    input_name  = None
+    ouname1     = None
+    ouname2     = None
+    action      = None
+    box     = None
+
+
+
+
+
+# bcast
+input_name  = comm.bcast(input_name,  root=0)
+ouname1     = comm.bcast(ouname1,     root=0) 
+ouname2     = comm.bcast(ouname2,     root=0) 
+action      = comm.bcast(action,      root=0)
+box         = comm.bcast(box,     root=0)
+
 # Input parameters
 mode       = '2d'      # r, mu
 dr         = 1.0       # Mpc/h
 nmu        = 120
 rmin       = 0.0
 rmax       = 200.0
-box        = 1000      # Mpc/h 
+#box        = 1000      # Mpc/h 
 edges      = np.arange(rmin, rmax+2*dr, dr)
 
 #MOCKNAME   = 'UNIT'
@@ -42,23 +67,9 @@ edges      = np.arange(rmin, rmax+2*dr, dr)
 #ouname1    = f'{ESTIMATOR1}_{BINNING}_{LASTNAME}_{MOCKNAME}_{version}.txt'
 #ouname2    = f'{ESTIMATOR2}_{BINNING}_{LASTNAME}_{MOCKNAME}_{version}.txt'
 
-#  I/O 
-if rank == 0:
-    input_name  = sys.argv[1]
-    ouname1     = sys.argv[2]
-    ouname2     = sys.argv[3]
-    action      = sys.argv[4]
-else:
-    input_name  = None
-    ouname1     = None
-    ouname2     = None
-    action      = None
 
-# bcast
-input_name  = comm.bcast(input_name,  root=0)
-ouname1     = comm.bcast(ouname1,     root=0) 
-ouname2     = comm.bcast(ouname2,     root=0) 
-action      = comm.bcast(action,      root=0)
+
+
 
 # read data
 catalog = nb.FITSCatalog(input_name)
@@ -67,16 +78,19 @@ for col in ['x', 'y', 'z', 'z_rsd']:
 
 # redshift or real space
 if action == 'ddrmu':
-    catalog['Position'] = np.column_stack([catalog['x'], catalog['y'], catalog['z']])
+    catalog['Position'] = np.column_stack([catalog['x'], catalog['y'], 
+                                          catalog['z']])
 elif action == 'ddsmu':
-    catalog['Position'] = np.column_stack([catalog['x'], catalog['y'], catalog['z_rsd']])
+    catalog['Position'] = np.column_stack([catalog['x'], catalog['y'], 
+                                           catalog['z_rsd']])
 
 # run Corrfunc
 if rank==0:t0=time( )
 results = nb.SimulationBox2PCF(mode, catalog, edges, Nmu=nmu,
                                periodic=True, BoxSize=box, los='z', 
                                weight='Weight', position='Position', 
-                               show_progress=True)
+                               show_progress=True, xbin_refine_factor=2, 
+                               ybin_refine_factor=2, zbin_refine_factor=2)  # for PMILL
 results.save(ouname1.replace('.txt', '.json'))     # uncomment to save as json
 comm.Barrier()
 
@@ -119,6 +133,6 @@ if rank==0:
     plt.ylabel(r'$r^{2}\xi_{\ell}$')
     plt.xlabel('r [Mpc/h]')
     plt.legend()
-    plt.savefig(ouname1.replace('.txt', '.pdf'), bbox_inches='tight')
+    plt.savefig(ouname2.replace('.txt', '.pdf'), bbox_inches='tight')
 
 

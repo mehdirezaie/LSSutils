@@ -4,6 +4,7 @@
     srun -n 4 python NN.py 
 '''
 import tensorflow as tf                    # NN stuff
+import tqdm
 import numpy as np                         # numerical python 
 import os
 
@@ -53,7 +54,7 @@ class Netregression(object):
     def train_evaluate(self, learning_rate=0.001,
                        batchsize=100, nepoch=10, nchain=5,
                       Units=[10,10], tol=1.e-5, scale=0.0,
-                       actfunc=tf.nn.relu, patience=10):
+                       actfunc=tf.nn.relu, patience=10, verbose=False):
         #
         #from tensorflow.python.framework import ops
 
@@ -106,10 +107,13 @@ class Netregression(object):
         global_seed = 12345
         np.random.seed(global_seed)
         seeds = np.random.randint(0, 4294967295, size=nchain)
+
+        if verbose:ichain = tqdm.tqdm(total=nchain, desc='Chain', position=0)
         for ii in range(nchain): # loop on chains
-            tf.set_random_seed(seeds[ii]) # set the seed
+            #tf.set_random_seed(seeds[ii]) # set the seed
+            tf.compat.v1.set_random_seed(seeds[ii])
             # set up the model x [input] -> y [output]
-            x   = tf.placeholder(tf.float32, [None, nfeature])
+            x   = tf.compat.v1.placeholder(tf.float32, [None, nfeature])
             #
             # linear, one hidden layer or 2 hidden layers 
             # need to modify this if more layers are desired
@@ -168,18 +172,18 @@ class Netregression(object):
                 raise ValueError('Units should be either None, [M], [M,N] ...')
             #
             # placeholders for the input errorbar and label
-            y_  = tf.placeholder(tf.float32, [None, nclass])
-            w   = tf.placeholder(tf.float32, [None, nclass])
+            y_  = tf.compat.v1.placeholder(tf.float32, [None, nclass])
+            w   = tf.compat.v1.placeholder(tf.float32, [None, nclass])
 
             #
             # objective function
-            mse = tf.losses.mean_squared_error(y_, y, weights=w)
-            l2_loss = tf.losses.get_regularization_loss()
+            mse = tf.compat.v1.losses.mean_squared_error(y_, y, weights=w)
+            l2_loss = tf.compat.v1.losses.get_regularization_loss()
             mse_w_l2 = mse + l2_loss
             #
             # see https://www.tensorflow.org/api_docs/python/tf/train/AdamOptimizer
             global_step = tf.Variable(0, name='global_step', trainable=False)
-            optimizer   = tf.train.AdamOptimizer(learning_rate)
+            optimizer   = tf.compat.v1.train.AdamOptimizer(learning_rate)
             train_step  = optimizer.minimize(mse_w_l2, global_step=global_step)            
             #print('chain ',ii)
             mse_min = 10000000.
@@ -191,8 +195,9 @@ class Netregression(object):
             #config.intra_op_parallelism_threads = 1
             #config.inter_op_parallelism_threads = 1
             #sess = tf.InteractiveSession(config=config)
-            sess = tf.InteractiveSession()
-            tf.global_variables_initializer().run()            
+            sess = tf.compat.v1.InteractiveSession()
+            tf.compat.v1.global_variables_initializer().run() 
+            if verbose:iepoch = tqdm.tqdm(total=nepoch+1, desc='Epoch', position=1)
             for i in range(nepoch+1): # loop on training epochs
                 #
                 # save train & test MSE at each epoch
@@ -211,7 +216,7 @@ class Netregression(object):
                 
                 if last_improvement > patience:
                     #print("No improvement found during the {} last iterations at {}, stopping optimization!!".format(patience, i))
-                    print("stopping at {}".format(i))
+                    #print("stopping at {}".format(i))
                     break # stop training by early stopping
                 for k in range(nep): # loop on training unpdates
                     ji = k*batchsize
@@ -219,6 +224,7 @@ class Netregression(object):
                     batch_xs, batch_ys, batch_ws = train.X[ji:jj], train.Y[ji:jj], train.W[ji:jj]   # use up to the last element
                     # train NN at each update
                     sess.run(train_step, feed_dict={x: batch_xs, y_:batch_ys, w:batch_ws})
+                if verbose:iepoch.update(1)
             #
             
             # save the final test MSE and prediction for each chain 
@@ -226,7 +232,8 @@ class Netregression(object):
             self.chain_y.append([ii, y_pred])
             self.epoch_MSEs.append([ii, y_mse, np.array(mse_list)])
             sess.close()
-            tf.reset_default_graph()
+            tf.compat.v1.reset_default_graph()
+            if verbose:ichain.update(1)
         # baseline model is the average of training label
         # baseline mse
         baselineY  = np.mean(train.Y)
@@ -300,7 +307,7 @@ def read_NNfolds(files):
     y_base = []
     weights = []
     for j,file_i in enumerate(files):
-        d = np.load(file_i)              # read the file
+        d = np.load(file_i, allow_pickle=True)              # read the file
         out = d['arr_0'].item()          #
         meanY, stdY = out['options']['stats']['ystat']
         meanX, stdX = out['options']['stats']['xstat']
@@ -342,7 +349,6 @@ if __name__ == '__main__':
     if rank == 0:
         from argparse import ArgumentParser
         ap = ArgumentParser(description='Neural Net regression')
-        ap.add_argument('--path',   default='/global/cscratch1/sd/mehdi/dr5_anand/eboss/')
         ap.add_argument('--input',  default='test_train_eboss_dr5-masked.npy')
         ap.add_argument('--output', default='/global/cscratch1/sd/mehdi/dr5_anand/eboss/regression/')
         ap.add_argument('--nchain', type=int, default=10)
@@ -354,7 +360,7 @@ if __name__ == '__main__':
         ns = ap.parse_args()
         #
         #
-        data   = np.load(ns.path+ns.input).item()
+        data   = np.load(ns.input, allow_pickle=True).item()
         config = {'nchain':ns.nchain,
                   'nepoch':ns.nepoch,
                   'batchsize':ns.batchsize,

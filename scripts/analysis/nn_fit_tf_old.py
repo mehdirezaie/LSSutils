@@ -8,7 +8,10 @@
 import os
 import numpy as np
 import sys
-sys.path.append('/Users/rezaie/github/LSSutils')
+
+home=os.getenv('HOME')
+sys.path.append(home + '/github/LSSutils')
+
 from LSSutils.nn.nn_tf_old import Netregression
 
 
@@ -69,7 +72,7 @@ if __name__ == '__main__':
         ns = ap.parse_args()
         NSIDE = ns.nside
         config = dict(nchain=1, batchsize=1024, nepoch=500, Units=[0],
-                  tol=1.e-4, scale=0.0, learning_rate=0.001)
+                  tol=1.e-6, scale=0.0, learning_rate=0.001)
         log += 'reading input : {} with nside : {} \n'.format(ns.input, NSIDE)
         log += 'the fiducial config is {}\n'.format(config)
         data   = np.load(ns.input, allow_pickle=True).item()

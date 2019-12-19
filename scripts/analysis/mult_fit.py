@@ -23,7 +23,7 @@ class DATA(object):
     def __init__(self, INPUT, axfit=list(range(18)), OUTPUT='./dr5linquadfit', split=False):
         self.axfit = axfit
         if split:
-            datai = np.load(INPUT).item()
+            datai = np.load(INPUT, allow_pickle=True).item()
             data  = np.concatenate([datai['test']['fold'+str(i)] for i in range(5)])
         else:
             data = ft.read(INPUT)
