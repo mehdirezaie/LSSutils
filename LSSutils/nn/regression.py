@@ -4,64 +4,8 @@ import tensorflow as tf
 import numpy as np  
 import time
 import os
-
-
 import logging
 
-# see https://github.com/tensorflow/tensorflow/issues/26691
-# & https://github.com/abseil/abseil-py/issues/99
-import absl.logging
-logging.root.removeHandler(absl.logging._absl_handler)
-absl.logging._warn_preinit_stderr = False
-
-
-
-_logging_handler = None
-def setup_logging(log_level="info"):
-    """
-    Taken from Nbodykit (c) Nick Hand, Yu Feng
-    
-    Turn on logging, with the specified level.
-    Parameters
-    ----------
-    log_level : 'info', 'debug', 'warning'
-        the logging level to set; logging below this level is ignored
-    """
-
-    levels = {
-            "info" : logging.INFO,
-            "debug" : logging.DEBUG,
-            "warning" : logging.WARNING,
-            }
-
-    logger = logging.getLogger();
-    t0     = time.time()
-    class Formatter(logging.Formatter):
-        def format(self, record):
-            s1 = ('[ %09.2f ] : ' % (time.time() - t0))
-            return s1 + logging.Formatter.format(self, record)
-
-    fmt = Formatter(fmt='%(asctime)s %(name)-15s %(levelname)-8s %(message)s',
-                    datefmt='%m-%d %H:%M ')
-
-    global _logging_handler
-    if _logging_handler is None:
-        _logging_handler = logging.StreamHandler()
-        logger.addHandler(_logging_handler)
-
-    _logging_handler.setFormatter(fmt)
-    logger.setLevel(levels[log_level])
-
-
-# -- added Nbodykit-version of logging
-# logging.basicConfig(filename='log.txt', 
-#                     filemode='w', 
-#                     datefmt='%m-%d %H:%M:%S', 
-#                     level=logging.INFO, 
-#                     format='%(asctime)s %(name)-15s %(levelname)-8s %(message)s')
-
-# logger=logging.getLogger(__name__)    
-# logger.info('TensorFlow version: {}'.format(tf.__version__))
     
 
 
@@ -76,6 +20,28 @@ class NetRegression(object):
     valid : class Data
     test  : class Data
     
+    
+    
+    
+    Example:
+    
+        data  = np.load('/Users/mehdi/Downloads/trunk/qso.ngc.all.hp.256.r.npy', allow_pickle=True).item()
+        train = regression.Data(data['train']['fold0'])
+        valid = regression.Data(data['validation']['fold0'])
+        test  = regression.Data(data['test']['fold0'])
+
+
+
+        t_i = time.time()
+        Net = regression.NetRegression(train, valid, test)
+        #Net.fit_w_hparam_training()
+        Net.fit(predict=True, min_delta=1.e-8,
+                batch_size=1024, units=[10, 10],
+                learning_rate=0.1)
+        Net._descale() # descale
+        Net.make_plots()
+        t_f = time.time()
+        print(f'took {t_f-t_i} secs')
     '''        
     
     logger = logging.getLogger('NetRegression')
@@ -329,13 +295,14 @@ class NetRegression(object):
         self.plot_histograms()
         self.plot_metrics()
         self.plot_deltaY()
+        self.plot_weights(0)
         
     def plot_histograms(self, cf_min=0.05, bins=6):
-        from scipy.stats import pearsonr, binned_statistic
+        from scipy.stats import spearmanr, binned_statistic
         #cf_min  = 0.05 
         indices = []
         for j in range(self.test.x.shape[1]):
-            cf =  pearsonr(self.test.x[:, j], self.test.y)[0]
+            cf =  spearmanr(self.test.x[:, j], self.test.y)[0]
             if abs(cf) > cf_min:
                 indices.append(j)
         
@@ -383,7 +350,38 @@ class NetRegression(object):
         plt.hist(sf*(self.test.y-np.mean(self.ypreds, 0)), **kwargs)
         plt.yscale('log')
         plt.xlabel('Ytrue - Ypred')
-        
+    
+    def plot_weights(self, chain, **kwargs):
+        weights = self.history[chain].model.get_weights()
+        ncols   = len(weights) //2
+        fig, ax = plt.subplots(ncols=ncols, figsize=(4*ncols, 5))
+        fig.subplots_adjust(wspace=0.0, top=0.9)
+        fig.suptitle('Parameters')
+
+        for j in range(ncols):
+            ax[j].set_title(f'Layer - {j}')
+            extend = [0, 20, 0, 20]
+            map1 = ax[j].imshow(np.row_stack([weights[2*j], weights[2*j+1]]), 
+                         cmap=plt.cm.seismic, vmin=-2., vmax=2.)#, extent=extend)
+            #plt.setp(ax[j].get_xticklabels(), visible=False)
+            #plt.setp(ax[j].get_yticklabels(), visible=False)
+            ax[j].tick_params(
+                    axis='both',        # changes apply to the x-axis
+                    which='both',      # both major and minor ticks are affected
+                    bottom=False,      # ticks along the bottom edge are off
+                    top=False,         # ticks along the top edge are off
+                    right=False,
+                    left=False,
+                    labelbottom=False) # labels along the bottom edge are off
+            ax[j].set(yticks=[], xticks=[])        
+            if j==0:ax[j].set(ylabel='Input Features (including bias)')
+
+        cax = plt.axes([.92, 0.2, 0.01, 0.6])
+        #cax = plt.axes([.25, 0.05, 0.5, 0.05]) ## goes w orientation='horizontal'
+        ## colorbar label='parameters'
+        fig.colorbar(map1, cax=cax, 
+                     shrink=0.7, ticks=[-2, 0, 2], 
+                     extend='both')
         
     
 class Data(object):
@@ -398,16 +396,24 @@ class Data(object):
         a list of column indices that  will be used for training
     '''
     
-    def __init__(self, data, axes=None):
+    def __init__(self, data, cachex=False):
         
         self.x = data['features']
         self.y = data['label']
         self.w = data['fracgood']
         self.p = data['hpind']        
+            
+        if cachex:self.xc = self.x.copy()
+            
+    def __call__(self, axes=None):
+        if not hasattr(self, 'xc'):
+            self.xc = self.x.copy()
+        
         if not axes is None:
-            self.x = self.x[:, axes]
+            self.x = self.xc[:, axes]
         if len(self.x.shape) == 1:
             self.x = self.x[:, np.newaxis]
+            
 
 class PrintDot(tf.keras.callbacks.Callback):
     '''
