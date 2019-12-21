@@ -38,6 +38,105 @@ except:
 from scipy.stats import binned_statistic
 
 
+def shiftra(x):
+    ''' (c) Julien Bautista Hack'''
+    return x-360*(x>300)
+
+
+def flux_to_mag(flux, band, ebv=None):
+    ''' Converts SDSS fluxes to magnitudes, correcting for extinction optionally (EBV)'''
+    #index_b = dict(zip(['u', 'g', 'r', 'i', 'z'], np.arange(5)))
+    #index_e = dict(zip(['u', 'g', 'r', 'i', 'z'], [4.239,3.303,2.285,1.698,1.263]))    
+    #-- coefs to convert from flux to magnitudes
+    b   = np.array([1.4, 0.9, 1.2, 1.8, 7.4])[band]*1.e-10
+    mag = -2.5/np.log(10.)*(np.arcsinh((flux/1.e9)/(2*b)) + np.log(b))
+    if ebv is not None:
+        #-- extinction coefficients for SDSS u, g, r, i, and z bands
+        ext_coeff = np.array([4.239, 3.303, 2.285, 1.698, 1.263])[band]
+        mag -= ext_coeff*ebv
+    return mag
+
+
+
+
+
+def radec2hpix(nside, ra, dec):
+    pix = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra))
+    return pix
+
+
+
+
+class SYSWEIGHT(object):
+    '''
+    Read the systematic weights in healpix
+    Assigns them to a set of RA and DEC (both in degrees)
+
+    ex:
+        > Mapper = SYSWEIGHT('nn-weights.hp256.fits')
+        > wsys = Mapper(ra, dec)    
+    '''
+    def __init__(self, filename, hpfile=False):
+        if hpfile:
+            self.wmap  = filename
+        else:
+            self.wmap  = hp.read_map(filename, verbose=False)
+        
+        self.nside = hp.get_nside(self.wmap)
+
+    def __call__(self, ra, dec):
+        hpix = radec2hpix(self.nside, ra, dec)
+        wsys = self.wmap[hpix]
+        # check if there is any NaNs
+        NaNs = np.isnan(wsys)
+        if NaNs.sum() !=0:
+            nan_wsys = np.argwhere(NaNs).flatten()
+            nan_hpix = hpix[nan_wsys]
+            
+            # use the average of the neighbors
+            print('# NaNs (before) : %d'%len(nan_hpix))
+            neighbors = hp.get_all_neighbours(self.nside, nan_hpix) 
+            wsys[nan_wsys] = np.nanmean(self.wmap[neighbors], axis=0)
+
+            NNaNs  = np.isnan(wsys).sum()
+            print('# NaNs (after)  : %d'%NNaNs)
+            if NNaNs != 0:raise RuntimeError('Uncovered sample')
+        return 1./wsys
+
+
+def split_mask(mask_in, mask_ngc, mask_sgc, nside=256):    
+    mask = hp.read_map(mask_in, verbose=False).astype('bool')
+    mngc, msgc = split2caps(mask, nside=nside)
+    
+    hp.write_map(mask_ngc, mngc, fits_IDL=False, dtype='float64')
+    hp.write_map(mask_sgc, msgc, fits_IDL=False, dtype='float64')
+    print('done')
+
+    
+def hpix2caps(hpind, nside=256, dec_cutoff=32.):
+    ra, dec = hpix2radec(nside, hpind)
+    theta   = np.pi/2 - np.radians(dec)
+    phi     = np.radians(ra)
+    r       = hp.Rotator(coord=['C', 'G'])
+    theta_g, phi_g = r(theta, phi)
+
+    north  = theta_g < np.pi/2
+    mzls   = (dec > dec_cutoff) & north
+    decaln = (~mzls) & north
+    decals = (~mzls) & (~north)
+    return decaln, decals, mzls
+
+def split2caps(mask, coord='C', nside=256):
+    if coord != 'C':raise RuntimeError('check coord')
+    r = hp.Rotator(coord=['C', 'G'])
+    theta, phi = hp.pix2ang(256, np.arange(12*256*256))
+    theta_g, phi_g = r(theta, phi) # C to G
+    ngc = theta_g < np.pi/2
+    sgc = ~ngc
+    mngc = mask & ngc
+    msgc = mask & sgc   
+    return mngc, msgc
+
 
 def G_to_C(mapi, res_in=1024, res_out=256):
     '''
@@ -177,7 +276,7 @@ def hpixsum(nside, ra, dec, value=None, nest=False):
     return w
 
 def makedelta(map1, weight1, mask, select_fun=None, is_sys=False):
-    delta = np.zeros_like(map1)
+    delta = np.zeros_like(map1)*np.nan
     if select_fun is not None:
         gmap = map1 / select_fun
     else:

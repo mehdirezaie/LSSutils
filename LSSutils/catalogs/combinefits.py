@@ -160,14 +160,14 @@ class EBOSSCAT(object):
     '''
         Class to facilitate reading eBOSS cats
     '''
-    def __init__(self, gals, weights=['weight_noz', 'weight_cp']):
+    def __init__(self, gals, weights=['weight_noz', 'weight_cp'], verbose=False, lower=True):
         #
         self.weightnames = weights
 
-        print('len of gal cats %d'%len(gals))
+        if verbose:print('len of gal cats %d'%len(gals))
         gal = []
         for gali in gals:
-            gald = ft.read(gali, lower=True)
+            gald = ft.read(gali, lower=lower)
             gal.append(gald)
             
         #    
@@ -175,18 +175,18 @@ class EBOSSCAT(object):
         gal  = np.concatenate(gal)
         
         # 
-        self.gal  = gal
-        self.cols = gal.dtype.names
+        self.gal0  = gal
+        self.cols  = gal.dtype.names
         for colname in ['ra', 'dec', 'z', 'nz']+weights:
             if colname not in self.cols:raise RuntimeError('%s not in columns'%colname)
-        self.num  = gal['ra'].size
-        self.ra   = gal['ra']
-        self.dec  = gal['dec']
-        self.z    = gal['z']
-        self.nz   = gal['nz']
+        self.num   = gal['ra'].size
+        self.ra0   = gal['ra']
+        self.dec0  = gal['dec']
+        self.z0    = gal['z']
+        self.nz0   = gal['nz']
         #
         #
-        print('num of gal obj %d'%self.num)
+        if verbose:print('num of gal obj %d'%self.num)
         value     = np.ones(self.num)
         for weight_i in weights:
             if weight_i in self.cols:
@@ -194,29 +194,33 @@ class EBOSSCAT(object):
             else:
                 print('col %s not in columns'%weight_i)
         #
-        self.w = value
+        self.w0 = value
+        self.verbose = verbose
+        self.iscut = False
         
-    def apply_zcut(self, zcuts=[None, None]):
+    def apply_zcut(self, zcuts=[None, None], column='z'):
+        self.iscut = True
         #
         # if no limits were provided
-        zmin = self.z.min()
-        zmax = self.z.max()
+        zmin = self.gal0[column].min()
+        zmax = self.gal0[column].max()
         if (zcuts[0] is None):
             zcuts[0] = zmin-1.e-7
         if (zcuts[1] is None):
             zcuts[1] = zmax+1.e-7
-        print('going to apply z-cuts : {}'.format(zcuts))
+        if self.verbose:print('going to apply {}-cuts : {}'.format(column, zcuts))
         #
         #
-        zmask    = (self.z > zcuts[0]) & (self.z < zcuts[1])
-        self.z   = self.z[zmask]
-        self.ra  = self.ra[zmask]
-        self.dec = self.dec[zmask]
-        self.w   = self.w[zmask]
-        self.nz  = self.nz[zmask]
-        self.gal = self.gal[zmask]
+        #zmask    = (self.z0 > zcuts[0]) & (self.z0 < zcuts[1])
+        zmask    = (self.gal0[column] > zcuts[0]) & (self.gal0[column] < zcuts[1])
+        self.z   = self.z0[zmask]
+        self.ra  = self.ra0[zmask]
+        self.dec = self.dec0[zmask]
+        self.w   = self.w0[zmask]
+        self.nz  = self.nz0[zmask]
+        self.gal = self.gal0[zmask]
         self.num = self.z.size 
-        print('num of gal obj after cut %d'%self.num)
+        if self.verbose: print('num of gal obj after cut %d'%self.num)
     
     def swap_keys(self, key, array):
         if key not in self.cols:raise RuntimeWarning('$s not in columns'%key)
@@ -224,8 +228,11 @@ class EBOSSCAT(object):
 
     def project2hp(self, nside=512):
         from LSSutils.utils import hpixsum
-        print('projecting into a healpix map with nside of %d'%nside)
-        self.galm = hpixsum(nside, self.ra, self.dec, value=self.w).astype('f8')
+        if self.verbose:print('projecting into a healpix map with nside of %d'%nside)
+        if self.iscut:
+            self.galm = hpixsum(nside, self.ra, self.dec, value=self.w).astype('f8')
+        else:
+            self.galm = hpixsum(nside, self.ra0, self.dec0, value=self.w0).astype('f8')
         
     def writehp(self, filename, overwrite=True):
         if os.path.isfile(filename):
@@ -274,8 +281,8 @@ class swap_weights(object):
             # swap
             # get the neighbors mean for non-probed pixels
             self.wmap_data = my_wmap[data_hpix]  
-            
-            NaNs = np.isnan(self.wmap_data)
+            NaNs = np.isnan(self.wmap_data) | (self.wmap_data < 0.0)
+
             if NaNs.sum() !=0:                
                 nanweights     = np.argwhere(NaNs).flatten()
                 nanhpix        = data_hpix[nanweights]
@@ -284,7 +291,8 @@ class swap_weights(object):
                 self.wmap_data[nanweights] = np.nanmean(my_wmap[neighbors], axis=0)
                 print('# NaNs (after)  : ', np.isnan(self.wmap_data).sum())
 
-
+            #print(keyi, self.wmap_data.min(), self.wmap_data.max(), NaNs.sum())
+            print(keyi, self.wmap_data.min(), self.wmap_data.max())
             #self.wmap_data = self.wmap_data.clip(0.5, 2.0)
             assert np.all(self.wmap_data > 0.0),'the weights are zeros!'
             self.data[colname][my_mask] = 1./self.wmap_data            

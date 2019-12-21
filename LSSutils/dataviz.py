@@ -216,6 +216,22 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
 def get_selected_maps(files1=None, tl=['eBOSS QSO V6'], 
                       verbose=False, labels=None, ax=None,
                      hold=False, saveto=None):
+    '''
+    from LSSutils.catalogs.datarelease import cols_dr8 as labels
+    fig, ax = plt.subplots(ncols=3, nrows=2, figsize=(18, 12), sharey=True)
+    ax = ax.flatten()
+
+    i = 0
+    for cap in [ 'elg', 'lrg']: # ngc.all
+        for key in ['decals','decaln', 'bmzls']:
+            mycap = cap+'_'+key+'_'+'256' # NGC_0.8
+            get_selected_maps(glob(f'/home/mehdi/data/alternative/results_{cap}/ablation_{key}/dr8.log_fold*.npy'),
+                              ['DR8 '+mycap], labels=labels, ax=ax[i], hold=True)
+            i += 1
+    #plt.savefig('./maps_selected_eboss.pdf', bbox_inches='tight')
+    plt.show()   
+    
+    '''
     def get_all(ablationlog):
         d = np.load(ablationlog, allow_pickle=True).item()
         indices = None
@@ -434,6 +450,20 @@ def ablation_plot(filename,
     if not hold:plt.show()
 
 def ablation_plot_all(files, labels=None, title=None, saveto=None, hold=False):    
+    '''
+    
+    from LSSutils.catalogs.datarelease import cols_dr8 as labels
+    i = 0
+    for cap in [ 'elg', 'lrg']: # ngc.all
+        for key in ['decaln', 'decals', 'bmzls']:
+            mycap = cap+'_'+key+'_'+'256' # NGC_0.8
+            ablation_plot_all(glob(f'/home/mehdi/data/alternative/results_{cap}/ablation_{key}/dr8.log_fold*.npy'),
+                              title='DR8 '+mycap, labels=labels)
+            i += 1
+    #plt.savefig('./maps_selected_eboss.pdf', bbox_inches='tight')
+    plt.show()   
+    
+    '''
     f = plt.figure(figsize=(12, 6))
     gs = GridSpec(2, 6, figure=f)
     gs.update(wspace=0.15, hspace=0.35)
@@ -607,12 +637,13 @@ def plot_cross_xi(config):
         colors = [plt.cm.Blues((i+2)/(num_files+1)) for i in range(num_files)]
         
     title      = config['crossxi']['title']    
-    linestyles = 10*['-','-.','--', '-']
-    markers    = 10*['^', 's', 'd', 'o']
+    linestyles = 50*['-','-.','--', '-']
+    markers    = 50*['^', 's', 'd', 'o']
     file_xisys = config['crossxi']['xisys']
     factor     = 1.e3
     
-    pltarg = dict(ncols=3, nrows=6, sharex=True, figsize=(3*4, 6*3), sharey=True)
+    nrows  = len(config['crossxi']['xticks']) // 3
+    pltarg = dict(ncols=3, nrows=nrows, sharex=True, figsize=(3*4, nrows*3), sharey=True)
     tckfmt = dict(style='sci', axis='y', scilimits=(0,0))
     # lgnarg = dict(bbox_to_anchor=(1.1, 0.9), frameon=False, ncol=1, 
     #               title=config['crossxi']['title'], fontsize=15)
