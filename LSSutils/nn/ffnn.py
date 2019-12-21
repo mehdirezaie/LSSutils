@@ -50,11 +50,9 @@ class PrintDot(keras.callbacks.Callback):
         for each completed epoch
     '''
     def on_epoch_end(self, epoch, logs):
-        if epoch % 100 == 0:print('')
+        #if epoch % 100 == 0:print('')
         print('.', end='')
 
-
-        
 def model0(nfeature, units=[0], **kwargs):
     assert (len(units)==1) & (units[0]==0)
     tf.keras.backend.clear_session()
@@ -297,8 +295,41 @@ def run_nn():
      
     print(myffnn.model.get_config())  # print config
 
-   
+ 
+def run_nn_kfold():
+    import numpy as np
+    import sys
+    # create file handler which logs even debug messages
+    fh = logging.FileHandler('test.log')
+    fh.setLevel(logging.INFO)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
 
+    logger.info('TensorFlow version: {}'.format(tf.__version__))
+    logger.info('Data read')
+ 
+    # read data
+    fname  = sys.argv[1]
+    Data5f = np.load(fname, allow_pickle=True).item()
+   
+    num_folds = 5
+    for i in range(num_folds):
+        fold   = 'fold'+str(i)
+
+        # log
+        logger.info('Fold {} started'.format(i))
+
+        train  = DATA(Data5f['train'][fold])
+        test   = DATA(Data5f['test'][fold])
+        valid  = DATA(Data5f['validation'][fold])
+
+        # run the FFNN
+        myffnn = FFNN(train, valid, test, units=[20, 20])
+        myffnn.scale()
+        myffnn.run()
+        myffnn.descale()
+
+     
 def test():
     '''
         Test 
@@ -337,5 +368,6 @@ def test():
     print(myffnn.model.get_config())  # print config
 
 if __name__ == '__main__':
-    #test()
-    run_nn()
+    test()
+    #run_nn()
+    #run_nn_kfold()
