@@ -42,6 +42,7 @@ cols_eboss_v7_qso = ['logSKY_G', 'logSKY_R', 'logSKY_I', 'logSKY_Z',
                      'W1_MED', 'logW1_COVMED', 'RUN', 'logAIRMASS',
                      'logEBV', 'log(1+STAR_DENSITY)', 'LOGHI']
 
+
 class Columns(object):
     def __init__(self, dr='dr8'):
         if dr=='dr8':
