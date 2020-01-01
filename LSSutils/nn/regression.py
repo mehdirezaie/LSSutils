@@ -1,7 +1,7 @@
 # --- modules
 import matplotlib.pyplot as plt
 import tensorflow as tf                    
-import numpy as np  
+import numpy
 import time
 import os
 import logging
@@ -161,8 +161,8 @@ class NetRegression(object):
                                                           min_lr=0.0001,
                                                           verbose=verbose_reduce_lr)
         tf.random.set_seed(global_seed)
-        np.random.seed(global_seed)
-        seeds = np.random.randint(0, 4294967295, size=nchain)
+        numpy.random.seed(global_seed)
+        seeds = numpy.random.randint(0, 4294967295, size=nchain)
 
         self.history = []
         if predict:self.ypreds  = []
@@ -213,12 +213,12 @@ class NetRegression(object):
         self.scaled  = True        
         self.logger.info('Scale features and label')
         
-        self.meanx  = np.mean(self.train.x, axis=0)
-        self.stdx   = np.std(self.train.x,  axis=0)
-        self.meany  = np.mean(self.train.y, axis=0)
-        self.stdy   = np.std(self.train.y,  axis=0)
+        self.meanx  = numpy.mean(self.train.x, axis=0)
+        self.stdx   = numpy.std(self.train.x,  axis=0)
+        self.meany  = numpy.mean(self.train.y, axis=0)
+        self.stdy   = numpy.std(self.train.y,  axis=0)
 
-        assert np.all(self.stdx != 0.0)
+        assert numpy.all(self.stdx != 0.0)
         assert (self.stdy != 0.0)        
 
         
@@ -246,7 +246,7 @@ class NetRegression(object):
         self.valid.y = self.valid.y*self.stdy + self.meany
         
         if hasattr(self, 'ypreds'):
-            self.ypreds = np.array(self.ypreds)
+            self.ypreds = numpy.array(self.ypreds)
             self.ypreds = (self.ypreds*self.stdy + self.meany)
             
     def _evaluate(self, model, verbose=0):
@@ -256,12 +256,12 @@ class NetRegression(object):
                                         sample_weight=self.test.w,
                                         verbose=verbose)    
         # baseline
-        assert np.mean(self.train.y) < 1.e-8
-        mse_base    = np.mean(self.test.y*self.test.y)
+        assert numpy.mean(self.train.y) < 1.e-8
+        mse_base    = numpy.mean(self.test.y*self.test.y)
         self.logger.info('Test LOSS : {0:.3f} MAE : {1:.3f} MSE : {2:.3f}'\
                     .format(loss, mae, mse))
         self.logger.info('Baseline test MSE : {:.3f}'.format(mse_base))    # variance of the test.y (if mean (test.y) = 0)
-        self.logger.info('Variance of the test label : {:.3f}'.format(np.var(self.test.y)))
+        self.logger.info('Variance of the test label : {:.3f}'.format(numpy.var(self.test.y)))
         return ypred
         
     def load(self, models):
@@ -283,13 +283,13 @@ class NetRegression(object):
                                             sample_weight=self.test.w,
                                             verbose=verbose)    
             # baseline
-            assert np.mean(self.train.y) < 1.e-8
-            mse_base    = np.mean(self.test.y*self.test.y)
+            assert numpy.mean(self.train.y) < 1.e-8
+            mse_base    = numpy.mean(self.test.y*self.test.y)
             self.ypreds.append(ypred.flatten())  # flatten the target
             self.logger.info('Test LOSS : {0:.3f} MAE : {1:.3f} MSE : {2:.3f}'\
                         .format(loss, mae, mse))
             self.logger.info('Baseline test MSE : {:.3f}'.format(mse_base))
-            self.logger.info('Variance of the test label : {:.3f}'.format(np.var(self.test.y)))
+            self.logger.info('Variance of the test label : {:.3f}'.format(numpy.var(self.test.y)))
 
     def make_plots(self):
         self.plot_histograms()
@@ -331,7 +331,7 @@ class NetRegression(object):
                                                         bins=bins)
             
             bin_means2, bin_edges, _ = binned_statistic(self.test.x[:, index],  
-                                                        np.mean(self.ypreds, 0),
+                                                        numpy.mean(self.ypreds, 0),
                                                         statistic='mean', 
                                                         bins=bin_edges)
             
@@ -347,7 +347,7 @@ class NetRegression(object):
     def plot_deltaY(self, **kwargs):
         # color='k', bins=40, alpha=0.8
         sf = self.stdy if self.scaled else 1
-        plt.hist(sf*(self.test.y-np.mean(self.ypreds, 0)), **kwargs)
+        plt.hist(sf*(self.test.y-numpy.mean(self.ypreds, 0)), **kwargs)
         plt.yscale('log')
         plt.xlabel('Ytrue - Ypred')
     
@@ -361,7 +361,7 @@ class NetRegression(object):
         for j in range(ncols):
             ax[j].set_title(f'Layer - {j}')
             extend = [0, 20, 0, 20]
-            map1 = ax[j].imshow(np.row_stack([weights[2*j], weights[2*j+1]]), 
+            map1 = ax[j].imshow(numpy.row_stack([weights[2*j], weights[2*j+1]]), 
                          cmap=plt.cm.seismic, vmin=-2., vmax=2.)#, extent=extend)
             #plt.setp(ax[j].get_xticklabels(), visible=False)
             #plt.setp(ax[j].get_yticklabels(), visible=False)
@@ -412,7 +412,7 @@ class Data(object):
         if not axes is None:
             self.x = self.xc[:, axes]
         if len(self.x.shape) == 1:
-            self.x = self.x[:, np.newaxis]
+            self.x = self.x[:, numpy.newaxis]
             
 
 class PrintDot(tf.keras.callbacks.Callback):
