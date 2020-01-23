@@ -78,9 +78,17 @@ ZMAX = zlim[1]
 
 
 # slice the data and randoms
-valid = (data['Z'] > ZMIN) & (data['Z'] < ZMAX)
+compmin=0.5
+valid = (data['Z'] >= ZMIN) & (data['Z'] <= ZMAX)
+valid &= (data['IMATCH']==1) | (data['IMATCH']==2)
+valid &= data['COMP_BOSS'] > compmin
+valid &= data['sector_SSR'] > compmin
 data  = data[valid]
-valid    = (randoms['Z'] > ZMIN) & (randoms['Z'] < ZMAX)
+
+
+valid  = (randoms['Z'] >= ZMIN) & (randoms['Z'] <= ZMAX)
+valid &= randoms['COMP_BOSS']  > compmin
+valid &= randoms['sector_SSR'] > compmin
 randoms  = randoms[valid]
 
 

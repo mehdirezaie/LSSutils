@@ -7,7 +7,10 @@ import fitsio as ft
 import numpy as np
 import healpy as hp
 
-from LSSutils.utils import radec2hpix
+from LSSutils.utils import radec2hpix, hpixsum
+
+import logging
+logging.basicConfig(level=logging.INFO)
 
 
 def extract_keys_dr8(mapi):
@@ -154,7 +157,7 @@ def hd5_2_fits(myfit, cols, fitname=None, hpmask=None, hpfrac=None, fitnamekfold
         outdata_kfold = split2Kfolds(outdata, k=k)
         np.save(fitnamekfold, outdata_kfold)
         print('wrote %s'%fitnamekfold)  
-    
+
 #   
 class EBOSSCAT(object):
     '''
@@ -257,7 +260,115 @@ class EBOSSCAT(object):
         ax[1].set_title(titles[1])
         plt.show()
 
+class EbossCatalog:
+    
+    logger = logging.getLogger('EbossCatalog')
+    
+    def __init__(self, filename, kind='galaxy'):
+        self.kind  = kind
+        self.data  = ft.read(filename)
+        
+        self.select()
+    
+    def select(self, compmin=0.5, zmin=0.8, zmax=2.2):
+        ''' `Full` to `Clustering` Catalog
+        '''
+        
+        #-- apply cuts on galaxy or randoms
+        if self.kind == 'galaxy':            
+            
+            # galaxy
+            wd  = (self.data['IMATCH']==1) | (self.data['IMATCH']==2)
+            wd &= (self.data['Z'] >= zmin) & (self.data['Z'] <= zmax)
+            wd &= self.data['COMP_BOSS'] > compmin
+            wd &= self.data['sector_SSR'] > compmin
+            self.logger.info(f'{wd.sum()} galaxies pass the cuts')
+            self.logger.info(f'% of galaxies after cut {np.mean(wd):0.2f}')
+            self.data = self.data[wd]
+            
+        elif self.kind == 'random':
+            
+            # random
+            wr  = (self.data['Z'] >= zmin) & (self.data['Z'] <= zmax)
+            wr &= self.data['COMP_BOSS'] > compmin
+            wr &= self.data['sector_SSR'] > compmin
+            self.logger.info(f'{wr.sum()} randoms pass the cuts')
+            self.logger.info(f'% of randoms after cut {np.mean(wr):0.2f}')        
+            self.data = self.data[wr]
+            
+    
+    def cutz(self, zlim):
+        
+        #datat = self.data.copy()
+        
+        zmin, zmax = zlim
+        self.logger.info(f'Grab a slice with {zlim}')        
+        myz   = (self.data['Z']>= zmin) & (self.data['Z']<= zmax)
+        self.logger.info(f'# of data that pass this cut {myz.sum()}')
+        self.cdata = self.data[myz]
+        
+    def tohp(self, nside):
+        
+        assert hasattr(self, 'cdata'), f'cdata not found'
+        
+        self.logger.info(f'Projecting to HEALPIX as {self.kind} with {nside}')
+        
+        if self.kind == 'galaxy':
+            weight = self.cdata['WEIGHT_CP']*self.cdata['WEIGHT_FKP']*self.cdata['WEIGHT_NOZ']
+        elif self.kind == 'random':
+            weight = self.cdata['COMP_BOSS']*self.cdata['WEIGHT_FKP']
+        else:
+            raise ValueError(f'{self.kind} not defined')
+            
+        self.hpmap = hpixsum(nside, self.cdata['RA'], self.cdata['DEC'], value=weight)
 
+    def swap(self, weights, zcuts, colname='WEIGHT_SYSTOT'):
+        self.orgcol = self.data[colname].copy()
+        for keyi in zcuts.keys():
+            assert keyi in weights.keys(), '%s not available'%keyi
+            #
+            my_wmap   = hp.read_map(weights[keyi], verbose=False)
+            nside     = hp.get_nside(my_wmap)
+
+            my_zcut   = zcuts[keyi]
+            my_mask   = (self.data['Z'] > my_zcut[0])\
+                      & (self.data['Z'] < my_zcut[1])
+            #
+            data_hpix = radec2hpix(nside, 
+                                   self.data['RA'][my_mask],
+                                   self.data['DEC'][my_mask])
+            # swap
+            # get the neighbors mean for non-probed pixels
+            self.wmap_data = my_wmap[data_hpix]  
+            NaNs = np.isnan(self.wmap_data) | (self.wmap_data < 0.0)
+
+            if NaNs.sum() !=0:                
+                nanweights     = np.argwhere(NaNs).flatten()
+                nanhpix        = data_hpix[nanweights]
+                print('# NaN  (before) : ', len(nanhpix))
+                neighbors      = hp.get_all_neighbours(nside, nanhpix)            
+                self.wmap_data[nanweights] = np.nanmean(my_wmap[neighbors], axis=0)
+                print('# NaNs (after)  : ', np.isnan(self.wmap_data).sum())
+
+            #print(keyi, self.wmap_data.min(), self.wmap_data.max(), NaNs.sum())
+            print(keyi, self.wmap_data.min(), self.wmap_data.max())
+            #self.wmap_data = self.wmap_data.clip(0.5, 2.0)
+            assert np.all(self.wmap_data > 0.0),'the weights are zeros!'
+            self.data[colname][my_mask] = 1./self.wmap_data            
+            print('number of objs w zcut {} : {}'.format(my_zcut, my_mask.sum()))
+        
+    def writehp(self, filename, overwrite=True):
+        if os.path.isfile(filename):
+            print('%s already exists'%filename, end=' ')
+            if not overwrite:
+                print('please change the filename!')
+                return
+            else:
+                print('going to rewrite....')
+        hp.write_map(filename, self.hpmap, overwrite=True, fits_IDL=False)        
+    def to_fits(self, filename):
+        if os.path.isfile(filename):raise RuntimeError('%s exists'%filename)
+        ft.write(filename, self.data)             
 class swap_weights(object):    
     def __init__(self, catalog):
         print('going to read %s'%catalog)
