@@ -1,7 +1,29 @@
+'''
+    This is part of a bigger project, 
+    LSSutils (utilities to analyze Large Scale Structure)
+    The goal is to repackage the Neural Network based mitigation software
+    https://github.com/mehdirezaie/SYSNet
+
+    credit: Mehdi Rezaie, mr095415@ohio.edu
+    
+    
+    This file hosts all the functionality related to the regression. 
+    If used as a code, eg. 
+    
+    $> python regression.py
+    
+    It will run a test to model the function sin(x) 
+    and make two scatter plots of y_true vs y_pred, etc.
+
+'''
+
+
+
+
 # --- modules
 import matplotlib.pyplot as plt
 import tensorflow as tf                    
-import numpy as np  
+import numpy
 import time
 import os
 import logging
@@ -25,7 +47,8 @@ class NetRegression(object):
     
     Example:
     
-        data  = np.load('/Users/mehdi/Downloads/trunk/qso.ngc.all.hp.256.r.npy', allow_pickle=True).item()
+        data  = np.load('/Users/mehdi/Downloads/trunk/qso.ngc.all.hp.256.r.npy',\
+                        allow_pickle=True).item()
         train = regression.Data(data['train']['fold0'])
         valid = regression.Data(data['validation']['fold0'])
         test  = regression.Data(data['test']['fold0'])
@@ -34,7 +57,7 @@ class NetRegression(object):
 
         t_i = time.time()
         Net = regression.NetRegression(train, valid, test)
-        #Net.fit_w_hparam_training()
+        #Net.fit(hyperparams=True) # train with hyperparameters
         Net.fit(predict=True, min_delta=1.e-8,
                 batch_size=1024, units=[10, 10],
                 learning_rate=0.1)
@@ -58,7 +81,27 @@ class NetRegression(object):
                     
         self._scale()    
         
-    def fit_w_hparam_training(self, options=None):
+    def fit(self, hyperparams=False, options=None, **kwargs):
+        '''
+        performs training, validation, and testing
+
+        parameters
+        -----------
+        hyperparams : boolean (default=False), it will perform a greedy grid
+                      search  of the best hyperparameters
+        
+        options : dictionary, the hyper-parameters and their search space
+
+        **kwargs: optional parameters for the ._fit method
+
+        '''
+        if hyperparams:
+            self._fit_w_hyperparams(options=options)
+        else:
+            self._fit(**kwargs)
+            
+        
+    def _fit_w_hyperparams(self, options=None):
         
         if options is None:            
             '''
@@ -74,7 +117,7 @@ class NetRegression(object):
                        }
 
 
-        self.fit()
+        self._fit()  # run the default 
         hyperparams_dict    = []
         hyperparams_dict.append({key:getattr(self, key).copy()\
                                  for  key in ['attrs', 'total_val_loss']})
@@ -90,7 +133,7 @@ class NetRegression(object):
                 attrs.update({key:value})
 
                 # --- perform training
-                self.fit(**attrs)
+                self._fit(**attrs)
                 if self.total_val_loss < val_loss_min:
                     val_loss_min    = self.total_val_loss
                     parameter_best  = value
@@ -110,10 +153,10 @@ class NetRegression(object):
         attrs.update(nchain=5)
         attrs.update(predict=True)
         self.logger.info(f'final training with {attrs}')
-        self.fit(**attrs)
+        self._fit(**attrs)
         
         
-    def fit(self, 
+    def _fit(self, 
            learning_rate=0.01,
            batch_size=256, 
            nepochs=500,
@@ -129,7 +172,23 @@ class NetRegression(object):
            verbose_early=0,
            verbose_reduce_lr=0,
            predict=False):
-        
+        '''
+           learning_rate: float, the learning rate default = 0.01
+           batch_size: integer, the size  of the batch, default= 256 
+           nepochs: integer, the size of the maximum epoch, default=500
+           nchain: integer,  the number of chains, each chain with different initialization,  default=1
+           units: list of ints, the number of  units in the neural network,  default=[20, 20] 
+           min_delta:float, the minimum tolerance for early stopping default=1.e-5 
+           scale:float, L2 regularization strength default=0.0
+           patience:int, the number of times early stopper waits, default=10 
+           verbose:int, 0:verbosity off, 1: verbosity on  default=0,
+           global_seed: int, global seed to make the result  reproducible, default= 123567,
+           model_dir:str, path  to save the model, default='model/',
+           save_model:boolean, save the trained model, default=False,
+           verbose_early:int, verbosity for the early stopping , default (off) 0
+           verbose_reduce_lr:int, verbosity for  the learning rate  reducer, default=0 (off),
+           predict: boolean, apply the trained model on the test set, default=False
+        '''
         assert self.scaled
         self.attrs = {}
         self.attrs['learning_rate'] = learning_rate
@@ -161,8 +220,8 @@ class NetRegression(object):
                                                           min_lr=0.0001,
                                                           verbose=verbose_reduce_lr)
         tf.random.set_seed(global_seed)
-        np.random.seed(global_seed)
-        seeds = np.random.randint(0, 4294967295, size=nchain)
+        numpy.random.seed(global_seed)
+        seeds = numpy.random.randint(0, 4294967295, size=nchain)
 
         self.history = []
         if predict:self.ypreds  = []
@@ -213,12 +272,12 @@ class NetRegression(object):
         self.scaled  = True        
         self.logger.info('Scale features and label')
         
-        self.meanx  = np.mean(self.train.x, axis=0)
-        self.stdx   = np.std(self.train.x,  axis=0)
-        self.meany  = np.mean(self.train.y, axis=0)
-        self.stdy   = np.std(self.train.y,  axis=0)
+        self.meanx  = numpy.mean(self.train.x, axis=0)
+        self.stdx   = numpy.std(self.train.x,  axis=0)
+        self.meany  = numpy.mean(self.train.y, axis=0)
+        self.stdy   = numpy.std(self.train.y,  axis=0)
 
-        assert np.all(self.stdx != 0.0)
+        assert numpy.all(self.stdx != 0.0)
         assert (self.stdy != 0.0)        
 
         
@@ -246,31 +305,38 @@ class NetRegression(object):
         self.valid.y = self.valid.y*self.stdy + self.meany
         
         if hasattr(self, 'ypreds'):
-            self.ypreds = np.array(self.ypreds)
+            self.ypreds = numpy.array(self.ypreds)
             self.ypreds = (self.ypreds*self.stdy + self.meany)
             
     def _evaluate(self, model, verbose=0):
+        # calls, model.predict
+        # performs the trained model on the test set
         assert self.scaled
         ypred = model.predict(self.test.x)    
         loss, mae, mse = model.evaluate(self.test.x, self.test.y, 
                                         sample_weight=self.test.w,
                                         verbose=verbose)    
         # baseline
-        assert np.mean(self.train.y) < 1.e-8
-        mse_base    = np.mean(self.test.y*self.test.y)
+        assert numpy.mean(self.train.y) < 1.e-8
+        mse_base    = numpy.mean(self.test.y*self.test.y)
         self.logger.info('Test LOSS : {0:.3f} MAE : {1:.3f} MSE : {2:.3f}'\
                     .format(loss, mae, mse))
-        self.logger.info('Baseline test MSE : {:.3f}'.format(mse_base))    # variance of the test.y (if mean (test.y) = 0)
-        self.logger.info('Variance of the test label : {:.3f}'.format(np.var(self.test.y)))
+        
+        # variance of the test.y (if mean (test.y) = 0)
+        self.logger.info('Baseline test MSE : {:.3f}'.format(mse_base))    
+        self.logger.info('Variance of the test label : {:.3f}'\
+                         .format(numpy.var(self.test.y)))
         return ypred
         
     def load(self, models):
+        # load the model
         self.models = []
         for model in models:
             self.models.append(tf.keras.models.load_model(model))
             
         
     def predict(self, verbose=0):  
+        # apply the trained model on the test set
         assert self.scaled        
         if not hasattr(self, 'ypreds'):
             self.ypreds = []
@@ -283,19 +349,21 @@ class NetRegression(object):
                                             sample_weight=self.test.w,
                                             verbose=verbose)    
             # baseline
-            assert np.mean(self.train.y) < 1.e-8
-            mse_base    = np.mean(self.test.y*self.test.y)
+            assert numpy.mean(self.train.y) < 1.e-8
+            mse_base    = numpy.mean(self.test.y*self.test.y)
             self.ypreds.append(ypred.flatten())  # flatten the target
             self.logger.info('Test LOSS : {0:.3f} MAE : {1:.3f} MSE : {2:.3f}'\
                         .format(loss, mae, mse))
             self.logger.info('Baseline test MSE : {:.3f}'.format(mse_base))
-            self.logger.info('Variance of the test label : {:.3f}'.format(np.var(self.test.y)))
+            self.logger.info('Variance of the test label : {:.3f}'\
+                             .format(numpy.var(self.test.y)))
 
     def make_plots(self):
-        self.plot_histograms()
-        self.plot_metrics()
-        self.plot_deltaY()
-        self.plot_weights(0)
+        # make all the visualizations
+        self.plot_histograms()  # histogram of the label vs features
+        self.plot_metrics()     # MSE vs epochs
+        self.plot_deltaY()      # pdf of Y_true  - Y_predicted
+        self.plot_weights(0)    # colorcoded plot of the weights and biases
         
     def plot_histograms(self, cf_min=0.05, bins=6):
         from scipy.stats import spearmanr, binned_statistic
@@ -331,12 +399,15 @@ class NetRegression(object):
                                                         bins=bins)
             
             bin_means2, bin_edges, _ = binned_statistic(self.test.x[:, index],  
-                                                        np.mean(self.ypreds, 0),
+                                                        numpy.mean(self.ypreds, 0),
                                                         statistic='mean', 
                                                         bins=bin_edges)
             
-            ax[i].scatter(bin_edges[:-1], bin_means,  color='k', alpha=0.8, marker='s')
-            ax[i].scatter(bin_edges[:-1], bin_means2, color='r', alpha=0.8, marker='o')
+            ax[i].scatter(bin_edges[:-1], bin_means,  
+                          color='k', alpha=0.8, marker='s')
+            ax[i].scatter(bin_edges[:-1], bin_means2, 
+                          color='r', alpha=0.8, marker='o')
+            
             ax[i].set_xlabel(f'Feature-{index}')      
             ax[i].grid(True, linestyle='--', color='grey')
             
@@ -347,7 +418,7 @@ class NetRegression(object):
     def plot_deltaY(self, **kwargs):
         # color='k', bins=40, alpha=0.8
         sf = self.stdy if self.scaled else 1
-        plt.hist(sf*(self.test.y-np.mean(self.ypreds, 0)), **kwargs)
+        plt.hist(sf*(self.test.y-numpy.mean(self.ypreds, 0)), **kwargs)
         plt.yscale('log')
         plt.xlabel('Ytrue - Ypred')
     
@@ -361,7 +432,7 @@ class NetRegression(object):
         for j in range(ncols):
             ax[j].set_title(f'Layer - {j}')
             extend = [0, 20, 0, 20]
-            map1 = ax[j].imshow(np.row_stack([weights[2*j], weights[2*j+1]]), 
+            map1 = ax[j].imshow(numpy.row_stack([weights[2*j], weights[2*j+1]]), 
                          cmap=plt.cm.seismic, vmin=-2., vmax=2.)#, extent=extend)
             #plt.setp(ax[j].get_xticklabels(), visible=False)
             #plt.setp(ax[j].get_yticklabels(), visible=False)
@@ -412,7 +483,7 @@ class Data(object):
         if not axes is None:
             self.x = self.xc[:, axes]
         if len(self.x.shape) == 1:
-            self.x = self.x[:, np.newaxis]
+            self.x = self.x[:, numpy.newaxis]
             
 
 class PrintDot(tf.keras.callbacks.Callback):
@@ -488,6 +559,12 @@ def model4(nfeature, units=[20, 20, 20, 20], **kwargs):
 
 
 def get_model(nfeatures, units, **kwargs):
+    
+    # nfeatures: number of input features
+    # units: list of ints, 
+    # eg. [10, 10] a nn with two hidden layers, 
+    # and 10 units on each layer
+    
     if (len(units)==1) & (units[0]==0):
         #logger.info('run linear model')
         model = model0(nfeatures, units, **kwargs)
@@ -548,5 +625,82 @@ def plot_history(history_list, labels=None, yscale='linear', xscale='linear'):
         ax_i.grid(True, linestyle='--', color='grey')
         ax_i.set(yscale=yscale, xscale=xscale)
     plt.show() 
+    
 
-        
+def test_sin():
+    '''
+        This test relies on split2Kfolds from
+        https://github.com/mehdirezaie/LSSutils/blob/master/LSSutils/utils.py
+        Numpy, Matplotlib
+    '''
+    import sys
+    sys.path.append('/Users/mehdi/github/LSSutils')
+    from LSSutils.utils import split2Kfolds 
+    import matplotlib
+    matplotlib.use('TKAgg')
+    import matplotlib.pyplot as plt
+    
+    
+    def TABLE(n=512): # create mock data
+        ''' n: number of data points, default = 512 
+        '''
+        numpy.random.seed(1234567)
+        x = numpy.linspace(0., 2.*numpy.pi, n)
+        z = numpy.random.uniform(0, 2*numpy.pi, size=n)
+        numpy.random.shuffle(x) # inplace 
+        y = numpy.sin(x) #+ 0.2*z
+        #x = x[:, np.newaxis]
+        x = numpy.column_stack([x, z])
+
+        n,m = x.shape
+        d = numpy.empty(n, dtype=[('label', 'f8'), 
+                                ('features', ('f8', m)),
+                                ('fracgood', 'f8'),
+                                ('hpind', 'i8')])
+        d['label'] = y
+        if m==1:
+            d['features']=x.squeeze()
+        else:
+            d['features']=x
+
+        d['hpind']=1.
+        d['fracgood']=1.0
+        return d
+
+
+
+    # make table [label, features, fracgood, hpind]
+    Table  = TABLE()          # make table
+    Data5f = split2Kfolds(Table, k=5)     # split
+
+    # take one fold for example
+    fold   = 'fold0'
+    train  = Data(Data5f['train'][fold])
+    test   = Data(Data5f['test'][fold])
+    valid  = Data(Data5f['validation'][fold])
+
+    # run the neural network,
+    # default setting
+    t_i = time.time()
+    Net = NetRegression(train, valid, test)
+    Net.fit(hyperparams=True)
+    Net._descale() # descale
+    t_f = time.time()
+
+    # show sin(x), test and prediction
+    plt.figure()
+    plt.scatter(test.x[:,0], test.y)
+    plt.scatter(test.x[:,0], Net.ypreds[0])
+    plt.show()
+    
+    plt.figure()
+    plt.scatter(test.y, Net.ypreds[0])
+    plt.show()
+    print(f'took {t_f-t_i} secs')
+    
+    
+    
+if __name__ == '__main__':
+    # if run as a code, eg. $> python regression.py,
+    # it will perform a regression on mock data based on sin(x)
+    test_sin()
