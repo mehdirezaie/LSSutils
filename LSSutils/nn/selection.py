@@ -32,6 +32,9 @@ class FeatureElimination:
     def __call__(self, indices):
 
         if len(indices) == 1:
+            # this means that we are left with one map
+            # append this map to the importance, and return
+            self.results['importance'].append(indices[1])
             return self.results
 
         vloss = []
