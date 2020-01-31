@@ -633,9 +633,11 @@ def test_sin():
         https://github.com/mehdirezaie/LSSutils/blob/master/LSSutils/utils.py
         Numpy, Matplotlib
     '''
-    import sys
-    sys.path.append('/Users/mehdi/github/LSSutils')
+    #import sys
+    #sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    # append the path to PYTHONPATH environment variable
     from LSSutils.utils import split2Kfolds 
+
     import matplotlib
     matplotlib.use('TKAgg')
     import matplotlib.pyplot as plt
