@@ -113,7 +113,7 @@ def split_mask(mask_in, mask_ngc, mask_sgc, nside=256):
     print('done')
 
     
-def hpix2caps(hpind, nside=256, dec_cutoff=32.):
+def hpix2caps(hpind, nside=256, dec_cutoff=32.375):
     ra, dec = hpix2radec(nside, hpind)
     theta   = np.pi/2 - np.radians(dec)
     phi     = np.radians(ra)
