@@ -7,6 +7,14 @@ cols_dr8 = ['ebv', 'loghi', 'nstar']\
          + ['exptime_'+b+'_total' for b in 'rgz']\
          + ['mjd_'+b+'_min' for b in 'rgz']
 
+cols_dr8_ts = ['GALDEPTH_G',
+             'GALDEPTH_R',
+             'GALDEPTH_Z',
+             'PSFSIZE_G',
+             'PSFSIZE_R',
+             'PSFSIZE_Z',
+             'EBV',
+             'STARDENS']
 
 cols_dr8_rand = ['STARDENS',
                  'EBV',
@@ -59,6 +67,23 @@ cols_eboss_v7_qso = ['logSKY_G', 'logSKY_R', 'logSKY_I', 'logSKY_Z',
                      'logEBV', 'log(1+STAR_DENSITY)', 'LOGHI']
 
 
+def fixlabels(labels):
+    labels_out = []
+    
+    for label in labels:
+        a = label.split('_')
+        if len(a)==2:
+            b='-'.join([a[0], a[1]])
+        elif len(a)==3:
+            b='-'.join([a[0], a[1]])
+        elif len(a)==1:
+            b=a[0]
+        else:
+            raise ValueError("somthing is wrong")
+            
+        labels_out.append(b)
+        
+    return labels_out
 
 
 class Columns(object):
