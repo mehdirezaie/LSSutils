@@ -25,6 +25,9 @@ def IvarToDepth(ivar):
     depth = nanomaggiesToMag(5./np.sqrt(ivar))
     return depth
 
+def Magtonanomaggies(m):
+    return 10.**(-m/2.5+9.)
+
 def nanomaggiesToMag(nm):
     ''' nano maggies to magnitude '''
     return -2.5 * (np.log10(nm) - 9.)
@@ -115,7 +118,69 @@ class Readfits(object):
             
         plt.savefig(path2fig, bbox_inches='tight')
         
+
         
+        
+
+
+class DR8templates:
+    
+    logger = logging.getLogger('DR8templates')
+    
+    def __init__(self, inputFile='/home/mehdi/data/pixweight-dr8-0.31.1.fits'):    
+        self.logger.info(f'read {inputFile}')
+        self.templates = ft.read(inputFile)
+    
+    def run(self, list_maps):
+        
+        # http://legacysurvey.org/dr8/files/#random-catalogs
+        FluxToMag = lambda flux: -2.5 * (np.log10(5/np.sqrt(flux)) - 9.)
+
+        # http://legacysurvey.org/dr8/catalogs/#galactic-extinction-coefficients
+        ext = dict(g=3.214, r=2.165, z=1.211)
+
+
+        
+        self.maps = []
+        self.list_maps = list_maps
+        
+        for map_i in self.list_maps:
+            
+            self.logger.info(f'read {map_i}')
+            hpmap_i = self.templates[map_i]
+            
+            #--- fix depth
+            if 'DEPTH' in map_i:                
+                self.logger.info(f'change {map_i} units')
+                _,band = map_i.split('_')                
+                hpmap_i = FluxToMag(hpmap_i)
+                
+                if band in 'rgz':
+                    self.logger.info(f'apply extinction on {band}')
+                    hpmap_i -= ext[band]*self.templates['EBV']
+                
+            #--- rotate
+            self.maps.append(hp.reorder(hpmap_i, n2r=True))   
+            
+    def plot(self, show=True):
+        
+        import matplotlib.pyplot as plt
+        
+        nrows = len(self.maps)//2
+        if len(self.maps)%2 != 0:nrows += 1
+            
+        fig, ax = plt.subplots(ncols=2, nrows=nrows, figsize=(8, 3*nrows))
+        ax = ax.flatten()
+
+        for i, map_i in enumerate(self.maps):
+            fig.sca(ax[i])
+            hp.mollview(map_i, title=self.list_maps[i], hold=True, rot=-89)
+            
+        if show:plt.show()
+            
+    def to_pandas(self):
+        return pd.DataFrame(np.array(self.maps).T, columns=self.list_maps)
+    
         
 def hd5_2_fits(myfit, cols, fitname=None, hpmask=None, hpfrac=None, fitnamekfold=None, res=256, k=5):
     from LSSutils.utils import split2Kfolds
@@ -307,6 +372,8 @@ def make_clustering_catalog_random(rand, mock, seed=None):
     return rand_clust[w]
 
 
+
+
 class EbossCatalog:
     
     logger = logging.getLogger('EbossCatalog')
@@ -482,8 +549,6 @@ class EbossCatalog:
         ax.axhline(1, color='k', ls=':')
         ax.legend()
         ax.set(ylabel=r'$N_{i}/N_{j}$', xlabel='z')
-
-
 
 
         

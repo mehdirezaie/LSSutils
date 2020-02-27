@@ -8,6 +8,22 @@ cols_dr8 = ['ebv', 'loghi', 'nstar']\
          + ['mjd_'+b+'_min' for b in 'rgz']
 
 
+cols_dr8_rand = ['STARDENS',
+                 'EBV',
+                 'PSFDEPTH_G',
+                 'PSFDEPTH_R',
+                 'PSFDEPTH_Z',
+                 'GALDEPTH_G',
+                 'GALDEPTH_R',
+                 'GALDEPTH_Z',
+                 'PSFDEPTH_W1',
+                 'PSFDEPTH_W2',
+                 'PSFSIZE_G',
+                 'PSFSIZE_R',
+                 'PSFSIZE_Z']
+
+
+
 # w1 moon is removed
 cols_eboss_qso_org = ['sky_g', 'sky_r', 'sky_i', 'sky_z', 
                      'depth_g', 'depth_r', 'depth_i','depth_z',
@@ -41,6 +57,8 @@ cols_eboss_v7_qso = ['logSKY_G', 'logSKY_R', 'logSKY_I', 'logSKY_Z',
                      'PSF_G', 'PSF_R', 'PSF_I', 'PSF_Z', 
                      'W1_MED', 'logW1_COVMED', 'RUN', 'logAIRMASS',
                      'logEBV', 'log(1+STAR_DENSITY)', 'LOGHI']
+
+
 
 
 class Columns(object):
