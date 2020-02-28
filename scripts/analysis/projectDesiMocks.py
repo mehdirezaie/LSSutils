@@ -23,8 +23,8 @@ def main(mockid, my_cols=cols_dr8_rand):
     # --- input parameters
     nside = 256    
     dataframe = '/global/cscratch1/sd/peterw/data/templates/pixweight-dr8-0.31.1.h5'
-    random = f'/home/mehdi/data/mocksys/FA_EZmock_desi_ELG_v0_rand_00to2.hp{nside}.fits'
-    output_dir = '/home/mehdi/data/mocksys/regression/'
+    random = f'/global/cscratch1/sd/peterw/data/mocksys/FA_EZmock_desi_ELG_v0_rand_00to2.hp{nside}.fits'
+    output_dir = '/global/cscratch1/sd/peterw/data/mocksys/regression/'
     zcuts = {'low':[0.7, 1.0],
              'high':[1.0, 1.5],
              'all':[0.7, 1.5]}
@@ -44,8 +44,8 @@ def main(mockid, my_cols=cols_dr8_rand):
     logger.info(f'read {random}')
 
     # --- data
-    data = ft.read(f'/B/Shared/Shadab/FA_LSS/FA_EZmock_desi_ELG_v0_{mockid}.fits')
-    mask = ft.read(f'/B/Shared/Shadab/FA_LSS/EZmock_desi_v0.0_{mockid}/bool_index.fits')['bool_index']
+    data = ft.read(f'F/global/project/projectdirs/desi/users/shadaba/EZmock/FA_LSS/FA_EZmock_desi_ELG_v0_{mockid}.fits')
+    mask = ft.read(f'/global/project/projectdirs/desi/users/shadaba/EZmock/FA_LSS/FA_LSS/EZmock_desi_v0.0_{mockid}/bool_index.fits')['bool_index']
     data = data[mask]
     z_rsd = data['Z_COSMO']+data['DZ_RSD']
     logger.info(f'read mock-{mockid}')
