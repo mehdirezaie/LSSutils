@@ -7,6 +7,30 @@ cols_dr8 = ['ebv', 'loghi', 'nstar']\
          + ['exptime_'+b+'_total' for b in 'rgz']\
          + ['mjd_'+b+'_min' for b in 'rgz']
 
+cols_dr8_ts = ['GALDEPTH_G',
+             'GALDEPTH_R',
+             'GALDEPTH_Z',
+             'PSFSIZE_G',
+             'PSFSIZE_R',
+             'PSFSIZE_Z',
+             'EBV',
+             'STARDENS']
+
+cols_dr8_rand = ['STARDENS',
+                 'EBV',
+                 'PSFDEPTH_G',
+                 'PSFDEPTH_R',
+                 'PSFDEPTH_Z',
+                 'GALDEPTH_G',
+                 'GALDEPTH_R',
+                 'GALDEPTH_Z',
+                 'PSFDEPTH_W1',
+                 'PSFDEPTH_W2',
+                 'PSFSIZE_G',
+                 'PSFSIZE_R',
+                 'PSFSIZE_Z']
+
+
 
 # w1 moon is removed
 cols_eboss_qso_org = ['sky_g', 'sky_r', 'sky_i', 'sky_z', 
@@ -41,6 +65,25 @@ cols_eboss_v7_qso = ['logSKY_G', 'logSKY_R', 'logSKY_I', 'logSKY_Z',
                      'PSF_G', 'PSF_R', 'PSF_I', 'PSF_Z', 
                      'W1_MED', 'logW1_COVMED', 'RUN', 'logAIRMASS',
                      'logEBV', 'log(1+STAR_DENSITY)', 'LOGHI']
+
+
+def fixlabels(labels):
+    labels_out = []
+    
+    for label in labels:
+        a = label.split('_')
+        if len(a)==2:
+            b='-'.join([a[0], a[1]])
+        elif len(a)==3:
+            b='-'.join([a[0], a[1]])
+        elif len(a)==1:
+            b=a[0]
+        else:
+            raise ValueError("somthing is wrong")
+            
+        labels_out.append(b)
+        
+    return labels_out
 
 
 class Columns(object):
