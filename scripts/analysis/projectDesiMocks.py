@@ -7,7 +7,7 @@ import healpy as hp
 import logging
 
 import sys
-sys.path.append('/home/mehdi/github/LSSutils')
+sys.path.append('/global/homes/p/peterw/DESImocks/LSSutils')
 from LSSutils import setup_logging
 from LSSutils.catalogs.combinefits import hd5_2_fits
 from LSSutils.catalogs.datarelease import cols_dr8_rand
@@ -44,7 +44,7 @@ def main(mockid, my_cols=cols_dr8_rand):
     logger.info(f'read {random}')
 
     # --- data
-    data = ft.read(f'F/global/project/projectdirs/desi/users/shadaba/EZmock/FA_LSS/FA_EZmock_desi_ELG_v0_{mockid}.fits')
+    data = ft.read(f'/global/project/projectdirs/desi/users/shadaba/EZmock/FA_LSS/FA_EZmock_desi_ELG_v0_{mockid}.fits')
     mask = ft.read(f'/global/project/projectdirs/desi/users/shadaba/EZmock/FA_LSS/FA_LSS/EZmock_desi_v0.0_{mockid}/bool_index.fits')['bool_index']
     data = data[mask]
     z_rsd = data['Z_COSMO']+data['DZ_RSD']
