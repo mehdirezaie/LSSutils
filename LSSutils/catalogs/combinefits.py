@@ -7,7 +7,7 @@ import fitsio as ft
 import numpy as np
 import healpy as hp
 
-from LSSutils.utils import radec2hpix, hpixsum
+from LSSutils.utils import radec2hpix, hpixsum, shiftra
 from astropy.table import Table
 import logging
 
@@ -445,7 +445,7 @@ class EbossCatalog:
         if not hasattr(self, 'weight'):
             self.prepare_weight()
                    
-        self.hpmap = hpixsum(nside, self.cdata['RA'], self.cdata['DEC'], value=weight)
+        self.hpmap = hpixsum(nside, self.cdata['RA'], self.cdata['DEC'], value=self.weight)
 
     def swap(self, zcuts, slices, colname='WEIGHT_SYSTOT', clip=False):
         self.orgcol = self.data[colname].copy()
@@ -462,6 +462,7 @@ class EbossCatalog:
             
             print(slice_i, self.wmap_data.min(), self.wmap_data.max())            
             if clip:self.wmap_data = self.wmap_data.clip(0.5, 2.0)
+            #
             assert np.all(self.wmap_data > 0.0),'the weights are zeros!'
             self.data[colname][my_mask] = self.wmap_data            
             self.logger.info('number of objs w zcut {} : {}'.format(my_zcut, my_mask.sum()))
@@ -521,7 +522,7 @@ class EbossCatalog:
             
             zlim = zcuts[cut][0]
             mask = (self.data['Z']<= zlim[1]) & (self.data['Z']>= zlim[0])
-            mapi = ax[i].scatter(self.data['RA'][mask], self.data['DEC'][mask], 10,
+            mapi = ax[i].scatter(shiftra(self.data['RA'][mask]), self.data['DEC'][mask], 10,
                         c=self.data['WEIGHT_SYSTOT'][mask], **kw)
             
             ax[i].set(title='{0}<z<{1}'.format(*zlim), xlabel='RA [deg]')
@@ -576,6 +577,9 @@ class SysWeight(object):
         wsys = self.wmap[hpix]
         # check if there is any NaNs
         NaNs = np.isnan(wsys)
+        self.logger.info(f'# NaNs : {NaNs.sum()}')
+        NaNs |= (wsys <= 0.0) # negative weights
+        self.logger.info(f'# NaNs or lt 0: {NaNs.sum()}')
         if NaNs.sum() !=0:
             nan_wsys = np.argwhere(NaNs).flatten()
             nan_hpix = hpix[nan_wsys]
