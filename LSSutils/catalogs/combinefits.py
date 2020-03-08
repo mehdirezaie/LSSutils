@@ -48,6 +48,19 @@ def maskmap(filename, nside=256):
     output[data['pixel']] = signal
     return output
 
+
+def jointemplates():
+    #--- append the CCD based templates to the TS based ones
+    ts = pd.read_hdf('/home/mehdi/data/templates/pixweight-dr8-0.32.0.h5')
+    ccd = pd.read_hdf('/home/mehdi/data/templates/dr8_combined256.h5')
+
+    # rename the second to last ebv
+    combined = pd.concat([ccd[cols_dr8], ts[cols_dr8_ts]], sort=False, axis=1)
+    colnames = combined.columns.values
+    colnames[-2] = 'ebv2'
+    combined.columns = colnames
+    return combined
+
 class Readfits(object):
     #
     def __init__(self, paths, extract_keys=extract_keys_dr8, res_out=256):
@@ -129,7 +142,7 @@ class DR8templates:
     
     def __init__(self, inputFile='/home/mehdi/data/pixweight-dr8-0.31.1.fits'):    
         self.logger.info(f'read {inputFile}')
-        self.templates = ft.read(inputFile)
+        self.templates = ft.read(inputFile, lower=True)
     
     def run(self, list_maps):
         
@@ -150,14 +163,14 @@ class DR8templates:
             hpmap_i = self.templates[map_i]
             
             #--- fix depth
-            if 'DEPTH' in map_i:                
+            if 'depth' in map_i:                
                 self.logger.info(f'change {map_i} units')
                 _,band = map_i.split('_')                
                 hpmap_i = FluxToMag(hpmap_i)
                 
                 if band in 'rgz':
                     self.logger.info(f'apply extinction on {band}')
-                    hpmap_i -= ext[band]*self.templates['EBV']
+                    hpmap_i -= ext[band]*self.templates['ebv']
                 
             #--- rotate
             self.maps.append(hp.reorder(hpmap_i, n2r=True))   
@@ -177,9 +190,11 @@ class DR8templates:
             hp.mollview(map_i, title=self.list_maps[i], hold=True, rot=-89)
             
         if show:plt.show()
-            
-    def to_pandas(self):
-        return pd.DataFrame(np.array(self.maps).T, columns=self.list_maps)
+    
+    def to_hdf(self, name,
+              key='templates'):
+        df = pd.DataFrame(np.array(self.maps).T, columns=self.list_maps)
+        df.to_hdf(name, key=key)
     
         
 def hd5_2_fits(myfit, cols, fitname=None, hpmask=None, hpfrac=None, fitnamekfold=None, res=256, k=5):
