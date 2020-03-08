@@ -23,8 +23,8 @@ def main(mockid, my_cols=cols_dr8_rand):
     # --- input parameters
     nside = 256    
     dataframe = '/home/mehdi/data/templates/pixweight-dr8-0.31.1.h5'
-    random = f'/home/mehdi/data/mocksys/FA_EZmock_desi_ELG_v0_rand_00to2.hp{nside}.fits'
-    output_dir = '/home/mehdi/data/mocksys/regression/'
+    random = f'/B/Shared/mehdi/mocksys/FA_EZmock_desi_ELG_v0_rand_00to2.hp{nside}.fits'
+    output_dir = '/B/Shared/mehdi/mocksys/regression/'
     zcuts = {'low':[0.7, 1.0],
              'high':[1.0, 1.5],
              'all':[0.7, 1.5]}

@@ -7,29 +7,21 @@ cols_dr8 = ['ebv', 'loghi', 'nstar']\
          + ['exptime_'+b+'_total' for b in 'rgz']\
          + ['mjd_'+b+'_min' for b in 'rgz']
 
-cols_dr8_ts = ['GALDEPTH_G',
-             'GALDEPTH_R',
-             'GALDEPTH_Z',
-             'PSFSIZE_G',
-             'PSFSIZE_R',
-             'PSFSIZE_Z',
-             'EBV',
-             'STARDENS']
 
-cols_dr8_rand = ['STARDENS',
-                 'EBV',
-                 'PSFDEPTH_G',
-                 'PSFDEPTH_R',
-                 'PSFDEPTH_Z',
-                 'GALDEPTH_G',
-                 'GALDEPTH_R',
-                 'GALDEPTH_Z',
-                 'PSFDEPTH_W1',
-                 'PSFDEPTH_W2',
-                 'PSFSIZE_G',
-                 'PSFSIZE_R',
-                 'PSFSIZE_Z']
 
+cols_dr8_ts = ['galdepth_g', 'galdepth_r', 'galdepth_z', 
+               'psfsize_g', 'psfsize_r', 'psfsize_z',
+               'ebv', 'stardens']
+
+# will rename the second ebv column
+cols_dr8_ccdts = cols_dr8 + cols_dr8_ts
+cols_dr8_ccdts[-2] = 'ebv2'
+
+cols_dr8_rand = ['stardens', 'ebv', 
+                 'psfdepth_g', 'psfdepth_r', 'psfdepth_z', 
+                 'galdepth_g', 'galdepth_r', 'galdepth_z', 
+                 'psfdepth_w1', 'psfdepth_w2', 
+                 'psfsize_g', 'psfsize_r', 'psfsize_z']
 
 
 # w1 moon is removed
@@ -67,24 +59,44 @@ cols_eboss_v7_qso = ['logSKY_G', 'logSKY_R', 'logSKY_I', 'logSKY_Z',
                      'logEBV', 'log(1+STAR_DENSITY)', 'LOGHI']
 
 
-def fixlabels(labels):
-    labels_out = []
-    
-    for label in labels:
-        a = label.split('_')
-        if len(a)==2:
-            b='-'.join([a[0], a[1]])
-        elif len(a)==3:
-            b='-'.join([a[0], a[1]])
-        elif len(a)==1:
-            b=a[0]
-        else:
-            raise ValueError("somthing is wrong")
-            
-        labels_out.append(b)
-        
-    return labels_out
+def fixlabels(labels, addunit=True):
+    columns = []
+    for col in labels:
 
+        # find unit
+        if ('ebv' in col) | ('depth' in col):
+            unit='[mag]'
+        elif 'star' in col:
+            unit=r'[deg$^{-2}$]'
+        elif ('fwhm' in col) | ('psf' in col):
+            unit='[arcsec]'
+        elif 'airmass' in col:
+            unit=''
+        elif 'skymag' in col:
+            unit=r'[mag/arcsec$^{2}$]'
+        elif 'time' in col:
+            unit='[sec]'
+        elif 'mjd' in col:
+            unit='[day]'
+        elif 'hi' in col:
+            col=r'log(HI/cm$^{2}$)' if addunit else 'logHI'
+            unit=''
+        else:
+            raise RuntimeWarning(f'{col} not recognized')
+            unit=''
+
+        splits = col.split('_')
+
+        if len(splits)>1:
+            col = '-'.join([splits[0], splits[1]])
+        else:
+            col = splits[0]
+        
+        if addunit:
+            col = ' '.join([col,unit])
+            
+        columns.append(col)
+    return columns
 
 class Columns(object):
     def __init__(self, dr='dr8'):

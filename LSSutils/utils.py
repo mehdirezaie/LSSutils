@@ -38,6 +38,24 @@ except:
 from scipy.stats import binned_statistic
 
 
+def dr8density(df, n2r=False, persqdeg=True, nside=256):
+    density = np.zeros(df.size)
+    for name in ['ELG200G228', 'ELG228G231',\
+                 'ELG231G233', 'ELG233G234',\
+                 'ELG234G236']: # 'ELG200G236'
+        density += df[name]
+        
+    if not persqdeg:
+        # it's already per sq deg
+        density *= df['FRACAREA']*hp.nside2pixarea(nside, degrees=True)
+        
+    if n2r:
+        density = hp.reorder(density, n2r=n2r)
+        
+    return density
+
+
+
 def shiftra(x):
     ''' (c) Julien Bautista Hack'''
     return x-360*(x>300)
@@ -57,9 +75,6 @@ def flux_to_mag(flux, band, ebv=None):
     return mag
 
 
-
-
-
 def radec2hpix(nside, ra, dec):
     pix = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra))
     return pix
@@ -73,8 +88,29 @@ def split_mask(mask_in, mask_ngc, mask_sgc, nside=256):
     hp.write_map(mask_sgc, msgc, fits_IDL=False, dtype='float64')
     print('done')
 
+
+def mask2caps(mask, **kwargs):
     
-def hpix2caps(hpind, nside=256, dec_cutoff=32.):
+    hpix = np.argwhere(mask).flatten()
+    masks = hpix2caps(hpix, **kwargs)
+    #print(mask.sum())
+    #ra, dec = hpix2radec(nside, hpix)
+
+    #for mask_i in masks:
+    #    plt.scatter(utils.shiftra(ra[mask_i]), dec[mask_i], 5, marker='.')
+    
+    ngc = np.zeros_like(mask)
+    ngc[hpix[masks[0]]] = True
+    
+    sgc = np.zeros_like(mask)
+    sgc[hpix[masks[1]]] = True
+    
+    bmzls = np.zeros_like(mask)
+    bmzls[hpix[masks[2]]] = True
+    
+    return ngc, sgc, bmzls    
+    
+def hpix2caps(hpind, nside=256, mindec_bass=32., mindec_decals=-30., **kwargs):
     ra, dec = hpix2radec(nside, hpind)
     theta   = np.pi/2 - np.radians(dec)
     phi     = np.radians(ra)
@@ -82,9 +118,9 @@ def hpix2caps(hpind, nside=256, dec_cutoff=32.):
     theta_g, phi_g = r(theta, phi)
 
     north  = theta_g < np.pi/2
-    mzls   = (dec > dec_cutoff) & north
+    mzls   = (dec > mindec_bass) & north
     decaln = (~mzls) & north
-    decals = (~mzls) & (~north)
+    decals = (~mzls) & (~north) & (dec > mindec_decals)
     return decaln, decals, mzls
 
 def split2caps(mask, coord='C', nside=256):

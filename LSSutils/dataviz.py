@@ -76,12 +76,16 @@ def cm2inch(cm):
 def mollview(m, vmin, vmax, unit, use_mask=False, 
              maskname=None, rotate=2/3*np.pi, xsize=1000,
              width=7, figax=None, colorbar=False, cmap=plt.cm.bwr,
-             galaxy=False, **kwargs):
+             galaxy=False, extend='both',**kwargs):
     '''
         (c)Andrea Zonca, https://github.com/zonca/paperplots 
         modified by Mehdi Rezaie for galaxy counts
         
         Matplotlib has higher freedom than healpy.mollview
+        
+        one could use rasterized=True to improve the quality
+        for colorbar options, see
+        https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.colorbar.html
 
         Example:
         
@@ -227,19 +231,19 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
 
     # colorbar
     if colorbar:
-        #cax = plt.axes([.9, 0.2, 0.01, 0.6])  # vertical
-        cax = plt.axes([0.2, 0.0, 0.6, 0.01])  # horizontal
-        cb  = fig.colorbar(image, cax=cax, label=unit, 
-                           shrink=0.6, pad=0.05, ticks=[vmin, vmax], 
-                           orientation='horizontal', extend='both')        
+        #cax = plt.axes([.9, 0.2, 0.02, 0.6])  # vertical
+        cax = plt.axes([0.2, 0.0, 0.6, 0.02])  # horizontal
+        cb  = fig.colorbar(image, cax=cax, label=unit, fraction=0.15,
+                           shrink=0.6, pad=0.15, ticks=[vmin, vmax], # 0.5*(vmax+vmin), 
+                           orientation='horizontal', extend=extend)        
         #cb = fig.colorbar(image, orientation='horizontal', shrink=.6, pad=0.05, ticks=[vmin, vmax])
         #cb.ax.xaxis.set_label_text(unit)
         cb.ax.xaxis.labelpad = -8
         # workaround for issue with viewers, see colorbar docstring
         cb.solids.set_edgecolor("face")
 
-    ax.tick_params(axis='x', labelsize=10)
-    ax.tick_params(axis='y', labelsize=10)
+    ax.tick_params(axis='x', labelsize=12)
+    ax.tick_params(axis='y', labelsize=12)
 
     # remove tick labels
     #ax.xaxis.set_ticklabels([])
