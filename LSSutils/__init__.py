@@ -118,7 +118,7 @@ class CurrentMPIComm(object):
 
     
 _logging_handler = None
-def setup_logging(log_level="info"):
+def setup_logging(log_level="info", logfile=None):
     """
     (c) Nbodykit, Nick Hand, Yu Feng
     
@@ -158,7 +158,12 @@ def setup_logging(log_level="info"):
 
     global _logging_handler
     if _logging_handler is None:
-        _logging_handler = logging.StreamHandler()
+        
+        if logfile is None:
+            _logging_handler = logging.StreamHandler()
+        else:
+            _logging_handler = logging.FileHandler(logfile)
+            
         logger.addHandler(_logging_handler)
 
     _logging_handler.setFormatter(fmt)
