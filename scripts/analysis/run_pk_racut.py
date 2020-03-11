@@ -83,7 +83,9 @@ if 'COMP_BOSS' in data.columns:
     valid &= data['COMP_BOSS'] > compmin
 if 'sector_SSR' in data.columns:
     valid &= data['sector_SSR'] > compmin
-data  = data[valid]
+
+valid &= data['RA'] > 140.
+data = data[valid]
 
 
 valid  = (randoms['Z'] >= ZMIN) & (randoms['Z'] <= ZMAX)
@@ -91,7 +93,9 @@ if 'COMP_BOSS' in randoms.columns:
     valid &= randoms['COMP_BOSS']  > compmin
 if 'sector_SSR' in randoms.columns:
     valid &= randoms['sector_SSR'] > compmin
-randoms  = randoms[valid]
+
+valid &= randoms['RA'] > 140.
+randoms = randoms[valid]
 
 
 

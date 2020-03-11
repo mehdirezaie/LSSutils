@@ -110,7 +110,7 @@ def mask2caps(mask, **kwargs):
     
     return ngc, sgc, bmzls    
     
-def hpix2caps(hpind, nside=256, mindec_bass=32., mindec_decals=-30., **kwargs):
+def hpix2caps(hpind, nside=256, mindec_bass=32.375, mindec_decals=-30., **kwargs):
     ra, dec = hpix2radec(nside, hpind)
     theta   = np.pi/2 - np.radians(dec)
     phi     = np.radians(ra)

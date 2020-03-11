@@ -343,6 +343,7 @@ class EBOSSCAT(object):
 
 
 def make_clustering_catalog(mock):
+    # (c) Julien Bautista 
     w = ((mock['IMATCH']==1) | (mock['IMATCH']==2))
     w &= (mock['COMP_BOSS'] > 0.5)
     w &= (mock['sector_SSR'] > 0.5)
@@ -359,7 +360,8 @@ def make_clustering_catalog(mock):
     return mock_clust
 
 def make_clustering_catalog_random(rand, mock, seed=None):
-    
+    # (c) Julien Bautista
+    # March 9, 20: Z, NZ, FKP must be assigned from data
     rand_clust = Table()
     rand_clust['RA'] = rand['RA']*1
     rand_clust['DEC'] = rand['DEC']*1
