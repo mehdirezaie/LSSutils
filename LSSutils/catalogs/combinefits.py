@@ -343,6 +343,7 @@ class EBOSSCAT(object):
 
 
 def make_clustering_catalog(mock):
+    # (c) Julien Bautista 
     w = ((mock['IMATCH']==1) | (mock['IMATCH']==2))
     w &= (mock['COMP_BOSS'] > 0.5)
     w &= (mock['sector_SSR'] > 0.5)
@@ -359,23 +360,24 @@ def make_clustering_catalog(mock):
     return mock_clust
 
 def make_clustering_catalog_random(rand, mock, seed=None):
-    
+    # (c) Julien Bautista
+    # March 9, 20: Z, NZ, FKP must be assigned from data
     rand_clust = Table()
     rand_clust['RA'] = rand['RA']*1
     rand_clust['DEC'] = rand['DEC']*1
-    rand_clust['Z']  = rand['Z']*1
-    rand_clust['NZ'] = rand['NZ']*1
-    rand_clust['WEIGHT_FKP'] = rand['WEIGHT_FKP']*1
+    #rand_clust['Z']  = rand['Z']*1
+    #rand_clust['NZ'] = rand['NZ']*1
+    #rand_clust['WEIGHT_FKP'] = rand['WEIGHT_FKP']*1
     rand_clust['COMP_BOSS'] = rand['COMP_BOSS']*1
     rand_clust['sector_SSR'] = rand['sector_SSR']*1
 
-    if not seed is None:
+    if seed is not None:
         np.random.seed(seed)
     
     index = np.arange(len(mock))
     ind = np.random.choice(index, size=len(rand), replace=True)
     
-    fields = ['WEIGHT_NOZ', 'WEIGHT_CP', 'WEIGHT_SYSTOT'] 
+    fields = ['WEIGHT_NOZ', 'WEIGHT_CP', 'WEIGHT_SYSTOT', 'WEIGHT_FKP', 'Z', 'NZ'] 
     for f in fields:
         rand_clust[f] = mock[f][ind]
 
