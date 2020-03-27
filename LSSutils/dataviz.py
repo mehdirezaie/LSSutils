@@ -1,3 +1,20 @@
+'''
+    Data Visualization tools
+
+    > to reset the defaults
+    
+    from cycler import cycler
+    default_cycler = (cycler(color=['purple', 'royalblue', 'lime', 'darkorange', 'crimson']) +
+                      cycler(linestyle=['-', '--', ':', '-.', '-']))
+    plt.rc('lines', linewidth=2)
+    plt.rc('axes', prop_cycle=default_cycler)
+    
+
+'''
+#import matplotlib
+#matplotlib.use('Agg')
+
+
 import matplotlib.pyplot as plt
 import numpy  as np
 import healpy as hp
@@ -10,6 +27,86 @@ from matplotlib import cm
 from matplotlib.colors import ListedColormap
 
 from .utils import binit, binit_jac, radec2hpix
+
+
+
+def plot_corrmax(corrmatrix, title, xlabels, pdfname):
+    '''
+    columns = lab.catalogs.datarelease.cols_dr8_ccd
+    xlabels = lab.catalogs.datarelease.fixlabels(columns, addunit=False)
+
+    df = pd.read_hdf('/home/mehdi/data/templates/dr8pixweight-0.32.0_combined256.h5')[columns]
+    df['ngal/nran'] = 0
+    dfnumpy = df.to_numpy()
+
+    kw = {'verbose':False}
+    ngal = hp.read_map('/home/mehdi/data/formehdi/dr8_elgsv_ngal_pix_0.32.0-colorbox.hp.256.fits', **kw)
+    frac = hp.read_map('/home/mehdi/data/formehdi/dr8_frac_pix_0.32.0-colorbox.hp.256.fits', **kw)
+
+    masks = {}
+    masks['bmzls'] = hp.read_map('/home/mehdi/data/formehdi/dr8_mask_eboss_bmzls_pix_0.32.0-colorbox.hp.256.fits', **kw) > 0
+    masks['decals'] = hp.read_map('/home/mehdi/data/formehdi/dr8_mask_eboss_decals_pix_0.32.0-colorbox.hp.256.fits', **kw) > 0 
+
+    nnbar = {}
+    nnbar['nnbar_bmzls'] = lab.utils.makedelta(ngal, frac, masks['bmzls']) + 1
+    nnbar['nnbar_decals'] = lab.utils.makedelta(ngal, frac, masks['decals']) + 1
+
+    corrs = {}
+    for region in ['bmzls', 'decals']:
+        df_region = dfnumpy.copy()
+        df_region[:,-1] = nnbar[f'nnbar_{region}']    
+
+        corrs[region] = lab.utils.corrmatrix(df_region[masks[region], :], 
+                                             estimator='pearsonr')    
+        del df_region
+
+
+    cbar_label = {'bmzls':'BASS/MzLS',
+                 'decals':'DECaLS'}
+    for region in corrs:
+        corr_reg = corrs[region]
+
+        pdfname = f'pcorr_{region}.pdf'    
+        lab.dataviz.plot_corrmax(corr_reg, cbar_label[region], xlabels, pdfname)
+    '''
+    params = {
+    'axes.spines.right':False,
+    'axes.spines.top':False,
+    'axes.labelsize': 12,
+    #'text.fontsize': 8,
+    'legend.fontsize': 12,
+    'xtick.labelsize': 10,
+    'ytick.labelsize': 10,
+    'text.usetex': True,
+    #'figure.figsize': [6, 4],
+    'font.family':'serif'
+    }
+    plt.rcParams.update(params)
+    
+    #--- setup figure
+    fig, ax = plt.subplots(figsize=(6, 4))
+    mask = np.zeros_like(corrmatrix, dtype=np.bool)
+    mask[np.triu_indices_from(mask)] = True
+
+    #--- colorbar 
+    kw = dict(mask=mask, cmap=plt.cm.seismic, 
+              center=0, vmin=-0.5, vmax=0.5,
+              square=True, linewidths=.5, 
+              cbar_kws={"shrink": .5, 
+                        "ticks":[-1, -0.5, 0, 0.5, 1], 
+                        #"label":'PCC',
+                        "orientation":'vertical',
+                        'extend':'both'},
+              xticklabels=xlabels,
+              yticklabels=xlabels+['ngal/nran'],
+              ax=ax)    
+    sns.heatmap(corrmatrix, **kw)
+    
+    ax.set_ylim(ymax=1) # Hack to remove the EBV from y axis
+    ax.text(0.55, 0.95, title,
+            color='k', transform=ax.transAxes,
+            fontsize=15) 
+    fig.savefig(pdfname, bbox_inches='tight')
 
 
 def plot_grid(galm, extent=[100, 275, 10, 70], cmap=plt.cm.Blues, 

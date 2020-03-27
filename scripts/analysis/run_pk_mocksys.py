@@ -27,12 +27,13 @@ if rank == 0:
     from argparse import ArgumentParser
     ap = ArgumentParser(description='Power Spectrum')
     ap.add_argument('--data',    default='/B/Shared/Shadab/FA_LSS/FA_EZmock_desi_ELG_v0_15.fits')
-    ap.add_argument('--randoms', nargs='*', type=str, default='/B/Shared/Shadab/FA_LSS/FA_EZmock_desi_ELG_v0_rand_0*.fits')
-    #ap.add_argument('--randoms', default='/B/Shared/Shadab/FA_LSS/FA_EZmock_desi_ELG_v0_rand_01.fits')
+    #ap.add_argument('--randoms', nargs='*', type=str, default='/B/Shared/Shadab/FA_LSS/FA_EZmock_desi_ELG_v0_rand_0*.fits')
+    ap.add_argument('--randoms', default='/B/Shared/Shadab/FA_LSS/FA_EZmock_desi_ELG_v0_rand_01.fits')
     ap.add_argument('--mask',    default='None')
+    ap.add_argument('--wsys',    default='None')
     ap.add_argument('--output',  default='/home/mehdi/data/mocksys/pk_v0_15.txt')
     ap.add_argument('--nmesh',   default=512, type=int) # v0.1 256
-    ap.add_argument('--zlim',    nargs='*', type=float, default=[0.7, 1.5]) # v0.1 [0.7, 0.9]
+    ap.add_argument('--zlim',    nargs='*', type=float, default=[0.7, 1.1]) # v0.1 [0.7, 0.9]
     ap.add_argument('--poles',   nargs='*', type=int, default=[0, 2, 4])
     ap.add_argument('--real',    action='store_true')
     ns = ap.parse_args()
@@ -50,25 +51,32 @@ if rank ==0:
         
 ZMIN, ZMAX = ns.zlim
 
-if ns.mask != 'None':
-    mask    = nb.FITSCatalog(ns.mask)
-else:
-    mask    = None
-
-
-        
-
 data    = nb.FITSCatalog(ns.data)
 randoms = nb.FITSCatalog(ns.randoms)
+
+if ns.mask != 'None':
+    mask = nb.FITSCatalog(ns.mask)['bool_index']
+    data = data[mask]
+else:
+    mask = None
+
+if ns.wsys != 'None':
+    wsys = nb.FITSCatalog(ns.wsys)['wsys']
+    if mask is None:
+        raise RuntimeError('mask and weight should be used together')
+    data['Weight'] = wsys
 
 
 if ns.real:
     zcol_name = 'Z_COSMO'
+    raise RuntimeError('wsys only for redshift space')
+
 else:
     zcol_name = 'Z_RSD'
     data[zcol_name]    = data['Z_COSMO'] + data['DZ_RSD']
-    randoms[zcol_name] = randoms['Z_COSMO'] + randoms['DZ_RSD']
-    
+
+
+
 
 if rank == 0:
     print('Only Rank %d'%rank)
@@ -77,29 +85,25 @@ if rank == 0:
 
 
 # slice the data and randoms
-if mask is None:
-    valid = (data[zcol_name] > ZMIN)&(data[zcol_name] < ZMAX)
-else:
-    valid = (data[zcol_name] > ZMIN)&(data[zcol_name] < ZMAX)\
-            & (mask['bool_index'])
-    
+valid = (data[zcol_name] > ZMIN)&(data[zcol_name] < ZMAX)
 data = data[valid]
 
 
-valid   = (randoms[zcol_name] > ZMIN)&(randoms[zcol_name] < ZMAX)
-randoms = randoms[valid]
+#valid   = (randoms[zcol_name] > ZMIN)&(randoms[zcol_name] < ZMAX)
+#randoms = randoms[valid]
+randoms[zcol_name] = np.random.choice(data[zcol_name], size=randoms.size, replace=True)
+randoms['Weight']  = np.random.choice(data['Weight'], size=randoms.size, replace=True)
 
-#print(data.size, randoms.size)
-#sys.exit()
+
 data['Position']    = SkyToCartesian(data['RA'],    
                                      data['DEC'],    
                                      data[zcol_name],    
                                      cosmo=cosmo)
+
 randoms['Position'] = SkyToCartesian(randoms['RA'], 
                                      randoms['DEC'], 
                                      randoms[zcol_name],
                                      cosmo=cosmo)
-
 # Get N(z)
 # the sky fraction, used to compute volume in n(z)
 FSKY  = 0.37 # a made-up value
@@ -124,7 +128,8 @@ mesh = fkp.to_mesh(Nmesh=ns.nmesh,
                    fkp_weight='FKPWeight', 
                    comp_weight='Weight', 
                    window='tsc')
-r    = nb.ConvolvedFFTPower(mesh, poles=ns.poles, dk=0.001, kmin=0.0)
+
+r = nb.ConvolvedFFTPower(mesh, poles=ns.poles, dk=0.005, kmin=0.0)
 
 
 comm.Barrier()
@@ -132,6 +137,9 @@ if rank == 0:
     #
     # write P0-shotnoise P2 P4 to file
     output = open(ns.output, 'w')
+
+    for k in args:
+        output.write(f'#{k:20s} : {args[k]}\n')
 
     # write the attributes
     for k in r.attrs:

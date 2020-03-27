@@ -12,9 +12,10 @@ import sys
 import numpy as np
 import numpy.lib.recfunctions as rfn
 import scipy.special as scs
-from   scipy import integrate
-from   scipy.constants import c as clight
 
+from scipy import integrate
+from scipy.constants import c as clight
+from scipy.stats import (binned_statistic, spearmanr, pearsonr)
 
 try:
     import camb
@@ -35,7 +36,56 @@ try:
 except:
     print('healpy is not installed')
     
-from scipy.stats import binned_statistic
+
+def corrmatrix(matrix, estimator='pearsonr'):
+    '''
+    The corrmatrix function.
+    
+    The function computes the correlation matrix.
+    
+    Parameters
+    ----------
+    matrix : 2-D Array with shape (n,m)
+        2-D array of the attributes (n, m)
+    
+    estimator : string, optional
+        String to determine the correlation coefficient estimator
+        options are pearsonr and spearmanr
+        
+    Returns
+    -------
+    corr : 2-D array with shape (m, m)
+        2-D array of the correlation matrix
+        
+    Examples    
+    --------
+    >>> columns = ['ebv', 'depth_r_max', 'loghi']
+    >>> lab.catalogs.datarelease.fixlabels(columns, addunit=False)
+    ['ebv', 'depth-r', 'logHI']
+
+    >>> lab.catalogs.datarelease.fixlabels(columns, addunit=True)
+    ['ebv [mag]', 'depth-r [mag]', 'log(HI/cm$^{2}$) ']
+        
+    '''    
+    if estimator == 'pearsonr':
+        festimator = pearsonr
+    elif estimator == 'spearmanr':
+        festimator = spearmanr
+
+    n, m = matrix.shape
+    corr = np.zeros((m,m))
+        
+    for i in range(m):
+        column_i = matrix[:,i]
+        
+        
+        for j in range(i, m): 
+            # corr matrix is symmetric
+            corr_ij = festimator(column_i, matrix[:,j])[0]            
+            corr[i,j] = corr_ij
+            corr[j,i] = corr_ij
+            
+    return corr    
 
 
 def dr8density(df, n2r=False, persqdeg=True, nside=256):
@@ -54,7 +104,8 @@ def dr8density(df, n2r=False, persqdeg=True, nside=256):
         
     return density
 
-
+def steradian2sqdeg(steradians):
+    return steradians*(180/np.pi)**2
 
 def shiftra(x):
     ''' (c) Julien Bautista Hack'''
@@ -272,7 +323,7 @@ def hpixsum(nside, ra, dec, value=None, nest=False):
     w    = np.bincount(pix, weights=value, minlength=npix)
     return w
 
-def makedelta(map1, weight1, mask, select_fun=None, is_sys=False):
+def overdensity(map1, weight1, mask, select_fun=None, is_sys=False):
     delta = np.zeros_like(map1)*np.nan
     if select_fun is not None:
         gmap = map1 / select_fun
@@ -283,7 +334,7 @@ def makedelta(map1, weight1, mask, select_fun=None, is_sys=False):
     if (weight1[mask]==0).sum() != 0:
         print('there are empty weights')
         m = weight1 == 0
-        weight1[m] = 1.0 # enforece one
+        weight1[m] = 1.0 # enforce one
        
     if is_sys:
         sf = (gmap[mask]*weight1[mask]).sum() / weight1[mask].sum()
