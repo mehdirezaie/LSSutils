@@ -1,4 +1,4 @@
-#import sys
+import sys
 #sys.path.append('/Users/rezaie/github/LSSutils')
 import warnings
 import os
@@ -533,7 +533,7 @@ class EbossCatalog:
             mapper    = zcuts[slice_i][1]
             self.wmap_data = mapper(self.data['RA'][my_mask], self.data['DEC'][my_mask])
             
-            print(slice_i, self.wmap_data.min(), self.wmap_data.max())            
+            self.logger.info(f'slice: {slice_i}, wsysmin: {self.wmap_data.min():.2f}, wsysmax: {self.wmap_data.max():.2f}')
             if clip:self.wmap_data = self.wmap_data.clip(0.5, 2.0)
             #
             assert np.all(self.wmap_data > 0.0),'the weights are zeros!'
@@ -556,8 +556,7 @@ class EbossCatalog:
         if os.path.isfile(filename):
             raise RuntimeError('%s exists'%filename)
             
-        w = np.ones(self.data.size, '?')
-        
+        w = np.ones(self.data['RA'].size, '?')
         if 'IMATCH' in self.data.columns:
             w &= ((self.data['IMATCH']==1) | (self.data['IMATCH']==2))
             
@@ -567,14 +566,19 @@ class EbossCatalog:
         if 'sector_SSR' in self.data.columns:
             w &= (self.data['sector_SSR'] > 0.5)
             
-            
         self.logger.info(f'total w : {np.mean(w)}')
         #ft.write(filename, self.data)     
         self.data = self.data[w]
         
         names = ['RA', 'DEC', 'Z', 'WEIGHT_FKP', 'WEIGHT_SYSTOT', 'WEIGHT_CP']
         names += ['WEIGHT_NOZ', 'NZ', 'QSO_ID']
-        self.data.keep_columns(names)
+        
+        columns = []
+        for name in names:
+            if name in self.data.columns:
+                columns.append(name)
+        
+        self.data.keep_columns(columns)
         self.data.write(filename)
     
     def make_plots(self, 
@@ -599,7 +603,9 @@ class EbossCatalog:
         fig, ax = plt.subplots(ncols=ncols, figsize=(6*ncols, 4), 
                                sharey=True)
         fig.subplots_adjust(wspace=0.05)
-        ax= ax.flatten()
+        #ax= ax.flatten() # only one row, does not need this!
+        if ncols==1:
+            ax = [ax]
 
         kw = dict(vmax=1.5, vmin=0.5, cmap=plt.cm.seismic, marker='H', rasterized=True)
         
