@@ -125,31 +125,40 @@ def plot_grid(galm, extent=[100, 275, 10, 70], cmap=plt.cm.Blues,
     fig.colorbar(map1, label='Nqso', extend='both')
     
     
-def hpmollview(map1, unit, ax, smooth=False, cmap=plt.cm.bwr, **kw):
+def hpmollview(map1, unit, figax, smooth=False, cmap=plt.cm.bwr, galaxy=False,
+               **kw):
     '''
     Example:
     
     kw  = dict(min=-0.5, max=.5, cmap=dataviz.mycolor(), rot=-85, title='')
     fig, ax = plt.subplots(nrows=2, figsize=(7, 7))
     plt.subplots_adjust(hspace=0.05)
-    dataviz.hpmollview(d0, r'$\delta_{\rm ELG}$', ax[0], **kw)
-    dataviz.hpmollview(d1, r'$\delta_{\rm LRG}$', ax[1], **kw)
+    dataviz.hpmollview(d0, r'$\delta_{\rm ELG}$', [fig,ax[0]], **kw)
+    dataviz.hpmollview(d1, r'$\delta_{\rm LRG}$', [fig,ax[1]], **kw)
     plt.savefig('delta_dr8.png', bbox_inches='tight', dpi=300)
     
     '''
+    fig, ax = figax
     cmap.set_over(cmap(1.0))
     cmap.set_under('w')
     cmap.set_bad('white')
-    # galactic plane
-    r = hp.Rotator(coord=['G','C'])
-    theta_gal, phi_gal = np.zeros(1000)+np.pi/2, np.linspace(0, 360, 1000)
-    theta_cl,  phi_cl  = r(theta_gal, phi_gal)
     
-    plt.sca(ax)
-    if smooth:map1 = hp.smoothing(map1, fwhm=np.deg2rad(0.5))
+    fig.sca(ax)
+
+    if smooth:
+        map1 = hp.smoothing(map1, fwhm=np.deg2rad(0.5))
+                               
     hp.mollview(map1, hold=True, unit=unit, cmap=cmap, **kw)
-    hp.projplot(theta_cl, phi_cl, 'r.', alpha=1.0, markersize=1.)
-    hp.graticule(dpar=45, dmer=45, coord='C', verbose=False)    
+    hp.graticule(dpar=45, dmer=45, coord='C', verbose=False, alpha=0.5, color='grey')        
+    
+    # galactic plane
+    if galaxy:        
+        r = hp.Rotator(coord=['G','C'])
+        theta_gal, phi_gal = np.zeros(1000)+np.pi/2, np.linspace(0, 360, 1000)
+        theta_cl,  phi_cl  = r(theta_gal, phi_gal)
+        hp.projplot(theta_cl, phi_cl, 'r.', alpha=1.0, markersize=1.)
+
+
 
 
 def mycolor():

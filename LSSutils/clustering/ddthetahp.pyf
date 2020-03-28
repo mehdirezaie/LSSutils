@@ -1,0 +1,35 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module ddthetahp ! in 
+    interface  ! in :ddthetahp
+        subroutine ddthetahpauto(theta1,phi1,delta1,fpix1,bins,c,n1,m) ! in :ddthetahp:ddthetahp.f95
+            real(kind=8) dimension(n1),intent(in) :: theta1
+            real(kind=8) dimension(n1),intent(in),depend(n1) :: phi1
+            real(kind=8) dimension(n1),intent(in),depend(n1) :: delta1
+            real(kind=8) dimension(n1),intent(in),depend(n1) :: fpix1
+            real(kind=8) dimension(m),intent(in) :: bins
+            real(kind=8) dimension(2,m - 1),intent(out),depend(m) :: c
+            integer, optional,intent(in),check(len(theta1)>=n1),depend(theta1) :: n1=len(theta1)
+            integer, optional,intent(in),check(len(bins)>=m),depend(bins) :: m=len(bins)
+        end subroutine ddthetahpauto
+        subroutine ddthetahpcross(theta1,phi1,delta1,fpix1,theta2,phi2,delta2,fpix2,bins,c,n1,n2,m) ! in :ddthetahp:ddthetahp.f95
+            real(kind=8) dimension(n1),intent(in) :: theta1
+            real(kind=8) dimension(n1),intent(in),depend(n1) :: phi1
+            real(kind=8) dimension(n1),intent(in),depend(n1) :: delta1
+            real(kind=8) dimension(n1),intent(in),depend(n1) :: fpix1
+            real(kind=8) dimension(n2),intent(in) :: theta2
+            real(kind=8) dimension(n2),intent(in),depend(n2) :: phi2
+            real(kind=8) dimension(n2),intent(in),depend(n2) :: delta2
+            real(kind=8) dimension(n2),intent(in),depend(n2) :: fpix2
+            real(kind=8) dimension(m),intent(in) :: bins
+            real(kind=8) dimension(2,m - 1),intent(out),depend(m) :: c
+            integer, optional,intent(in),check(len(theta1)>=n1),depend(theta1) :: n1=len(theta1)
+            integer, optional,intent(in),check(len(theta2)>=n2),depend(theta2) :: n2=len(theta2)
+            integer, optional,intent(in),check(len(bins)>=m),depend(bins) :: m=len(bins)
+        end subroutine ddthetahpcross
+    end interface 
+end python module ddthetahp
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
