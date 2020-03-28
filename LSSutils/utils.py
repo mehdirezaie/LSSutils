@@ -12,9 +12,10 @@ import sys
 import numpy as np
 import numpy.lib.recfunctions as rfn
 import scipy.special as scs
-from   scipy import integrate
-from   scipy.constants import c as clight
 
+from scipy import integrate
+from scipy.constants import c as clight
+from scipy.stats import (binned_statistic, spearmanr, pearsonr)
 
 try:
     import camb
@@ -35,8 +36,154 @@ try:
 except:
     print('healpy is not installed')
     
-from scipy.stats import binned_statistic
 
+def corrmatrix(matrix, estimator='pearsonr'):
+    '''
+    The corrmatrix function.
+    
+    The function computes the correlation matrix.
+    
+    Parameters
+    ----------
+    matrix : 2-D Array with shape (n,m)
+        2-D array of the attributes (n, m)
+    
+    estimator : string, optional
+        String to determine the correlation coefficient estimator
+        options are pearsonr and spearmanr
+        
+    Returns
+    -------
+    corr : 2-D array with shape (m, m)
+        2-D array of the correlation matrix
+        
+    Examples    
+    --------
+    >>> columns = ['ebv', 'depth_r_max', 'loghi']
+    >>> lab.catalogs.datarelease.fixlabels(columns, addunit=False)
+    ['ebv', 'depth-r', 'logHI']
+
+    >>> lab.catalogs.datarelease.fixlabels(columns, addunit=True)
+    ['ebv [mag]', 'depth-r [mag]', 'log(HI/cm$^{2}$) ']
+        
+    '''    
+    if estimator == 'pearsonr':
+        festimator = pearsonr
+    elif estimator == 'spearmanr':
+        festimator = spearmanr
+
+    n, m = matrix.shape
+    corr = np.zeros((m,m))
+        
+    for i in range(m):
+        column_i = matrix[:,i]
+        
+        
+        for j in range(i, m): 
+            # corr matrix is symmetric
+            corr_ij = festimator(column_i, matrix[:,j])[0]            
+            corr[i,j] = corr_ij
+            corr[j,i] = corr_ij
+            
+    return corr    
+
+
+def dr8density(df, n2r=False, persqdeg=True, nside=256):
+    density = np.zeros(df.size)
+    for name in ['ELG200G228', 'ELG228G231',\
+                 'ELG231G233', 'ELG233G234',\
+                 'ELG234G236']: # 'ELG200G236'
+        density += df[name]
+        
+    if not persqdeg:
+        # it's already per sq deg
+        density *= df['FRACAREA']*hp.nside2pixarea(nside, degrees=True)
+        
+    if n2r:
+        density = hp.reorder(density, n2r=n2r)
+        
+    return density
+
+def steradian2sqdeg(steradians):
+    return steradians*(180/np.pi)**2
+
+def shiftra(x):
+    ''' (c) Julien Bautista Hack'''
+    return x-360*(x>300)
+
+
+def flux_to_mag(flux, band, ebv=None):
+    ''' Converts SDSS fluxes to magnitudes, correcting for extinction optionally (EBV)'''
+    #index_b = dict(zip(['u', 'g', 'r', 'i', 'z'], np.arange(5)))
+    #index_e = dict(zip(['u', 'g', 'r', 'i', 'z'], [4.239,3.303,2.285,1.698,1.263]))    
+    #-- coefs to convert from flux to magnitudes
+    b   = np.array([1.4, 0.9, 1.2, 1.8, 7.4])[band]*1.e-10
+    mag = -2.5/np.log(10.)*(np.arcsinh((flux/1.e9)/(2*b)) + np.log(b))
+    if ebv is not None:
+        #-- extinction coefficients for SDSS u, g, r, i, and z bands
+        ext_coeff = np.array([4.239, 3.303, 2.285, 1.698, 1.263])[band]
+        mag -= ext_coeff*ebv
+    return mag
+
+
+def radec2hpix(nside, ra, dec):
+    pix = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra))
+    return pix
+
+
+def split_mask(mask_in, mask_ngc, mask_sgc, nside=256):    
+    mask = hp.read_map(mask_in, verbose=False).astype('bool')
+    mngc, msgc = split2caps(mask, nside=nside)
+    
+    hp.write_map(mask_ngc, mngc, fits_IDL=False, dtype='float64')
+    hp.write_map(mask_sgc, msgc, fits_IDL=False, dtype='float64')
+    print('done')
+
+
+def mask2caps(mask, **kwargs):
+    
+    hpix = np.argwhere(mask).flatten()
+    masks = hpix2caps(hpix, **kwargs)
+    #print(mask.sum())
+    #ra, dec = hpix2radec(nside, hpix)
+
+    #for mask_i in masks:
+    #    plt.scatter(utils.shiftra(ra[mask_i]), dec[mask_i], 5, marker='.')
+    
+    ngc = np.zeros_like(mask)
+    ngc[hpix[masks[0]]] = True
+    
+    sgc = np.zeros_like(mask)
+    sgc[hpix[masks[1]]] = True
+    
+    bmzls = np.zeros_like(mask)
+    bmzls[hpix[masks[2]]] = True
+    
+    return ngc, sgc, bmzls    
+    
+def hpix2caps(hpind, nside=256, mindec_bass=32.375, mindec_decals=-30., **kwargs):
+    ra, dec = hpix2radec(nside, hpind)
+    theta   = np.pi/2 - np.radians(dec)
+    phi     = np.radians(ra)
+    r       = hp.Rotator(coord=['C', 'G'])
+    theta_g, phi_g = r(theta, phi)
+
+    north  = theta_g < np.pi/2
+    mzls   = (dec > mindec_bass) & north
+    decaln = (~mzls) & north
+    decals = (~mzls) & (~north) & (dec > mindec_decals)
+    return decaln, decals, mzls
+
+def split2caps(mask, coord='C', nside=256):
+    if coord != 'C':raise RuntimeError('check coord')
+    r = hp.Rotator(coord=['C', 'G'])
+    theta, phi = hp.pix2ang(256, np.arange(12*256*256))
+    theta_g, phi_g = r(theta, phi) # C to G
+    ngc = theta_g < np.pi/2
+    sgc = ~ngc
+    mngc = mask & ngc
+    msgc = mask & sgc   
+    return mngc, msgc
 
 
 def G_to_C(mapi, res_in=1024, res_out=256):
@@ -176,8 +323,30 @@ def hpixsum(nside, ra, dec, value=None, nest=False):
     w    = np.bincount(pix, weights=value, minlength=npix)
     return w
 
-def makedelta(map1, weight1, mask, select_fun=None, is_sys=False):
-    delta = np.zeros_like(map1)
+def overdensity(map1, weight1, mask, select_fun=None, is_sys=False):
+    delta = np.zeros_like(map1)*np.nan
+    if select_fun is not None:
+        gmap = map1 / select_fun
+    else:
+        gmap = map1#.copy()
+
+    #assert((randc[mask]==0).sum() == 0) # make sure there is no empty pixel
+    if (weight1[mask]==0).sum() != 0:
+        print('there are empty weights')
+        m = weight1 == 0
+        weight1[m] = 1.0 # enforce one
+       
+    if is_sys:
+        sf = (gmap[mask]*weight1[mask]).sum() / weight1[mask].sum()
+        delta[mask] = gmap[mask] / sf - 1
+    else:
+        sf = gmap[mask].sum()/weight1[mask].sum()
+        delta[mask] = gmap[mask]/(weight1[mask]*sf)  - 1   
+    return delta
+
+
+def makennbar(map1, weight1, mask, select_fun=None, is_sys=False):
+    delta = np.zeros_like(map1)*np.nan
     if select_fun is not None:
         gmap = map1 / select_fun
     else:
@@ -191,12 +360,11 @@ def makedelta(map1, weight1, mask, select_fun=None, is_sys=False):
        
     if is_sys:
         sf = (gmap[mask]*weight1[mask]).sum() / weight1[mask].sum()
-        delta[mask] = gmap[mask] / sf - 1
+        delta[mask] = gmap[mask] / sf
     else:
         sf = gmap[mask].sum()/weight1[mask].sum()
-        delta[mask] = gmap[mask]/(weight1[mask]*sf)  - 1   
+        delta[mask] = gmap[mask]/(weight1[mask]*sf)   
     return delta
-
 
 
 def clerr_jack(delta, mask, weight, njack=20, lmax=512):

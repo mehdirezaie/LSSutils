@@ -1,0 +1,35 @@
+# Nov 20, 2019 by Mehdi
+
+# Installation of my environment
+
+# download the installer
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+sha256sum Miniconda3-latest-Linux-x86_64.sh 
+
+bash Miniconda3-latest-Linux-x86_64.sh 
+
+source ~/.bashrc 
+
+conda config --set auto_activate_base false
+
+conda update conda
+
+# create the env
+conda create -n py3p6 python=3 matplotlib scipy numpy scikit-learn pandas seaborn jupyter ipykernel git
+
+
+# to add the kernel to Jup. notebook
+python -m ipykernel install --user --name py3p6 --display-name "python (py3p6)"
+
+# install nbodykit
+conda install -c bccp nbodykit
+
+# install healpy
+conda install healpy -c conda-forge
+
+# install TensorFlow
+# requires the lates pip
+pip install --upgrade pip
+
+# Current stable release for CPU-only
+pip install tensorflow

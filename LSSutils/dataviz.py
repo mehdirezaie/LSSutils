@@ -1,3 +1,20 @@
+'''
+    Data Visualization tools
+
+    > to reset the defaults
+    
+    from cycler import cycler
+    default_cycler = (cycler(color=['purple', 'royalblue', 'lime', 'darkorange', 'crimson']) +
+                      cycler(linestyle=['-', '--', ':', '-.', '-']))
+    plt.rc('lines', linewidth=2)
+    plt.rc('axes', prop_cycle=default_cycler)
+    
+
+'''
+#import matplotlib
+#matplotlib.use('Agg')
+
+
 import matplotlib.pyplot as plt
 import numpy  as np
 import healpy as hp
@@ -10,6 +27,86 @@ from matplotlib import cm
 from matplotlib.colors import ListedColormap
 
 from .utils import binit, binit_jac, radec2hpix
+
+
+
+def plot_corrmax(corrmatrix, title, xlabels, pdfname):
+    '''
+    columns = lab.catalogs.datarelease.cols_dr8_ccd
+    xlabels = lab.catalogs.datarelease.fixlabels(columns, addunit=False)
+
+    df = pd.read_hdf('/home/mehdi/data/templates/dr8pixweight-0.32.0_combined256.h5')[columns]
+    df['ngal/nran'] = 0
+    dfnumpy = df.to_numpy()
+
+    kw = {'verbose':False}
+    ngal = hp.read_map('/home/mehdi/data/formehdi/dr8_elgsv_ngal_pix_0.32.0-colorbox.hp.256.fits', **kw)
+    frac = hp.read_map('/home/mehdi/data/formehdi/dr8_frac_pix_0.32.0-colorbox.hp.256.fits', **kw)
+
+    masks = {}
+    masks['bmzls'] = hp.read_map('/home/mehdi/data/formehdi/dr8_mask_eboss_bmzls_pix_0.32.0-colorbox.hp.256.fits', **kw) > 0
+    masks['decals'] = hp.read_map('/home/mehdi/data/formehdi/dr8_mask_eboss_decals_pix_0.32.0-colorbox.hp.256.fits', **kw) > 0 
+
+    nnbar = {}
+    nnbar['nnbar_bmzls'] = lab.utils.makedelta(ngal, frac, masks['bmzls']) + 1
+    nnbar['nnbar_decals'] = lab.utils.makedelta(ngal, frac, masks['decals']) + 1
+
+    corrs = {}
+    for region in ['bmzls', 'decals']:
+        df_region = dfnumpy.copy()
+        df_region[:,-1] = nnbar[f'nnbar_{region}']    
+
+        corrs[region] = lab.utils.corrmatrix(df_region[masks[region], :], 
+                                             estimator='pearsonr')    
+        del df_region
+
+
+    cbar_label = {'bmzls':'BASS/MzLS',
+                 'decals':'DECaLS'}
+    for region in corrs:
+        corr_reg = corrs[region]
+
+        pdfname = f'pcorr_{region}.pdf'    
+        lab.dataviz.plot_corrmax(corr_reg, cbar_label[region], xlabels, pdfname)
+    '''
+    params = {
+    'axes.spines.right':False,
+    'axes.spines.top':False,
+    'axes.labelsize': 12,
+    #'text.fontsize': 8,
+    'legend.fontsize': 12,
+    'xtick.labelsize': 10,
+    'ytick.labelsize': 10,
+    'text.usetex': True,
+    #'figure.figsize': [6, 4],
+    'font.family':'serif'
+    }
+    plt.rcParams.update(params)
+    
+    #--- setup figure
+    fig, ax = plt.subplots(figsize=(6, 4))
+    mask = np.zeros_like(corrmatrix, dtype=np.bool)
+    mask[np.triu_indices_from(mask)] = True
+
+    #--- colorbar 
+    kw = dict(mask=mask, cmap=plt.cm.seismic, 
+              center=0, vmin=-0.5, vmax=0.5,
+              square=True, linewidths=.5, 
+              cbar_kws={"shrink": .5, 
+                        "ticks":[-1, -0.5, 0, 0.5, 1], 
+                        #"label":'PCC',
+                        "orientation":'vertical',
+                        'extend':'both'},
+              xticklabels=xlabels,
+              yticklabels=xlabels+['ngal/nran'],
+              ax=ax)    
+    sns.heatmap(corrmatrix, **kw)
+    
+    ax.set_ylim(ymax=1) # Hack to remove the EBV from y axis
+    ax.text(0.55, 0.95, title,
+            color='k', transform=ax.transAxes,
+            fontsize=15) 
+    fig.savefig(pdfname, bbox_inches='tight')
 
 
 def plot_grid(galm, extent=[100, 275, 10, 70], cmap=plt.cm.Blues, 
@@ -28,31 +125,40 @@ def plot_grid(galm, extent=[100, 275, 10, 70], cmap=plt.cm.Blues,
     fig.colorbar(map1, label='Nqso', extend='both')
     
     
-def hpmollview(map1, unit, ax, smooth=False, cmap=plt.cm.bwr, **kw):
+def hpmollview(map1, unit, figax, smooth=False, cmap=plt.cm.bwr, galaxy=False,
+               **kw):
     '''
     Example:
     
     kw  = dict(min=-0.5, max=.5, cmap=dataviz.mycolor(), rot=-85, title='')
     fig, ax = plt.subplots(nrows=2, figsize=(7, 7))
     plt.subplots_adjust(hspace=0.05)
-    dataviz.hpmollview(d0, r'$\delta_{\rm ELG}$', ax[0], **kw)
-    dataviz.hpmollview(d1, r'$\delta_{\rm LRG}$', ax[1], **kw)
+    dataviz.hpmollview(d0, r'$\delta_{\rm ELG}$', [fig,ax[0]], **kw)
+    dataviz.hpmollview(d1, r'$\delta_{\rm LRG}$', [fig,ax[1]], **kw)
     plt.savefig('delta_dr8.png', bbox_inches='tight', dpi=300)
     
     '''
+    fig, ax = figax
     cmap.set_over(cmap(1.0))
     cmap.set_under('w')
     cmap.set_bad('white')
-    # galactic plane
-    r = hp.Rotator(coord=['G','C'])
-    theta_gal, phi_gal = np.zeros(1000)+np.pi/2, np.linspace(0, 360, 1000)
-    theta_cl,  phi_cl  = r(theta_gal, phi_gal)
     
-    plt.sca(ax)
-    if smooth:map1 = hp.smoothing(map1, fwhm=np.deg2rad(0.5))
+    fig.sca(ax)
+
+    if smooth:
+        map1 = hp.smoothing(map1, fwhm=np.deg2rad(0.5))
+                               
     hp.mollview(map1, hold=True, unit=unit, cmap=cmap, **kw)
-    hp.projplot(theta_cl, phi_cl, 'r.', alpha=1.0, markersize=1.)
-    hp.graticule(dpar=45, dmer=45, coord='C', verbose=False)    
+    hp.graticule(dpar=45, dmer=45, coord='C', verbose=False, alpha=0.5, color='grey')        
+    
+    # galactic plane
+    if galaxy:        
+        r = hp.Rotator(coord=['G','C'])
+        theta_gal, phi_gal = np.zeros(1000)+np.pi/2, np.linspace(0, 360, 1000)
+        theta_cl,  phi_cl  = r(theta_gal, phi_gal)
+        hp.projplot(theta_cl, phi_cl, 'r.', alpha=1.0, markersize=1.)
+
+
 
 
 def mycolor():
@@ -75,12 +181,17 @@ def cm2inch(cm):
 
 def mollview(m, vmin, vmax, unit, use_mask=False, 
              maskname=None, rotate=2/3*np.pi, xsize=1000,
-            width=7, figax=None, colorbar=False, cmap=plt.cm.bwr, **kwargs):
+             width=7, figax=None, colorbar=False, cmap=plt.cm.bwr,
+             galaxy=False, extend='both',**kwargs):
     '''
         (c)Andrea Zonca, https://github.com/zonca/paperplots 
         modified by Mehdi Rezaie for galaxy counts
         
         Matplotlib has higher freedom than healpy.mollview
+        
+        one could use rasterized=True to improve the quality
+        for colorbar options, see
+        https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.colorbar.html
 
         Example:
         
@@ -102,6 +213,44 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
         dataviz.mollview(d1, vmin, vmax, unit, figax=[fig, ax1], cmap=dataviz.mycolor(), colorbar=True)
         plt.savefig('./delta_dr8.png', bbox_inches='tight', dpi=300)
         
+        
+        
+        data = ft.read('/Users/mehdi/Dropbox/forMehdi/pixweight_ar-dr8-0.32.0-elgsv.fits')
+        wsys = hp.read_map('/Users/mehdi/Downloads/nn-weights.hp256.fits')
+        ebv = hp.reorder(data['EBV'], n2r=True)
+        ebv[ebv==-1] = np.nan
+
+        depth = hp.reorder(data['GALDEPTH_G'], n2r=True)
+        depth[depth==-1] = np.nan
+
+        frac = hp.reorder(data['FRACAREA'], n2r=True)
+        elg = hp.reorder(data['SV'], n2r=True)
+        elg[frac==0.0] = np.nan
+        fig = plt.figure(figsize=(5, 7))
+        # matplotlib is doing the mollveide projection
+        ax0  = fig.add_axes([0, 0, 1., 1],       projection='mollweide')
+        ax1  = fig.add_axes([0., -0.3, 1., 1], projection='mollweide')
+        ax2  = fig.add_axes([0., -0.6, 1., 1], projection='mollweide')
+        ax3  = fig.add_axes([0., -.9, 1., 1], projection='mollweide')
+        kw = {'unit':'', 'galaxy':False}
+        dataviz.mollview(elg, vmin=3000, vmax=7500, 
+                         cmap=dataviz.mycolor(), 
+                         figax=[fig, ax0], **kw)
+
+        dataviz.mollview(depth, vmin=0, vmax=2000, 
+                         cmap=plt.cm.viridis, 
+                         figax=[fig, ax1], **kw)
+
+        dataviz.mollview(ebv, vmin=0.0, vmax=0.05, 
+                         cmap=plt.cm.viridis,
+                         figax=[fig, ax2], **kw)
+
+        dataviz.mollview(wsys, vmin=0.8, vmax=1.2, 
+                         cmap=dataviz.mycolor(),
+                         figax=[fig, ax3], **kw)
+
+        for axi in [ax0, ax1, ax2, ax3]:axi.set(xticks=[], yticks=[])
+        
     '''    
     nside     = hp.npix2nside(len(m))
     rotatedeg = np.degrees(rotate)    
@@ -109,9 +258,10 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
 
     
     # galactic plane
-    r = hp.Rotator(coord=['G','C'])
-    theta_gal, phi_gal = np.zeros(1000)+np.pi/2, np.linspace(0, 360, 1000)
-    theta_cl,  phi_cl  = r(theta_gal, phi_gal)
+    if galaxy:        
+        r = hp.Rotator(coord=['G','C'])
+        theta_gal, phi_gal = np.zeros(1000)+np.pi/2, np.linspace(0, 360, 1000)
+        theta_cl,  phi_cl  = r(theta_gal, phi_gal)
     
     # set up the grid
     theta      = np.linspace(np.pi,  0.0,   ysize)
@@ -164,6 +314,10 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
         fig = plt.figure(figsize=(width, 2/3*width))
         # matplotlib is doing the mollveide projection
         ax = fig.add_subplot(111, projection='mollweide')
+        spacing = 0.01
+        plt.subplots_adjust(bottom=spacing, top=1-spacing, 
+                            left=spacing,   right=1-spacing,
+                            hspace=0.0)
     else:
         fig = figax[0]
         ax  = figax[1]
@@ -172,8 +326,10 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
     # flip longitude to the astro convention
     image = ax.pcolormesh(longitude, latitude, rot(grid_map, rotatedeg), 
                            vmin=vmin, vmax=vmax, rasterized=True, cmap=cmap)
-    ax.scatter(phi_cl-2/3*np.pi, np.pi/2-theta_cl, 2, color='r')
-    ax.scatter(phi_cl+4/3*np.pi, np.pi/2-theta_cl, 2, color='r')
+    
+    if galaxy:
+        ax.scatter(phi_cl-2/3*np.pi, np.pi/2-theta_cl, 2, color='r')
+        ax.scatter(phi_cl+4/3*np.pi, np.pi/2-theta_cl, 2, color='r')
     # graticule
     ax.set_longitude_grid(60)
     ax.set_latitude_grid(30)
@@ -181,18 +337,19 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
 
     # colorbar
     if colorbar:
-        #cax = plt.axes([.9, 0.2, 0.01, 0.6])  # vertical
-        cax = plt.axes([0.2, 0.0, 0.6, 0.01])  # horizontal
-        cb  = fig.colorbar(image, cax=cax, label=unit, 
-                           shrink=0.6, pad=0.05, ticks=[vmin, vmax], orientation='horizontal', extend='both')        
+        #cax = plt.axes([.9, 0.2, 0.02, 0.6])  # vertical
+        cax = plt.axes([0.2, 0.0, 0.6, 0.02])  # horizontal
+        cb  = fig.colorbar(image, cax=cax, label=unit, fraction=0.15,
+                           shrink=0.6, pad=0.05, ticks=[vmin, vmax], # 0.5*(vmax+vmin), 
+                           orientation='horizontal', extend=extend)        
         #cb = fig.colorbar(image, orientation='horizontal', shrink=.6, pad=0.05, ticks=[vmin, vmax])
         #cb.ax.xaxis.set_label_text(unit)
         cb.ax.xaxis.labelpad = -8
         # workaround for issue with viewers, see colorbar docstring
         cb.solids.set_edgecolor("face")
 
-    ax.tick_params(axis='x', labelsize=10)
-    ax.tick_params(axis='y', labelsize=10)
+    ax.tick_params(axis='x', labelsize=12)
+    ax.tick_params(axis='y', labelsize=12)
 
     # remove tick labels
     #ax.xaxis.set_ticklabels([])
@@ -216,6 +373,22 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
 def get_selected_maps(files1=None, tl=['eBOSS QSO V6'], 
                       verbose=False, labels=None, ax=None,
                      hold=False, saveto=None):
+    '''
+    from LSSutils.catalogs.datarelease import cols_dr8 as labels
+    fig, ax = plt.subplots(ncols=3, nrows=2, figsize=(18, 12), sharey=True)
+    ax = ax.flatten()
+
+    i = 0
+    for cap in [ 'elg', 'lrg']: # ngc.all
+        for key in ['decals','decaln', 'bmzls']:
+            mycap = cap+'_'+key+'_'+'256' # NGC_0.8
+            get_selected_maps(glob(f'/home/mehdi/data/alternative/results_{cap}/ablation_{key}/dr8.log_fold*.npy'),
+                              ['DR8 '+mycap], labels=labels, ax=ax[i], hold=True)
+            i += 1
+    #plt.savefig('./maps_selected_eboss.pdf', bbox_inches='tight')
+    plt.show()   
+    
+    '''
     def get_all(ablationlog):
         d = np.load(ablationlog, allow_pickle=True).item()
         indices = None
@@ -434,6 +607,20 @@ def ablation_plot(filename,
     if not hold:plt.show()
 
 def ablation_plot_all(files, labels=None, title=None, saveto=None, hold=False):    
+    '''
+    
+    from LSSutils.catalogs.datarelease import cols_dr8 as labels
+    i = 0
+    for cap in [ 'elg', 'lrg']: # ngc.all
+        for key in ['decaln', 'decals', 'bmzls']:
+            mycap = cap+'_'+key+'_'+'256' # NGC_0.8
+            ablation_plot_all(glob(f'/home/mehdi/data/alternative/results_{cap}/ablation_{key}/dr8.log_fold*.npy'),
+                              title='DR8 '+mycap, labels=labels)
+            i += 1
+    #plt.savefig('./maps_selected_eboss.pdf', bbox_inches='tight')
+    plt.show()   
+    
+    '''
     f = plt.figure(figsize=(12, 6))
     gs = GridSpec(2, 6, figure=f)
     gs.update(wspace=0.15, hspace=0.35)
@@ -607,12 +794,13 @@ def plot_cross_xi(config):
         colors = [plt.cm.Blues((i+2)/(num_files+1)) for i in range(num_files)]
         
     title      = config['crossxi']['title']    
-    linestyles = 10*['-','-.','--', '-']
-    markers    = 10*['^', 's', 'd', 'o']
+    linestyles = 50*['-','-.','--', '-']
+    markers    = 50*['^', 's', 'd', 'o']
     file_xisys = config['crossxi']['xisys']
     factor     = 1.e3
     
-    pltarg = dict(ncols=3, nrows=6, sharex=True, figsize=(3*4, 6*3), sharey=True)
+    nrows  = len(config['crossxi']['xticks']) // 3
+    pltarg = dict(ncols=3, nrows=nrows, sharex=True, figsize=(3*4, nrows*3), sharey=True)
     tckfmt = dict(style='sci', axis='y', scilimits=(0,0))
     # lgnarg = dict(bbox_to_anchor=(1.1, 0.9), frameon=False, ncol=1, 
     #               title=config['crossxi']['title'], fontsize=15)
