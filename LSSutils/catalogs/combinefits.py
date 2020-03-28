@@ -1,4 +1,4 @@
-#import sys
+import sys
 #sys.path.append('/Users/rezaie/github/LSSutils')
 import warnings
 import os
@@ -197,8 +197,11 @@ class DR8templates:
         df.to_hdf(name, key=key)
     
         
-def hd5_2_fits(myfit, cols, fitname=None, hpmask=None, hpfrac=None, fitnamekfold=None, res=256, k=5):
+def hd5_2_fits(myfit, cols, fitname=None, hpmask=None, hpfrac=None, fitnamekfold=None, res=256, k=5, 
+              logger=None):
+        
     from LSSutils.utils import split2Kfolds
+    
     for output_i in [fitname, hpmask, hpfrac, fitnamekfold]:
         if output_i is not None:
             if os.path.isfile(output_i):raise RuntimeError('%s exists'%output_i)
@@ -218,131 +221,37 @@ def hd5_2_fits(myfit, cols, fitname=None, hpmask=None, hpfrac=None, fitnamekfold
     outdata['features'] = features
     outdata['fracgood'] = fracgood    
 
+    
     if fitname is not None:
         ft.write(fitname, outdata, clobber=True)
-        print('wrote %s'%fitname)
+        if logger is not None:
+            logger.info('wrote %s'%fitname)
 
     if hpmask is not None:
         mask = np.zeros(12*res*res, '?')
         mask[hpind] = True
         hp.write_map(hpmask, mask, overwrite=True, fits_IDL=False)
-        print('wrote %s'%hpmask)
+        if logger is not None:
+            logger.info('wrote %s'%hpmask)
 
     if hpfrac is not None:
         frac = np.zeros(12*res*res)
         frac[hpind] = fracgood
         hp.write_map(hpfrac, frac, overwrite=True, fits_IDL=False)
-        print('wrote %s'%hpfrac)  
+        if logger is not None:
+            logger.info('wrote %s'%hpfrac)  
     
     if fitnamekfold is not None:
         outdata_kfold = split2Kfolds(outdata, k=k)
         np.save(fitnamekfold, outdata_kfold)
-        print('wrote %s'%fitnamekfold)  
-
-#   
-class EBOSSCAT(object):
-    '''
-        Class to facilitate reading eBOSS cats
-    '''
-    def __init__(self, gals, weights=['weight_noz', 'weight_cp'], verbose=False, lower=True):
-        #
-        self.weightnames = weights
-
-        if verbose:print('len of gal cats %d'%len(gals))
-        gal = []
-        for gali in gals:
-            gald = ft.read(gali, lower=lower)
-            gal.append(gald)
-            
-        #    
-        #
-        gal  = np.concatenate(gal)
+        if logger is not None:
+            logger.info('wrote %s'%fitnamekfold)  
         
-        # 
-        self.gal0  = gal
-        self.cols  = gal.dtype.names
-        for colname in ['ra', 'dec', 'z', 'nz']+weights:
-            if colname not in self.cols:raise RuntimeError('%s not in columns'%colname)
-        self.num   = gal['ra'].size
-        self.ra0   = gal['ra']
-        self.dec0  = gal['dec']
-        self.z0    = gal['z']
-        self.nz0   = gal['nz']
-        #
-        #
-        if verbose:print('num of gal obj %d'%self.num)
-        value     = np.ones(self.num)
-        for weight_i in weights:
-            if weight_i in self.cols:
-                value *= gal[weight_i]
-            else:
-                print('col %s not in columns'%weight_i)
-        #
-        self.w0 = value
-        self.verbose = verbose
-        self.iscut = False
-        
-    def apply_zcut(self, zcuts=[None, None], column='z'):
-        self.iscut = True
-        #
-        # if no limits were provided
-        zmin = self.gal0[column].min()
-        zmax = self.gal0[column].max()
-        if (zcuts[0] is None):
-            zcuts[0] = zmin-1.e-7
-        if (zcuts[1] is None):
-            zcuts[1] = zmax+1.e-7
-        if self.verbose:print('going to apply {}-cuts : {}'.format(column, zcuts))
-        #
-        #
-        #zmask    = (self.z0 > zcuts[0]) & (self.z0 < zcuts[1])
-        zmask    = (self.gal0[column] > zcuts[0]) & (self.gal0[column] < zcuts[1])
-        self.z   = self.z0[zmask]
-        self.ra  = self.ra0[zmask]
-        self.dec = self.dec0[zmask]
-        self.w   = self.w0[zmask]
-        self.nz  = self.nz0[zmask]
-        self.gal = self.gal0[zmask]
-        self.num = self.z.size 
-        if self.verbose: print('num of gal obj after cut %d'%self.num)
-    
-    def swap_keys(self, key, array):
-        if key not in self.cols:raise RuntimeWarning('$s not in columns'%key)
-        self.gal[key] = array
 
-    def project2hp(self, nside=512):
-        from LSSutils.utils import hpixsum
-        if self.verbose:print('projecting into a healpix map with nside of %d'%nside)
-        if self.iscut:
-            self.galm = hpixsum(nside, self.ra, self.dec, value=self.w).astype('f8')
-        else:
-            self.galm = hpixsum(nside, self.ra0, self.dec0, value=self.w0).astype('f8')
-        
-    def writehp(self, filename, overwrite=True):
-        if os.path.isfile(filename):
-            print('%s already exists'%filename, end=' ')
-            if not overwrite:
-                print('please change the filename!')
-                return
-            else:
-                print('going to rewrite....')
-        hp.write_map(filename, self.galm, overwrite=True, fits_IDL=False)
-            
-    def plot_hist(self, titles=['galaxy map', 'Ngal distribution']):
-        import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(ncols=2, figsize=(8,3))
-        plt.sca(ax[0])
-        hp.mollview(self.galm, title=titles[0], hold=True)
-        ax[1].hist(self.galm[self.galm!=0.0], histtype='step')
-        ax[1].text(0.7, 0.8, r'%.1f $\pm$ %.1f'%(np.mean(self.galm[self.galm!=0.0]),\
-                                          np.std(self.galm[self.galm!=0.0], ddof=1)),
-                  transform=ax[1].transAxes)
-        ax[1].set_yscale('log')
-        ax[1].set_title(titles[1])
-        plt.show()
 
 
 def make_clustering_catalog(mock):
+    # (c) Julien Bautista 
     w = ((mock['IMATCH']==1) | (mock['IMATCH']==2))
     w &= (mock['COMP_BOSS'] > 0.5)
     w &= (mock['sector_SSR'] > 0.5)
@@ -358,26 +267,47 @@ def make_clustering_catalog(mock):
     mock_clust = Table(fields, names=names)
     return mock_clust
 
-def make_clustering_catalog_random(rand, mock, seed=None):
+def reassignment(randoms, data, seed=None):
+    '''
+    This function re-assigns the attributes from data to randoms
     
-    rand_clust = Table()
-    rand_clust['RA'] = rand['RA']*1
-    rand_clust['DEC'] = rand['DEC']*1
-    rand_clust['Z']  = rand['Z']*1
-    rand_clust['NZ'] = rand['NZ']*1
-    rand_clust['WEIGHT_FKP'] = rand['WEIGHT_FKP']*1
-    rand_clust['COMP_BOSS'] = rand['COMP_BOSS']*1
-    rand_clust['sector_SSR'] = rand['sector_SSR']*1
+    Parameters
+    ----------
+    randoms : numpy structured array for randoms
+    
+    data : numpy structured array for data
+        
+        
+    Returns
+    -------
+    rand_clust : numpy structured array for randoms
+        
 
-    if not seed is None:
+    (c) Julien Bautista
+    
+    Updates
+    --------
+    March 9, 20: Z, NZ, FKP must be assigned from data
+    
+    Examples    
+    --------
+    '''
+
+    rand_clust = Table()
+    rand_clust['RA'] = randoms['RA']*1
+    rand_clust['DEC'] = randoms['DEC']*1
+    rand_clust['COMP_BOSS'] = randoms['COMP_BOSS']*1
+    rand_clust['sector_SSR'] = randoms['sector_SSR']*1
+
+    if seed is not None:
         np.random.seed(seed)
     
-    index = np.arange(len(mock))
-    ind = np.random.choice(index, size=len(rand), replace=True)
+    index = np.arange(len(data))
+    indices = np.random.choice(index, size=len(randoms), replace=True)
     
-    fields = ['WEIGHT_NOZ', 'WEIGHT_CP', 'WEIGHT_SYSTOT'] 
+    fields = ['WEIGHT_NOZ', 'WEIGHT_CP', 'WEIGHT_SYSTOT', 'WEIGHT_FKP', 'Z', 'NZ'] 
     for f in fields:
-        rand_clust[f] = mock[f][ind]
+        rand_clust[f] = data[f][indices]
 
     #-- As in real data:
     rand_clust['WEIGHT_SYSTOT'] *= rand_clust['COMP_BOSS']
@@ -386,8 +316,130 @@ def make_clustering_catalog_random(rand, mock, seed=None):
 
     return rand_clust[w]
 
+class DesiCatalog:
+
+    logger = logging.getLogger('DesiCatalog')
+
+    def __init__(self, filename, bool_mask):
+        self.data = ft.read(filename)
+        self.bool = ft.read(bool_mask)['bool_index']
+        self.data = self.data[self.bool]
 
 
+    def swap(self, zcuts, slices, clip=False):
+
+        self.z_rsd = self.data['Z_COSMO'] + self.data['DZ_RSD']
+        self.wsys = np.ones_like(self.z_rsd)
+
+        for slice_i in slices:
+            
+            assert slice_i in zcuts.keys(), '%s not available'%slice_i
+
+            my_zcut = zcuts[slice_i][0]
+            my_mask = (self.data['Z'] >= my_zcut[0])\
+                    & (self.data['Z'] <= my_zcut[1])
+            
+            mapper = zcuts[slice_i][1]
+            self.wmap_data = mapper(self.data['RA'][my_mask], self.data['DEC'][my_mask])
+            
+            self.logger.info(f'{slice_i}, {self.wmap_data.min()}, {self.wmap_data.max()}')            
+            if clip:self.wmap_data = self.wmap_data.clip(0.5, 2.0)
+            #
+            assert np.all(self.wmap_data > 0.0),'the weights are zeros!'
+            self.wsys[my_mask] = self.wmap_data            
+            self.logger.info('number of objs w zcut {} : {}'.format(my_zcut, my_mask.sum()))
+    
+    def export_wsys(self, data_name_out):
+        systot = Table([self.wsys], names=['wsys']) 
+        systot.write(data_name_out, format='fits')
+
+class RegressionCatalog:
+    
+    logger = logging.getLogger('SystematicsPrepare')
+    
+    def __init__(self, 
+                 data, 
+                random,
+                dataframe):
+        
+        self.data = data
+        self.random = random
+        self.dataframe = dataframe
+        self.columns = self.dataframe.columns        
+        self.logger.info(f'available columns : {self.columns}')
+
+        
+    def __call__(self, slices, zcuts, output_dir, 
+                 nside=512, cap='NGC', efficient=True, columns=None):
+        
+        if columns is None:
+            columns = self.columns
+        
+        if not os.path.exists(output_dir):
+            
+            os.makedirs(output_dir)
+            self.logger.info(f'created {output_dir}')
+        
+        
+        for i, key_i in enumerate(slices):
+
+            if key_i not in slices:
+                 raise RuntimeError(f'{key_i} not in {slices}')
+
+            self.logger.info('split based on {}'.format(zcuts[key_i]))  
+
+            # --- prepare the names for the output files
+            if efficient:
+                #
+                # ---- not required for regression
+                hpcat     = None # output_dir + f'/galmap_{cap}_{key_i}_{nside}.hp.fits'
+                hpmask    = None # output_dir + f'/mask_{cap}_{key_i}_{nside}.hp.fits'
+                fracgood  = None # output_dir + f'/frac_{cap}_{key_i}_{nside}.hp.fits'
+                fitname   = None # output_dir + f'/ngal_features_{cap}_{key_i}_{nside}.fits'    
+            else:
+                hpcat = output_dir + f'/galmap_{cap}_{key_i}_{nside}.hp.fits'
+                hpmask = output_dir + f'/mask_{cap}_{key_i}_{nside}.hp.fits'
+                fracgood = output_dir + f'/frac_{cap}_{key_i}_{nside}.hp.fits'
+                fitname = output_dir + f'/ngal_features_{cap}_{key_i}_{nside}.fits'    
+                
+            fitkfold = output_dir + f'/ngal_features_{cap}_{key_i}_{nside}.5r.npy'
+
+            # cut data
+            self.data.cutz(zcuts[key_i])
+            self.data.tohp(nside)
+            if hpcat is not None:self.data.writehp(hpcat)    
+            
+            # cut randoms
+            zlim_ran = [2.2, 3.5] if key_i=='zhigh' else [0.8, 2.2] # randoms z cuts
+            self.random.cutz(zlim_ran)
+            self.random.tohp(nside)
+
+            # --- append the galaxy and random density
+            # remove NaN pixels
+            dataframe_i = self.dataframe.copy()
+            dataframe_i['ngal'] = self.data.hpmap
+            dataframe_i['nran'] = self.random.hpmap    
+            dataframe_i['nran'][self.random.hpmap == 0] = np.nan
+
+            dataframe_i.replace([np.inf, -np.inf], 
+                                value=np.nan, 
+                                inplace=True) # replace inf
+            
+            
+            dataframe_i.dropna(inplace=True)
+            self.logger.info('df shape : {}'.format(dataframe_i.shape))
+            self.logger.info('columns  : {}'.format(columns))
+
+            # --- write 
+            hd5_2_fits(dataframe_i, 
+                       columns, 
+                       fitname, 
+                       hpmask, 
+                       fracgood, 
+                       fitkfold,
+                       res=nside, 
+                       k=5,
+                       logger=self.logger)                
 
 class EbossCatalog:
     
@@ -408,11 +460,15 @@ class EbossCatalog:
         #-- apply cuts on galaxy or randoms
         if self.kind == 'galaxy':            
             
-            # galaxy
-            wd  = (self.data['IMATCH']==1) | (self.data['IMATCH']==2)
-            wd &= (self.data['Z'] >= zmin) & (self.data['Z'] <= zmax)
-            wd &= self.data['COMP_BOSS'] > compmin
-            wd &= self.data['sector_SSR'] > compmin
+            # galaxy            
+            wd = (self.data['Z'] >= zmin) & (self.data['Z'] <= zmax)
+            if 'IMATCH' in self.data.columns:
+                wd &= (self.data['IMATCH']==1) | (self.data['IMATCH']==2)
+            if 'COMP_BOSS' in self.data.columns:
+                wd &= self.data['COMP_BOSS'] > compmin
+            if 'sector_SSR' in self.data.columns:
+                wd &= self.data['sector_SSR'] > compmin
+                
             self.logger.info(f'{wd.sum()} galaxies pass the cuts')
             self.logger.info(f'% of galaxies after cut {np.mean(wd):0.2f}')
             self.data = self.data[wd]
@@ -421,8 +477,11 @@ class EbossCatalog:
             
             # random
             wr  = (self.data['Z'] >= zmin) & (self.data['Z'] <= zmax)
-            wr &= self.data['COMP_BOSS'] > compmin
-            wr &= self.data['sector_SSR'] > compmin
+            if 'COMP_BOSS' in self.data.columns:
+                wr &= self.data['COMP_BOSS'] > compmin
+            if 'sector_SSR' in self.data.columns:
+                wr &= self.data['sector_SSR'] > compmin
+                
             self.logger.info(f'{wr.sum()} randoms pass the cuts')
             self.logger.info(f'% of randoms after cut {np.mean(wr):0.2f}')        
             self.data = self.data[wr]
@@ -457,9 +516,8 @@ class EbossCatalog:
             self.logger.info('cdata not found')
             self.cdata = self.data
             
-        if not hasattr(self, 'weight'):
-            self.prepare_weight()
-                   
+        self.prepare_weight() # update the weights
+        
         self.hpmap = hpixsum(nside, self.cdata['RA'], self.cdata['DEC'], value=self.weight)
 
     def swap(self, zcuts, slices, colname='WEIGHT_SYSTOT', clip=False):
@@ -475,7 +533,7 @@ class EbossCatalog:
             mapper    = zcuts[slice_i][1]
             self.wmap_data = mapper(self.data['RA'][my_mask], self.data['DEC'][my_mask])
             
-            print(slice_i, self.wmap_data.min(), self.wmap_data.max())            
+            self.logger.info(f'slice: {slice_i}, wsysmin: {self.wmap_data.min():.2f}, wsysmax: {self.wmap_data.max():.2f}')
             if clip:self.wmap_data = self.wmap_data.clip(0.5, 2.0)
             #
             assert np.all(self.wmap_data > 0.0),'the weights are zeros!'
@@ -495,16 +553,32 @@ class EbossCatalog:
         
         
     def to_fits(self, filename):
-        if os.path.isfile(filename):raise RuntimeError('%s exists'%filename)
-        w = ((self.data['IMATCH']==1) | (self.data['IMATCH']==2))
-        w &= (self.data['COMP_BOSS'] > 0.5)
-        w &= (self.data['sector_SSR'] > 0.5)
+        if os.path.isfile(filename):
+            raise RuntimeError('%s exists'%filename)
+            
+        w = np.ones(self.data['RA'].size, '?')
+        if 'IMATCH' in self.data.columns:
+            w &= ((self.data['IMATCH']==1) | (self.data['IMATCH']==2))
+            
+        if 'COMP_BOSS' in self.data.columns:
+            w &= (self.data['COMP_BOSS'] > 0.5)
+            
+        if 'sector_SSR' in self.data.columns:
+            w &= (self.data['sector_SSR'] > 0.5)
+            
         self.logger.info(f'total w : {np.mean(w)}')
         #ft.write(filename, self.data)     
         self.data = self.data[w]
+        
         names = ['RA', 'DEC', 'Z', 'WEIGHT_FKP', 'WEIGHT_SYSTOT', 'WEIGHT_CP']
         names += ['WEIGHT_NOZ', 'NZ', 'QSO_ID']
-        self.data.keep_columns(names)
+        
+        columns = []
+        for name in names:
+            if name in self.data.columns:
+                columns.append(name)
+        
+        self.data.keep_columns(columns)
         self.data.write(filename)
     
     def make_plots(self, 
@@ -529,7 +603,9 @@ class EbossCatalog:
         fig, ax = plt.subplots(ncols=ncols, figsize=(6*ncols, 4), 
                                sharey=True)
         fig.subplots_adjust(wspace=0.05)
-        ax= ax.flatten()
+        #ax= ax.flatten() # only one row, does not need this!
+        if ncols==1:
+            ax = [ax]
 
         kw = dict(vmax=1.5, vmin=0.5, cmap=plt.cm.seismic, marker='H', rasterized=True)
         

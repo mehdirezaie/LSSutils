@@ -27,7 +27,6 @@ if rank ==0:
     ap.add_argument('--nmesh',        default=256, type=int)
     ap.add_argument('--zlim',         nargs='*',   type=float, default=[0.8, 2.2])
     ap.add_argument('--sys_tot',      action='store_true')
-    ap.add_argument('--plot', action='store_true')
     ns = ap.parse_args()
 
     outpath1 = ns.output_path.split('/')
@@ -84,7 +83,9 @@ if 'COMP_BOSS' in data.columns:
     valid &= data['COMP_BOSS'] > compmin
 if 'sector_SSR' in data.columns:
     valid &= data['sector_SSR'] > compmin
-data  = data[valid]
+
+valid &= data['RA'] > 140.
+data = data[valid]
 
 
 valid  = (randoms['Z'] >= ZMIN) & (randoms['Z'] <= ZMAX)
@@ -92,7 +93,9 @@ if 'COMP_BOSS' in randoms.columns:
     valid &= randoms['COMP_BOSS']  > compmin
 if 'sector_SSR' in randoms.columns:
     valid &= randoms['sector_SSR'] > compmin
-randoms  = randoms[valid]
+
+valid &= randoms['RA'] > 140.
+randoms = randoms[valid]
 
 
 
@@ -145,22 +148,21 @@ if rank == 0:
                                                      r.poles['power_4'][i].real, 
                                                      r.poles['modes'][i]))
 
-    #
-    if ns.plot:
-        # plot k vs kPell
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-        
-        k = r.poles['k']
-        plt.figure()
-        plt.title(f'{ns.zlim}')
-        for ell in [0, 2, 4]:
-            pk = r.poles['power_%d'%ell].real
-            if ell == 0:pk -= r.poles.attrs['shotnoise']
-            plt.plot(k, k*pk, label=r'$\ell$=%d'%ell)
-        plt.ylabel(r'kP$_{\ell}$(k)')
-        plt.xlabel('k [h/Mpc]')
-        plt.legend()
-        plt.savefig(output_path.replace('.json', '.pdf'), bbox_inches='tight')
+
+    # plot k vs kPell
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    
+    k = r.poles['k']
+    plt.figure()
+    plt.title(f'{ns.zlim}')
+    for ell in [0, 2, 4]:
+        pk = r.poles['power_%d'%ell].real
+        if ell == 0:pk -= r.poles.attrs['shotnoise']
+        plt.plot(k, k*pk, label=r'$\ell$=%d'%ell)
+    plt.ylabel(r'kP$_{\ell}$(k)')
+    plt.xlabel('k [h/Mpc]')
+    plt.legend()
+    plt.savefig(output_path.replace('.json', '.pdf'), bbox_inches='tight')
     print('plot and txt done!')
