@@ -679,7 +679,7 @@ def test_sin():
     from LSSutils.utils import split2Kfolds
 
     import matplotlib
-    matplotlib.use('TKAgg')
+    matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
 
@@ -737,7 +737,8 @@ def test_sin():
 
     plt.figure()
     plt.scatter(test.y, Net.ypreds[0])
-    plt.show()
+    plt.savefig('sinx.png')
+    #plt.show()
     print(f'took {t_f-t_i} secs')
 
 
