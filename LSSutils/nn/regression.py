@@ -112,7 +112,7 @@ class NetRegression(object):
             '''
             options = {
                        'units':[[40], [20,20], [20, 10, 10], [10, 10, 10, 10]],
-                       'scale':[0.0001, 0.001, 0.01, 0.1, 1., 10, 100, 1000],
+                       'scale':[0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1.],
                        'batch_size':[128, 256, 512, 1024, 2048, 4096]
                        }
 
@@ -160,7 +160,7 @@ class NetRegression(object):
 
     def _fit(self,
            learning_rate=0.01,
-           batch_size=256,
+           batch_size=512,
            nepochs=500,
            nchain=1,
            units=[20, 20],
