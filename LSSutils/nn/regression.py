@@ -152,7 +152,7 @@ class NetRegression(object):
         # --- final run
         model_dir = kwargs.pop('model_dir', None)
         attrs.update(model_dir=model_dir)
-        attrs.update(nchain=5)
+        attrs.update(nchain=1)
         attrs.update(predict=True)
         self.logger.info(f'final training with {attrs}')
         self._fit(**attrs)
@@ -203,7 +203,7 @@ class NetRegression(object):
         self.attrs['model_dir']     = model_dir
 
         if nchain > 1:
-            raise RuntimeWarning('FIXME: save model fails')
+            self.logger.warning('FIXME: save model fails')
             
         if model_dir is not None:
             model_path = ''.join(model_dir.split('/')[:-1])
