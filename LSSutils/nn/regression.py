@@ -29,7 +29,7 @@ import os
 import logging
 
 
-
+from copy import copy
 
 class NetRegression(object):
     '''
@@ -70,9 +70,9 @@ class NetRegression(object):
     logger = logging.getLogger('NetRegression')
 
     def __init__(self, train, valid, test):
-        self.train   = train
-        self.valid   = valid
-        self.test    = test
+        self.train   = copy(train)
+        self.valid   = copy(valid)
+        self.test    = copy(test)
 
         for data in [train, valid, test]:
             for attr in ['x', 'y', 'w', 'p']:
@@ -515,6 +515,12 @@ class Data(object):
             self.p = data[3]
 
         if cachex:self.xc = self.x.copy()
+            
+    def copy(self):
+        
+        from copy import copy
+        
+        return copy(self)
 
     def __call__(self, axes=None):
         if not hasattr(self, 'xc'):
