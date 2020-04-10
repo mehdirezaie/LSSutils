@@ -13,7 +13,7 @@
 '''
 #import matplotlib
 #matplotlib.use('Agg')
-
+print('import me')
 
 import matplotlib.pyplot as plt
 import numpy  as np
@@ -254,7 +254,7 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
     '''    
     nside     = hp.npix2nside(len(m))
     rotatedeg = np.degrees(rotate)    
-    ysize     = int(xsize/2.)                     # ratio is always 1/2
+    ysize     = int(xsize/2.)                      # ratio is always 1/2
 
     
     # galactic plane
