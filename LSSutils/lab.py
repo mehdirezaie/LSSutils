@@ -5,7 +5,7 @@ import LSSutils.io as io
 
 from LSSutils.catalogs import combinefits, datarelease
 from LSSutils.stats import nnbar, pcc
-from LSSutils.nn import regression
+from LSSutils.nn.regression import *
 
 from mpi4py import MPI
 
