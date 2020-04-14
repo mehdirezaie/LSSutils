@@ -28,8 +28,61 @@ import time
 import os
 import logging
 
-
 from copy import copy
+
+
+
+__all__ = ['LinearRegression', 'NetRegression', 'Data']
+
+
+class LinearRegression(object):
+    """
+    example:
+    --------
+    df = dataloader(300)
+    LR = LinearRegression(verbose=True)
+    LR.fit(df.loc[:, ['x1', 'x2']].values, df['class'].values)
+    """
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+
+    def fit(self, X, Y):
+        '''
+        inputs
+        --------
+        X: features, [N, M]
+        Y: label [N, ]
+        returns None
+        '''
+        intersect = numpy.ones(X.shape[0])
+        X = numpy.column_stack([intersect, X])
+        XX = X.T.dot(X)
+        invXX = numpy.linalg.inv(XX)
+        self.Beta = invXX.dot(X.T.dot(Y))
+
+        if self.verbose:
+            print(f'{self.Beta} with RSS: {self._rss(X, Y):.2f}')
+
+    def predict(self, X):
+        '''
+        inputs
+        ------
+        X: featues, [N, M]
+        returns X.T.Beta
+        '''
+        intersect = numpy.ones(X.shape[0])
+        X = numpy.column_stack([intersect, X])
+        return X.dot(self.Beta)
+
+    def _rss(self, X, Y):
+        '''
+        inputs
+        --------
+        X: features, [N, M]
+        Y: label [N, ]
+        returns RSS
+        '''
+        return ((Y - X.dot(self.Beta))**2).sum()
 
 class NetRegression(object):
     '''
