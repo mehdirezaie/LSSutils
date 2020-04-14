@@ -32,7 +32,7 @@ if rank ==0:
 
     outpath1 = ns.output_path.split('/')
     outpath1 = '/'.join(outpath1[:-1])
-    if not os.path.isdir(outpath1):
+    if not os.path.exists(outpath1) and len(outpath1)!=0:
         os.makedirs(outpath1)
 
 
