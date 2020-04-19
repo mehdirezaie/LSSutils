@@ -14,6 +14,10 @@ import logging
 #logging.basicConfig(level=logging.INFO)
 
 
+__all__ = ['EbossCatalog', 'SysWeight']
+
+
+
 def extract_keys_dr8(mapi):
     band = mapi.split('/')[-1].split('_')[4]
     sysn = mapi.split('/')[-1].split('_')[7]
@@ -495,28 +499,35 @@ class EbossCatalog:
         self.logger.info(f'# of data that pass this cut {myz.sum()}')
         self.cdata = self.data[myz]
         
-    def prepare_weight(self):
+    def prepare_weight(self, raw=True):
+        self.logger.info(f'raw: {raw}')
         
         if not hasattr(self, 'cdata'):
             self.logger.info('cdata not found')
             self.cdata = self.data
             
-        if self.kind == 'galaxy':
-            self.weight = self.cdata['WEIGHT_CP']*self.cdata['WEIGHT_FKP']*self.cdata['WEIGHT_NOZ']
-        elif self.kind == 'random':
-            self.weight = self.cdata['COMP_BOSS']*self.cdata['WEIGHT_FKP']
+        if raw:            
+            if self.kind == 'galaxy':
+                self.weight = self.cdata['WEIGHT_CP']*self.cdata['WEIGHT_FKP']*self.cdata['WEIGHT_NOZ']
+            elif self.kind == 'random':
+                self.weight = self.cdata['COMP_BOSS']*self.cdata['WEIGHT_FKP']
+            else:
+                raise ValueError(f'{self.kind} not defined')
         else:
-            raise ValueError(f'{self.kind} not defined')
+            self.weight = self.cdata['WEIGHT_CP']*self.cdata['WEIGHT_FKP']*self.cdata['WEIGHT_NOZ']
+            self.weight *= self.cdata['WEIGHT_SYSTOT']
+    
+    def reassign(self, source, seed=None):
+        return reassignment(self.data, source, seed=seed)
         
-        
-    def tohp(self, nside):
+    def tohp(self, nside, raw=True):
         self.logger.info(f'Projecting to HEALPIX as {self.kind} with {nside}')
         
         if not hasattr(self, 'cdata'):
             self.logger.info('cdata not found')
             self.cdata = self.data
             
-        self.prepare_weight() # update the weights
+        self.prepare_weight(raw=raw) # update the weights
         
         self.hpmap = hpixsum(nside, self.cdata['RA'], self.cdata['DEC'], value=self.weight)
 
@@ -534,9 +545,6 @@ class EbossCatalog:
             self.wmap_data = mapper(self.data['RA'][my_mask], self.data['DEC'][my_mask])
             
             self.logger.info(f'slice: {slice_i}, wsysmin: {self.wmap_data.min():.2f}, wsysmax: {self.wmap_data.max():.2f}')
-            if clip:self.wmap_data = self.wmap_data.clip(0.5, 2.0)
-            #
-            assert np.all(self.wmap_data > 0.0),'the weights are zeros!'
             self.data[colname][my_mask] = self.wmap_data            
             self.logger.info('number of objs w zcut {} : {}'.format(my_zcut, my_mask.sum()))
         
@@ -646,7 +654,7 @@ class EbossCatalog:
         
 class SysWeight(object):
     '''
-    Read the systematic weights in healpix
+    Reads the systematic weights in healpix
     Assigns them to a set of RA and DEC (both in degrees)
 
     ex:
@@ -660,18 +668,32 @@ class SysWeight(object):
             self.wmap  = filename
         else:
             self.wmap  = hp.read_map(filename, verbose=False)
-        
+            
         self.nside = hp.get_nside(self.wmap)
 
     def __call__(self, ra, dec):
-        hpix = radec2hpix(self.nside, ra, dec)
-        wsys = self.wmap[hpix]
-        # check if there is any NaNs
-        NaNs = np.isnan(wsys)
+        
+        
+        hpix = radec2hpix(self.nside, ra, dec) # HEALPix index from RA and DEC
+        wsys = self.wmap[hpix]                 # Selection mask at the pixel
+        
+        #if clip:
+        #    wsys = wsys.clip(0.5, 2.0)            
+        #assert np.all(wsys > 0.0),'the weights are zeros!' 
+        
+        return 1./wsys # Systematic weight = 1 / Selection mask
+    
+    def _check(self):
+                
+        NaNs = np.isnan(wsys)                  # check if there is any NaNs
         self.logger.info(f'# NaNs : {NaNs.sum()}')
-        NaNs |= (wsys <= 0.0) # negative weights
+        
+        NaNs |= (wsys <= 0.0)                  # negative weights
         self.logger.info(f'# NaNs or lt 0: {NaNs.sum()}')
+        
+        
         if NaNs.sum() !=0:
+            
             nan_wsys = np.argwhere(NaNs).flatten()
             nan_hpix = hpix[nan_wsys]
             
@@ -680,52 +702,11 @@ class SysWeight(object):
             neighbors = hp.get_all_neighbours(self.nside, nan_hpix) 
             wsys[nan_wsys] = np.nanmean(self.wmap[neighbors], axis=0)
 
+            # 
             NNaNs  = np.isnan(wsys).sum()
             self.logger.info(f'# NaNs (after)  : {NNaNs}')
-            if NNaNs != 0:raise RuntimeError('Uncovered sample')
-        return 1./wsys
-    
-
-class swap_weights(object):    
-    def __init__(self, catalog):
-        print('going to read %s'%catalog)
-        self.data = ft.read(catalog)
-        
-    def run(self, weights, zcuts, colname='WEIGHT_SYSTOT'):
-        self.orgcol = self.data[colname].copy()
-        for keyi in zcuts.keys():
-            assert keyi in weights.keys(), '%s not available'%keyi
-            #
-            my_wmap   = hp.read_map(weights[keyi], verbose=False)
-            nside     = hp.get_nside(my_wmap)
-
-            my_zcut   = zcuts[keyi]
-            my_mask   = (self.data['Z'] >= my_zcut[0])\
-                      & (self.data['Z'] <= my_zcut[1])
-            #
-            data_hpix = radec2hpix(nside, 
-                                   self.data['RA'][my_mask],
-                                   self.data['DEC'][my_mask])
-            # swap
-            # get the neighbors mean for non-probed pixels
-            self.wmap_data = my_wmap[data_hpix]  
-            NaNs = np.isnan(self.wmap_data) | (self.wmap_data < 0.0)
-
-            if NaNs.sum() !=0:                
-                nanweights     = np.argwhere(NaNs).flatten()
-                nanhpix        = data_hpix[nanweights]
-                print('# NaN  (before) : ', len(nanhpix))
-                neighbors      = hp.get_all_neighbours(nside, nanhpix)            
-                self.wmap_data[nanweights] = np.nanmean(my_wmap[neighbors], axis=0)
-                print('# NaNs (after)  : ', np.isnan(self.wmap_data).sum())
-
-            #print(keyi, self.wmap_data.min(), self.wmap_data.max(), NaNs.sum())
-            print(keyi, self.wmap_data.min(), self.wmap_data.max())
-            #self.wmap_data = self.wmap_data.clip(0.5, 2.0)
-            assert np.all(self.wmap_data > 0.0),'the weights are zeros!'
-            self.data[colname][my_mask] = 1./self.wmap_data            
-            print('number of objs w zcut {} : {}'.format(my_zcut, my_mask.sum()))
             
-    def to_fits(self, filename):
-        if os.path.isfile(filename):raise RuntimeError('%s exists'%filename)
-        ft.write(filename, self.data)             
+            if NNaNs != 0:
+                raise RuntimeError('Uncovered sample')
+                
+        

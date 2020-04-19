@@ -37,6 +37,9 @@ except:
     print('healpy is not installed')
     
 
+    
+__all__ = ['overdensity', 'hpixsum', 'radec2hpix']    
+    
 def corrmatrix(matrix, estimator='pearsonr'):
     '''
     The corrmatrix function.

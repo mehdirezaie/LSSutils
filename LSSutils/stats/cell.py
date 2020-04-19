@@ -4,6 +4,8 @@ from time import time
 from LSSutils.utils import split_jackknife_new
 
 
+__all__ = ['AnaFast']
+
 def jkmasks(mask, weight, njack=4):
     '''
     Function that makes Jackknife masks
