@@ -553,8 +553,7 @@ class EbossCatalog:
         if os.path.isfile(filename):
             print('%s already exists'%filename, end=' ')
             if not overwrite:
-                print('please change the filename!')
-                return
+                raise RuntimeWarning('please change the filename!')
             else:
                 print('going to rewrite....')
         hp.write_map(filename, self.hpmap, overwrite=True, fits_IDL=False)    

@@ -173,4 +173,4 @@ class MeanDensity(object):
         self.output = output
     def save(self, path4output):
         print('writing the output in {}'.format(path4output))
-        np.save(path4output, self.output)
+        np.savez(path4output, self.output)
