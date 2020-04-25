@@ -1,7 +1,7 @@
 !    -*- f90 -*-
 ! Note: the context of this file is case sensitive.
 
-python module ddthetahp ! in 
+python module ddthetahp ! in
     interface  ! in :ddthetahp
         subroutine ddthetahpauto(theta1,phi1,delta1,fpix1,bins,c,n1,m) ! in :ddthetahp:ddthetahp.f95
             real(kind=8) dimension(n1),intent(in) :: theta1
@@ -28,7 +28,7 @@ python module ddthetahp ! in
             integer, optional,intent(in),check(len(theta2)>=n2),depend(theta2) :: n2=len(theta2)
             integer, optional,intent(in),check(len(bins)>=m),depend(bins) :: m=len(bins)
         end subroutine ddthetahpcross
-    end interface 
+    end interface
 end python module ddthetahp
 
 ! This file was auto-generated with f2py (version:2).

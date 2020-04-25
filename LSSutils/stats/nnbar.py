@@ -1,5 +1,4 @@
 import numpy as np
-from healpy import get_nside, nside2pixarea 
 import logging
 
 class MeanDensity(object):
@@ -10,8 +9,8 @@ class MeanDensity(object):
     """
 
     logger = logging.getLogger('MeanDensity')
-    
-    def __init__(self, galmap, ranmap, mask, 
+
+    def __init__(self, galmap, ranmap, mask,
                        sysmap, nbins=8, selection=None, binning='equi-area',
                        percentiles=[0, 100], comm=None):
         if comm is None:
@@ -22,7 +21,6 @@ class MeanDensity(object):
         #
         # inputs
 
-        self.nside  = 256#get_nside(galmap)
         self.galmap = galmap[mask]
         self.ranmap = ranmap[mask]
         self.sysmap = sysmap[mask]
@@ -32,39 +30,39 @@ class MeanDensity(object):
             if self.comm.rank==0:
                 self.logger.info('apply selection mask on galaxy')
             self.galmap /= selection[mask]
-        #    
+        #
         # digitize
         self.sysl = [0 for k in range(3*nbins)]
-        
+
         if binning == 'simple':
-            
+
             smin, smax = np.percentile(self.sysmap, percentiles)
-            bins = np.linspace(smin, smax, nbins+1) 
-            
+            bins = np.linspace(smin, smax, nbins+1)
+
             if self.comm.rank==0:
                 self.logger.info(f'{nbins} {binning} bins from {smin} to {smax}')
-            
+
             inds = np.digitize(self.sysmap, bins)
-            
+
             for i in range(1,bins.size): # what if there is nothing on the last bin? FIXME
                 self.sysl[3*i-3] = self.sysmap[np.where(inds == i)].tolist()
                 self.sysl[3*i-2] = self.galmap[np.where(inds == i)].tolist()
-                self.sysl[3*i-1] = self.ranmap[np.where(inds == i)].tolist()    
-                
+                self.sysl[3*i-1] = self.ranmap[np.where(inds == i)].tolist()
+
         elif binning == 'equi-area':
             npts  = self.ranmap.size
             swtt  = self.ranmap.sum()/nbins  # num of randoms in each bin
-            
+
             if self.comm.rank==0:
                 self.logger.info(f'{swtt} randoms (area) in each bin')
-            datat = np.zeros(npts, dtype=np.dtype([('ss', 'f8'), ('gs', 'f8'), 
+            datat = np.zeros(npts, dtype=np.dtype([('ss', 'f8'), ('gs', 'f8'),
                                                    ('ws', 'f8'), ('rid', 'i8')]))
             datat['ss'] = self.sysmap*1
             datat['gs'] = self.galmap*1
-            datat['ws'] = self.ranmap*1            
+            datat['ws'] = self.ranmap*1
             np.random.seed(123456)
             datat['rid'] = np.random.permutation(np.arange(npts))
-            
+
             datas = np.sort(datat, order=['ss', 'rid'])
             ss, gs, ws = datas['ss'], datas['gs'], datas['ws']
 
@@ -72,7 +70,7 @@ class MeanDensity(object):
             listr = []
             lists = []
             bins  = [ss[0]] # first edge is the lowest systematic
-            j =  0                   
+            j =  0
             swti = 0.0
             for i, wsi in enumerate(ws):
                 swti += wsi
@@ -82,7 +80,7 @@ class MeanDensity(object):
                 if (swti >= swtt) or (i == npts-1):
                     swti  = 0.0
                     bins.append(ss[i])
-                    self.sysl[3*j] = lists                    
+                    self.sysl[3*j] = lists
                     self.sysl[3*j+1] = listg
                     self.sysl[3*j+2] = listr
                     lists = []
@@ -91,19 +89,19 @@ class MeanDensity(object):
                     j += 1
 
             bins = np.array(bins)
-            if self.comm.rank==0:                
+            if self.comm.rank==0:
                 self.logger.info('min sys : %.2f  max sys : %.2f'%(ss[0], ss[npts-1]))
                 self.logger.info('num of pts : %d, num of bins : %d'%(i, j))
         else:
             raise ValueError('%s not among [simple, equi-area]'%binning)
-            
+
         totgal = np.sum([np.sum(self.sysl[i]) for i in np.arange(1,3*nbins, 3)])
-        totran = np.sum([np.sum(self.sysl[i]) for i in np.arange(2,3*nbins, 3)])        
+        totran = np.sum([np.sum(self.sysl[i]) for i in np.arange(2,3*nbins, 3)])
         self.avnden = totgal/totran
         self.bins = bins
         if self.comm.rank==0:
             self.logger.info(f'mean nbar {self.avnden}')
-        
+
     def run(self, njack=20):
         sl = []
         ml = []
@@ -111,7 +109,7 @@ class MeanDensity(object):
         bl = []
         for i in range(0, 3*self.bins.size-3, 3):
             bavg = 0.0
-            ng   = 0.0            
+            ng   = 0.0
             std  = 0.0
             npix = 0.0
             for j in range(0,len(self.sysl[i])):
@@ -124,12 +122,12 @@ class MeanDensity(object):
                 nl.append(np.nan)
                 sl.append(np.nan)
                 continue
-                
+
             mean = ng/npix/self.avnden
             bl.append(bavg/npix)
             ml.append(mean)
             nl.append(npix)
-            
+
             if (len(self.sysl[i]) < njack) or (njack == 0):  # use the typical std if njack is 0
                 for k in range(0,len(self.sysl[i])):
                     std += (self.sysl[i+1][k]/self.sysl[i+2][k]/self.avnden-mean)**2.
@@ -153,7 +151,7 @@ class MeanDensity(object):
         # area
         npixtot   = self.ranmap.size
         nrantot   = self.ranmap.sum()
-        area1pix  = nside2pixarea(self.nside, degrees=True)
+        area1pix  = 1 #nside2pixarea(self.nside, degrees=True)
         npix2area = npixtot*area1pix/nrantot
         #
         # prepare output
@@ -166,11 +164,11 @@ class MeanDensity(object):
         attrs = {}
         attrs['njack'] = njack
         attrs['nbar'] = self.avnden
-        attrs['nside'] = self.nside
         attrs['npix2area'] = npix2area
 
         output['attr'] = attrs
         self.output = output
+
     def save(self, path4output):
         print('writing the output in {}'.format(path4output))
-        np.save(path4output, self.output)
+        np.savez(path4output, **self.output)
