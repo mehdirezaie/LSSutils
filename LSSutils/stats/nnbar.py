@@ -13,7 +13,7 @@ class MeanDensity(object):
     
     def __init__(self, galmap, ranmap, mask, 
                        sysmap, nbins=8, selection=None, binning='equi-area',
-                       percentiles=[0, 100], comm=None):
+                       percentiles=[0, 100], comm=None, nside=256):
         if comm is None:
             from LSSutils import CurrentMPIComm
             self.comm = CurrentMPIComm.get()
@@ -22,7 +22,7 @@ class MeanDensity(object):
         #
         # inputs
 
-        self.nside  = 256#get_nside(galmap)
+        self.nside  = nside #get_nside(galmap)
         self.galmap = galmap[mask]
         self.ranmap = ranmap[mask]
         self.sysmap = sysmap[mask]

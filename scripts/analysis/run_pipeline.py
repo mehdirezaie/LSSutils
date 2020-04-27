@@ -91,13 +91,14 @@ class PhotData:
                         
             # read the dataframe            
             if self.args['photattrs'].endswith('.fits'):
-                
+                raise RuntimeWarning('fix column slicing')                
                 self.df = ft.read(self.args['photattrs'], lower=True)
+                self.df = self.df[:, self.args['axfit']]
                 self.args['columns'] = self.df.dtype.names
                 
             elif self.args['photattrs'].endswith('.h5'):
-                
-                self.df = pd.read_hdf(self.args['photattrs'], lower=True)
+                self.df = pd.read_hdf(self.args['photattrs'], key='templates', lower=True)
+                self.df = self.df.iloc[:, self.args['axfit']] 
                 self.args['columns'] = self.df.columns.values
                 
             else:
@@ -169,7 +170,8 @@ class PhotData:
         nnbar_list= []
         for i in range(start, end):
             nnbar_i = MeanDensity(self.galmap, self.ranmap, self.mask, self.df[:,i],
-                                  nbins=self.args['nbin'], selection=self.wmap)
+                                  nbins=self.args['nbin'], selection=self.wmap,
+                                  nside=self.args['nside'])
             
             nnbar_i.run(njack=self.args['njack'])
             nnbar_i.output['sys'] = self.args['columns'][i] # add the name of the map
