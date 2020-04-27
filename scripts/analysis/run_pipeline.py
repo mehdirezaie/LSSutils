@@ -232,11 +232,7 @@ if rank == 0:
 
     if logfile is not None:print(f'log in {logfile}')
 
-    setup_logging('info', logfile=logfile)
-
-    
-        
-    
+    setup_logging('info', logfile=logfile)  
     
 else:
     ns = None
@@ -245,7 +241,6 @@ ns = comm.bcast(ns, root=0)
 
 
 #--- run
-
 engine = PhotData(ns, comm)
 engine.nnbar(comm) # mean density
 
