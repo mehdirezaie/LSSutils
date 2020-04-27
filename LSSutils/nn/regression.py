@@ -122,10 +122,11 @@ class NetRegression(object):
 
     logger = logging.getLogger('NetRegression')
 
-    def __init__(self, train, valid, test):
+    def __init__(self, train, valid, test, norm_output=None):
         self.train   = copy(train)
         self.valid   = copy(valid)
         self.test    = copy(test)
+        self.norm_output = norm_output
 
         for data in [train, valid, test]:
             for attr in ['x', 'y', 'w', 'p']:
@@ -257,14 +258,17 @@ class NetRegression(object):
 
         if nchain > 1:
             self.logger.warning('FIXME: save model fails')
-            
+        
+        '''
+        FIXME: 
         if model_dir is not None:
             model_path = ''.join(model_dir.split('/')[:-1])
 
             if not os.path.isdir(model_path): # /path/to/file -> /path/to/
                 self.logger.info('create {}'.format(model_path))
                 os.makedirs(model_path)
-
+        '''
+        
         #--- early stopping
         early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
                                                       patience=patience,
@@ -347,6 +351,17 @@ class NetRegression(object):
 
         self.valid.x = (self.valid.x - self.meanx) / self.stdx
         self.valid.y = (self.valid.y - self.meany) / self.stdy
+        
+        #
+        if self.norm_output is not None:
+            
+            kwargs = {
+                'meanx':self.meanx,
+                'stdx':self.stdx,
+                'meany':self.meany,
+                'stdy':self.stdy
+                        }
+            numpy.savez(self.norm_output, **kwargs)
 
     def _descale(self):
         ''' Undo Z-score normalization

@@ -8,7 +8,8 @@ zcuts = {'low':[0.8, 1.5],
          'zhigh':[2.2, 3.5],
          'z1':[0.8, 1.3],
          'z2':[1.3, 1.6],
-         'z3':[1.6, 2.2]}
+         'z3':[1.6, 2.2],
+         'tot':[0.8, 3.5]}
 
 cols_dr8_ccd = ['ebv', 'loghi', 'nstar']\
              + ['depth_'+b+'_total' for b in 'rgz']\

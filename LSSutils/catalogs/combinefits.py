@@ -553,8 +553,7 @@ class EbossCatalog:
         if os.path.isfile(filename):
             print('%s already exists'%filename, end=' ')
             if not overwrite:
-                print('please change the filename!')
-                return
+                raise RuntimeWarning('please change the filename!')
             else:
                 print('going to rewrite....')
         hp.write_map(filename, self.hpmap, overwrite=True, fits_IDL=False)    
@@ -663,13 +662,15 @@ class SysWeight(object):
     '''
     logger = logging.getLogger('SysWeight')
     
-    def __init__(self, filename, ismap=False):
+    def __init__(self, filename, ismap=False, fix=True, clip=True):
         if ismap:
             self.wmap  = filename
         else:
             self.wmap  = hp.read_map(filename, verbose=False)
             
         self.nside = hp.get_nside(self.wmap)
+        self.fix = fix
+        self.clip = clip
 
     def __call__(self, ra, dec):
         
@@ -677,36 +678,37 @@ class SysWeight(object):
         hpix = radec2hpix(self.nside, ra, dec) # HEALPix index from RA and DEC
         wsys = self.wmap[hpix]                 # Selection mask at the pixel
         
-        #if clip:
-        #    wsys = wsys.clip(0.5, 2.0)            
-        #assert np.all(wsys > 0.0),'the weights are zeros!' 
+        if self.fix:
+            
+            NaNs = np.isnan(wsys)                  # check if there is any NaNs
+            self.logger.info(f'# NaNs : {NaNs.sum()}')
+
+            NaNs |= (wsys <= 0.0)                  # negative weights
+            if self.clip:
+                self.logger.info('< or > 2x')
+                
+                NaNs |= (wsys < 0.5) 
+                NaNs |= (wsys > 2.0)
+                
+            self.logger.info(f'# NaNs or lt 0: {NaNs.sum()}')
+
+
+            if NaNs.sum() !=0:
+
+                nan_wsys = np.argwhere(NaNs).flatten()
+                nan_hpix = hpix[nan_wsys]
+
+                # use the average of the neighbors
+                self.logger.info(f'# NaNs (before) : {len(nan_hpix)}')
+                neighbors = hp.get_all_neighbours(self.nside, nan_hpix) 
+                wsys[nan_wsys] = np.nanmean(self.wmap[neighbors], axis=0)
+
+                # 
+                NNaNs  = np.isnan(wsys).sum()
+                self.logger.info(f'# NaNs (after)  : {NNaNs}')
+
+            
+            
+        assert np.all(wsys > 0.0),f'{(wsys <= 0.0).sum()} weights <= 0.0!' 
         
         return 1./wsys # Systematic weight = 1 / Selection mask
-    
-    def _check(self):
-                
-        NaNs = np.isnan(wsys)                  # check if there is any NaNs
-        self.logger.info(f'# NaNs : {NaNs.sum()}')
-        
-        NaNs |= (wsys <= 0.0)                  # negative weights
-        self.logger.info(f'# NaNs or lt 0: {NaNs.sum()}')
-        
-        
-        if NaNs.sum() !=0:
-            
-            nan_wsys = np.argwhere(NaNs).flatten()
-            nan_hpix = hpix[nan_wsys]
-            
-            # use the average of the neighbors
-            self.logger.info(f'# NaNs (before) : {len(nan_hpix)}')
-            neighbors = hp.get_all_neighbours(self.nside, nan_hpix) 
-            wsys[nan_wsys] = np.nanmean(self.wmap[neighbors], axis=0)
-
-            # 
-            NNaNs  = np.isnan(wsys).sum()
-            self.logger.info(f'# NaNs (after)  : {NNaNs}')
-            
-            if NNaNs != 0:
-                raise RuntimeError('Uncovered sample')
-                
-        
