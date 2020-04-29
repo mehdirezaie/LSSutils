@@ -25,7 +25,7 @@ from matplotlib.projections.geo import GeoAxes
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
 
-from .utils import binit, binit_jac, radec2hpix
+#from .utils import binit, binit_jac, radec2hpix
 
 
 

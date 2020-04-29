@@ -1,5 +1,5 @@
 '''
-    Galactic foregrounds 
+    Galactic foregrounds
     1. SFD 1998 E(B-V)
     2. Gaia DR2 Stellar density
     3. HI column density Lenz et. al.
@@ -26,7 +26,7 @@ class sfd98(object):
 
 class gaia_dr2(object):
     """
-      Read the Gaia DR2 star density catalog (c) Anand Raichoor 
+      Read the Gaia DR2 star density catalog (c) Anand Raichoor
     """
     def __init__(self, nside=256):
         self.nside    = nside
@@ -35,14 +35,14 @@ class gaia_dr2(object):
         self.name     = '/Volumes/TimeMachine/data/gaia/Gaia.dr2.bGT10.12g17.hp256.fits'
         self.gaia     = ft.read(self.name, lower=True, columns=['hpstardens'])['hpstardens'] # only column
         self.gaia     = self.gaia.astype('f8')
-        
+
         if nside!=256:
             self.gaia = hp.ud_grade(self.gaia, nside_out=nside)
             warnings.warn('upgrading/downgrading Gaia star density')
 
 
 def G_to_C(mapi, res_in=1024, res_out=256):
-    """ 
+    """
      Rotates from Galactic to Celestial coordinates
     """
     thph    = hp.pix2ang(res_out, np.arange(12*res_out*res_out))
@@ -58,15 +58,15 @@ class logHI(object):
     def __init__(self, nside=256, name='/Volumes/TimeMachine/data/NHI_HPX.fits'):
 
         self.nside    = nside
-        nside_in      = 1024        
+        nside_in      = 1024
         self.ordering = 'ring'
         self.unit     = 'Lenz et. al. HI'
         self.name     = name
-        
+
         if nside!= nside_in:warnings.warn('upgrading/downgrading HI column density')
         nhi           = ft.FITS(self.name, lower=True)
         nhi           = nhi[1].read()['nhi'] # only nhi column
-        
+
         nhi_c         = G_to_C(nhi, res_in=nside_in, res_out=nside)
         nhi_neg_hpix  = np.argwhere(nhi_c <= 0.0).flatten()
         neighbors     = hp.get_all_neighbours(nside, nhi_neg_hpix)

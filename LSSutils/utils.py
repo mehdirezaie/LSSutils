@@ -35,90 +35,93 @@ try:
     import healpy as hp
 except:
     print('healpy is not installed')
-    
 
-    
-__all__ = ['overdensity', 'hpixsum', 'radec2hpix']    
-    
+
+
+__all__ = ['overdensity', 'hpixsum', 'radec2hpix', 'hpix2radec']
+
 def corrmatrix(matrix, estimator='pearsonr'):
     '''
     The corrmatrix function.
-    
+
     The function computes the correlation matrix.
-    
+
     Parameters
     ----------
     matrix : 2-D Array with shape (n,m)
         2-D array of the attributes (n, m)
-    
+
     estimator : string, optional
         String to determine the correlation coefficient estimator
         options are pearsonr and spearmanr
-        
+
     Returns
     -------
     corr : 2-D array with shape (m, m)
         2-D array of the correlation matrix
-        
-    Examples    
-    --------
-    >>> columns = ['ebv', 'depth_r_max', 'loghi']
-    >>> lab.catalogs.datarelease.fixlabels(columns, addunit=False)
-    ['ebv', 'depth-r', 'logHI']
 
-    >>> lab.catalogs.datarelease.fixlabels(columns, addunit=True)
-    ['ebv [mag]', 'depth-r [mag]', 'log(HI/cm$^{2}$) ']
-        
-    '''    
+    Examples
+    --------
+
+    '''
     if estimator == 'pearsonr':
         festimator = pearsonr
     elif estimator == 'spearmanr':
         festimator = spearmanr
 
     n, m = matrix.shape
-    corr = np.zeros((m,m))
-        
+    corr = np.ones((m,m)) # initialize with one, fill non-diagonal terms later
+
     for i in range(m):
         column_i = matrix[:,i]
-        
-        
-        for j in range(i, m): 
+
+        for j in range(i+1, m):
             # corr matrix is symmetric
-            corr_ij = festimator(column_i, matrix[:,j])[0]            
+            corr_ij = festimator(column_i, matrix[:,j])[0]
             corr[i,j] = corr_ij
             corr[j,i] = corr_ij
-            
-    return corr    
+
+    return corr
 
 
 def dr8density(df, n2r=False, persqdeg=True, nside=256):
+    ''' DR8 ELG Density, Colorbox selection
+
+        credit: Pauline Zarrouk
+    '''
     density = np.zeros(df.size)
-    for name in ['ELG200G228', 'ELG228G231',\
+    for colorcut in ['ELG200G228', 'ELG228G231',\
                  'ELG231G233', 'ELG233G234',\
                  'ELG234G236']: # 'ELG200G236'
-        density += df[name]
-        
+        density += df[colorcut]
+
     if not persqdeg:
         # it's already per sq deg
         density *= df['FRACAREA']*hp.nside2pixarea(nside, degrees=True)
-        
+
     if n2r:
         density = hp.reorder(density, n2r=n2r)
-        
+
     return density
 
 def steradian2sqdeg(steradians):
+    ''' Steradians to sq. deg
+    '''
     return steradians*(180/np.pi)**2
 
 def shiftra(x):
-    ''' (c) Julien Bautista Hack'''
+    ''' (c) Julian Bautista Hack to shift RA for plotting '''
     return x-360*(x>300)
 
 
 def flux_to_mag(flux, band, ebv=None):
-    ''' Converts SDSS fluxes to magnitudes, correcting for extinction optionally (EBV)'''
+    ''' Converts SDSS fluxes to magnitudes,
+    correcting for extinction optionally (EBV)
+
+    credit: eBOSS pipeline (Ashley Ross, Julian Bautista et al.)
+    '''
     #index_b = dict(zip(['u', 'g', 'r', 'i', 'z'], np.arange(5)))
-    #index_e = dict(zip(['u', 'g', 'r', 'i', 'z'], [4.239,3.303,2.285,1.698,1.263]))    
+    #index_e = dict(zip(['u', 'g', 'r', 'i', 'z'], [4.239,3.303,2.285,1.698,1.263]))
     #-- coefs to convert from flux to magnitudes
     b   = np.array([1.4, 0.9, 1.2, 1.8, 7.4])[band]*1.e-10
     mag = -2.5/np.log(10.)*(np.arcsinh((flux/1.e9)/(2*b)) + np.log(b))
@@ -130,41 +133,44 @@ def flux_to_mag(flux, band, ebv=None):
 
 
 def radec2hpix(nside, ra, dec):
-    pix = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra))
-    return pix
+    ''' RA,DEC to HEALPix index in ring
+    '''
+    hpix = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra))
+    return hpix
 
+def hpix2radec(nside, hpix):
+    ''' HEALPix index (ring) to RA,DEC
+    '''
+    theta, phi = hp.pixelfunc.pix2ang(nside, hpix)
+    return np.degrees(phi), 90-np.degrees(theta)
 
-def split_mask(mask_in, mask_ngc, mask_sgc, nside=256):    
-    mask = hp.read_map(mask_in, verbose=False).astype('bool')
-    mngc, msgc = split2caps(mask, nside=nside)
-    
-    hp.write_map(mask_ngc, mngc, fits_IDL=False, dtype='float64')
-    hp.write_map(mask_sgc, msgc, fits_IDL=False, dtype='float64')
-    print('done')
+def mask2caps(mask, **hpix2caps_kwargs):
+    ''' Split a binary mask (array) into DECaLS North, South, and BASS/MzLS
 
-
-def mask2caps(mask, **kwargs):
-    
+    '''
     hpix = np.argwhere(mask).flatten()
-    masks = hpix2caps(hpix, **kwargs)
+    masks = hpix2caps(hpix, **hpix2caps_kwargs)
     #print(mask.sum())
     #ra, dec = hpix2radec(nside, hpix)
-
     #for mask_i in masks:
     #    plt.scatter(utils.shiftra(ra[mask_i]), dec[mask_i], 5, marker='.')
-    
+
     ngc = np.zeros_like(mask)
     ngc[hpix[masks[0]]] = True
-    
+
     sgc = np.zeros_like(mask)
     sgc[hpix[masks[1]]] = True
-    
+
     bmzls = np.zeros_like(mask)
     bmzls[hpix[masks[2]]] = True
-    
-    return ngc, sgc, bmzls    
-    
-def hpix2caps(hpind, nside=256, mindec_bass=32.375, mindec_decals=-30., **kwargs):
+
+    return ngc, sgc, bmzls
+
+def hpix2caps(hpind, nside=256, mindec_bass=32.375,
+                mindec_decals=-30., **kwargs):
+    ''' Split a list of HEALPix indices to DECaLS North, South, and BASS/MzLS
+
+    '''
     ra, dec = hpix2radec(nside, hpind)
     theta   = np.pi/2 - np.radians(dec)
     phi     = np.radians(ra)
@@ -177,6 +183,112 @@ def hpix2caps(hpind, nside=256, mindec_bass=32.375, mindec_decals=-30., **kwargs
     decals = (~mzls) & (~north) & (dec > mindec_decals)
     return decaln, decals, mzls
 
+def histogram(el, cel, bins=None):
+    '''
+        bin the C_ell measurements
+    '''
+    if bins is None:
+        bins = np.logspace(0, 2.71, 10)
+    kw  = dict(bins=bins, statistic='sum')
+    bins_mid  = 0.5*(bins[1:]+bins[:-1])
+    a2lp1 = 2*el + 1
+    clwt = binned_statistic(el, a2lp1*cel, **kw)[0] # want the first value only
+    wt = binned_statistic(el, a2lp1, **kw)[0]
+    #print(clwt, wt)
+    return bins_mid, clwt/wt, wt
+
+def modecounting_err(el, cel, bins=None, fsky=1.0):
+    '''
+        get the mode counting error estimate
+    '''
+    bins_mid, cl_wt, wt = histogram(el, cel, bins=bins)
+
+    return bins_mid, (cl_wt/wt)/(np.sqrt(0.5*fsky*wt))
+
+def histogram_jac(cljks, bins=None):
+    '''
+        Bin jackknife C_ell measurements and get the error estimate
+    '''
+    njacks = len(cljks) - 1 # -1 for the global measurement
+
+    el = np.arange(cljks[0].size)
+    cbljks = []
+    for i in range(njacks):
+        elb, clb,_ = histogram(el, cljks[i], bins=bins)
+        cbljks.append(clb)
+
+    elb, clm,_ = histogram(el, cljks[-1], bins=bins)
+    clvar = np.zeros(clm.size)
+    for i in range(njacks):
+        clvar += (clm - cbljks[i])*(clm - cbljks[i])
+    clvar *= (njacks-1)/njacks
+    return elb, np.sqrt(clvar)
+
+def hpixmean(nside, ra, dec, value, statistic='mean'):
+    '''
+        project a quantity (value) onto RA-DEC, and then healpix
+        with a given nside
+        default is 'mean', but can work with 'min', 'max', etc
+    '''
+    hpix = radec2hpix(nside, ra, dec)
+    nmax = 12*nside*nside
+    result = binned_statistic(hpix, value, statistic=statistic,
+                                 bins=nmax, range=(0, nmax))[0]
+    return result
+
+def hpixsum(nside, ra, dec, value=None):
+    '''
+        make a healpix map from ra-dec
+        default is RING format
+        hpixsum(nside, ra, dec, value=None)
+
+        credit: Yu Feng, Ellie Kitanidis
+    '''
+    pix  = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra))
+    npix = hp.nside2npix(nside)
+    w    = np.bincount(pix, weights=value, minlength=npix)
+    return w
+
+def overdensity(galmap, weight, mask,
+                select_fun=None, is_sys=False, nnbar=False):
+    
+    delta = np.zeros_like(galmap)*np.nan
+    if select_fun is not None:
+        galmap /= select_fun
+
+    #assert((randc[mask]==0).sum() == 0) # make sure there is no empty pixel
+    if (weight[mask]==0).sum() != 0:
+        print('there are empty weights')
+        m = weight == 0
+        weight[m] = 1.0 # enforce one
+
+    if is_sys:
+        sf = (galmap[mask]*weight[mask]).sum() / weight[mask].sum()
+        delta[mask] = galmap[mask] / sf
+    else:
+        sf = galmap[mask].sum()/weight[mask].sum()
+        delta[mask] = galmap[mask]/(weight[mask]*sf)
+
+    if not nnbar:
+        delta[mask] -= 1
+
+    return delta
+
+
+
+
+
+
+
+
+def split_mask(mask_in, mask_ngc, mask_sgc, nside=256):
+    mask = hp.read_map(mask_in, verbose=False).astype('bool')
+    mngc, msgc = split2caps(mask, nside=nside)
+
+    hp.write_map(mask_ngc, mngc, fits_IDL=False, dtype='float64')
+    hp.write_map(mask_sgc, msgc, fits_IDL=False, dtype='float64')
+    print('done')
+
 def split2caps(mask, coord='C', nside=256):
     if coord != 'C':raise RuntimeError('check coord')
     r = hp.Rotator(coord=['C', 'G'])
@@ -185,80 +297,9 @@ def split2caps(mask, coord='C', nside=256):
     ngc = theta_g < np.pi/2
     sgc = ~ngc
     mngc = mask & ngc
-    msgc = mask & sgc   
+    msgc = mask & sgc
     return mngc, msgc
 
-
-def G_to_C(mapi, res_in=1024, res_out=256):
-    '''
-        Rotate the HI column density from G to C
-        to avoid its negative pixels
-    '''
-    thph  = hp.pix2ang(res_out, np.arange(12*res_out*res_out))
-    r     = hp.Rotator(coord=['C', 'G'])
-    thphg = r(thph[0], thph[1])
-    hpix  = hp.ang2pix(res_in, thphg[0], thphg[1])
-    return mapi[hpix]
-
-def fixHI(hifile='/Volumes/TimeMachine/data/NHI_HPX.fits', nside_out=256):
-    '''
-        read HI column density
-        rotate it from G to C ("decrease" nside if needed)
-        fill some negative pixels
-        by assigning the mean of neighbors
-    '''
-    assert (nside_out < 1024), 'nside_out should be < 1024'
-    # H II map
-    hii = ft.FITS(hifile, lower=True)
-    Hii = hii[1].read()
-    Hiic = G_to_C(Hii['nhi'], res_out=nside_out)
-    Hineg = np.argwhere(Hiic<=0.0).flatten()
-    neighbors = hp.get_all_neighbours(nside_out, Hineg)
-    Hiic[Hineg] = np.mean(Hiic[neighbors], axis=0) # fill in negative pixels
-    return Hiic
-
-def binit(el, cel, bins=None):
-    '''
-        bin the C_ell measurements
-    '''
-    if bins is None:
-        bins = np.logspace(0, 2.71, 10)
-    kw  = dict(bins=bins, statistic='sum')
-    lb  = 0.5*(bins[1:]+bins[:-1])
-    a2l = 2*el + 1
-    clwt,_,_ = binned_statistic(el, a2l*cel, **kw)
-    wt,_,_   = binned_statistic(el, a2l, **kw)
-    #print(clwt, wt)
-    return lb, clwt/wt
-
-def moderr(el, cel, bins=np.logspace(0, 2.71, 10), fsky=1.0):
-    '''
-        get the mode counting error estimate
-    '''
-    kw  = dict(bins=bins, statistic='sum')
-    lb  = 0.5*(bins[1:]+bins[:-1])
-    a2l = 2*el + 1
-    clwt,_,_ = binned_statistic(el, a2l*cel, **kw)
-    wt,_,_   = binned_statistic(el, a2l, **kw)
-    #print(clwt, wt)
-    return lb, (clwt/wt)/(np.sqrt(0.5*fsky*wt))
-
-def binit_jac(cljks, bins=None, njacks=20):
-    '''
-        Bin jackknife C_ell measurements and get the error estimate
-    '''
-    el = np.arange(cljks[0].size)
-    cbljks = []
-    for i in range(njacks):
-        elb, clb = binit(el, cljks[i], bins=bins)
-        cbljks.append(clb)
-    elb, clm = binit(el, cljks[-1], bins=bins)
-    clvar = np.zeros(clm.size)
-    for i in range(njacks):
-        clvar += (clm - cbljks[i])*(clm - cbljks[i])
-    clvar *= (njacks-1)/njacks
-    return elb, np.sqrt(clvar)
-    
 def histedges_equalN(x, nbin=10, kind='size', weight=None):
     '''
         https://stackoverflow.com/questions/39418380/
@@ -294,90 +335,22 @@ def histedges_equalN(x, nbin=10, kind='size', weight=None):
         xp = np.array(xp)
     return xp
 
-def radec2hpix(nside, ra, dec):
-    pix = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra))
-    return pix
-
-def hpix2radec(nside, pix):
-    theta,phi = hp.pixelfunc.pix2ang(nside, pix)
-    return np.degrees(phi), 90-np.degrees(theta)
 
 
-def projectradec2hp(nside, ra, dec, value, statistic='mean'):
-    '''
-        project a quantity (value) onto RA-DEC, and then healpix
-        with a given nside
-        default is 'mean', but can work with 'min', 'max', etc
-    '''
-    hpix = radec2hpix(nside, ra, dec)
-    nmax = 12*nside*nside
-    result = binned_statistic(hpix, value, statistic=statistic, 
-                                 bins=nmax, range=(0, nmax))[0]
-    return result
-
-def hpixsum(nside, ra, dec, value=None, nest=False): 
-    '''
-        make a healpix map from ra-dec
-        default is RING format
-        hpixsum(nside, ra, dec, value=None)
-    '''
-    pix  = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra), nest=nest)
-    npix = hp.nside2npix(nside)
-    w    = np.bincount(pix, weights=value, minlength=npix)
-    return w
-
-def overdensity(map1, weight1, mask, select_fun=None, is_sys=False):
-    delta = np.zeros_like(map1)*np.nan
-    if select_fun is not None:
-        gmap = map1 / select_fun
-    else:
-        gmap = map1#.copy()
-
-    #assert((randc[mask]==0).sum() == 0) # make sure there is no empty pixel
-    if (weight1[mask]==0).sum() != 0:
-        print('there are empty weights')
-        m = weight1 == 0
-        weight1[m] = 1.0 # enforce one
-       
-    if is_sys:
-        sf = (gmap[mask]*weight1[mask]).sum() / weight1[mask].sum()
-        delta[mask] = gmap[mask] / sf - 1
-    else:
-        sf = gmap[mask].sum()/weight1[mask].sum()
-        delta[mask] = gmap[mask]/(weight1[mask]*sf)  - 1   
-    return delta
 
 
-def makennbar(map1, weight1, mask, select_fun=None, is_sys=False):
-    delta = np.zeros_like(map1)*np.nan
-    if select_fun is not None:
-        gmap = map1 / select_fun
-    else:
-        gmap = map1#.copy()
 
-    #assert((randc[mask]==0).sum() == 0) # make sure there is no empty pixel
-    if (weight1[mask]==0).sum() != 0:
-        print('there are empty weights')
-        m = weight1 == 0
-        weight1[m] = 1.0 # enforece one
-       
-    if is_sys:
-        sf = (gmap[mask]*weight1[mask]).sum() / weight1[mask].sum()
-        delta[mask] = gmap[mask] / sf
-    else:
-        sf = gmap[mask].sum()/weight1[mask].sum()
-        delta[mask] = gmap[mask]/(weight1[mask]*sf)   
-    return delta
+
 
 
 def clerr_jack(delta, mask, weight, njack=20, lmax=512):
     '''
-       
+
     '''
-    npix = delta.size 
+    npix = delta.size
     hpix = np.argwhere(mask).flatten()
     dummy = np.ones(mask.sum())
-    hpixl, wl, deltal,_ = split_jackknife(hpix, weight[mask], 
+    hpixl, wl, deltal,_ = split_jackknife(hpix, weight[mask],
                                           delta[mask], dummy, njack=njack)
     print('# of jackknifes %d, input : %d'%(len(hpixl), njack))
     cljks = {}
@@ -389,11 +362,11 @@ def clerr_jack(delta, mask, weight, njack=20, lmax=512):
     wlc = np.concatenate(wlt)
     hpixc  = np.concatenate(hpixt)
     maski  = np.zeros(npix, '?')
-    maski[hpixc] = True 
+    maski[hpixc] = True
     map_i  = hp.ma(maski.astype('f8'))
     map_i.mask = np.logical_not(maski)
     clmaskj = hp.anafast(map_i.filled(), lmax=lmax)
-    sfj = ((2*np.arange(clmaskj.size)+1)*clmaskj).sum()/(4.*np.pi) 
+    sfj = ((2*np.arange(clmaskj.size)+1)*clmaskj).sum()/(4.*np.pi)
 
     for i in range(njack):
         hpixt   = hpixl.copy()
@@ -439,7 +412,7 @@ def clerr_jack(delta, mask, weight, njack=20, lmax=512):
     map_i      = hp.ma(maski.astype('f8'))
     map_i.mask = np.logical_not(maski)
     clmask = hp.anafast(map_i.filled(), lmax=lmax)
-    sf = ((2*np.arange(clmask.size)+1)*clmask).sum()/(4.*np.pi) 
+    sf = ((2*np.arange(clmask.size)+1)*clmask).sum()/(4.*np.pi)
 
     map_i       = hp.ma(deltai * wlci)
     map_i.mask  = np.logical_not(maski)
@@ -457,9 +430,9 @@ def split_jackknife_new(hpix, weight, njack=20):
         split_jackknife(hpix, weight, label, features, njack=20)
         split healpix-format data into k equi-area regions
         hpix: healpix index shape = (N,)
-        weight: weight associated to each hpix 
+        weight: weight associated to each hpix
         label: label associated to each hpix
-        features: features associate to each pixel shape=(N,M) 
+        features: features associate to each pixel shape=(N,M)
     '''
     f = weight.sum() // njack
     hpix_L = []
@@ -471,7 +444,7 @@ def split_jackknife_new(hpix, weight, njack=20):
     #
     #
     for i in range(hpix.size):
-        frac += weight[i]            
+        frac += weight[i]
         hpix_l.append(hpix[i])
         w_l.append(weight[i])
         #
@@ -497,9 +470,9 @@ def split_jackknife(hpix, weight, label, features, njack=20):
         split_jackknife(hpix, weight, label, features, njack=20)
         split healpix-format data into k equi-area regions
         hpix: healpix index shape = (N,)
-        weight: weight associated to each hpix 
+        weight: weight associated to each hpix
         label: label associated to each hpix
-        features: features associate to each pixel shape=(N,M) 
+        features: features associate to each pixel shape=(N,M)
     '''
     f = weight.sum() // njack
     hpix_L = []
@@ -515,7 +488,7 @@ def split_jackknife(hpix, weight, label, features, njack=20):
     #
     #
     for i in range(hpix.size):
-        frac += weight[i]            
+        frac += weight[i]
         hpix_l.append(hpix[i])
         label_l.append(label[i])
         w_l.append(weight[i])
@@ -538,14 +511,14 @@ def split_jackknife(hpix, weight, label, features, njack=20):
             frac_L.append(frac)
             label_L.append(label_l)
             w_L.append(w_l)
-            features_L.append(features_l)            
+            features_L.append(features_l)
     return hpix_L, w_L, label_L, features_L #, frac_L
 
 def concatenate(A, ID):
-    # combine A[i] regions for i in ID 
+    # combine A[i] regions for i in ID
     AA = [A[i] for i in ID]
     return np.concatenate(AA)
-    
+
 def combine(hpix, fracgood, label, features, DTYPE, IDS):
     # uses concatenate(A,ID) to combine different attributes
     size = np.sum([len(hpix[i]) for i in IDS])
@@ -556,14 +529,14 @@ def combine(hpix, fracgood, label, features, DTYPE, IDS):
     zeros['label']    = concatenate(label, IDS)
     return zeros
 
-    
+
 def split2KfoldsSpatially(data, k=5, shuffle=True, random_seed=123):
     '''
         split data into k contiguous regions
         for training, validation and testing
     '''
     P, W, L, F = split_jackknife(data['hpind'],data['fracgood'],
-                                data['label'], data['features'], 
+                                data['label'], data['features'],
                                  njack=k)
     DTYPE = data.dtype
     np.random.seed(random_seed)
@@ -578,7 +551,7 @@ def split2KfoldsSpatially(data, k=5, shuffle=True, random_seed=123):
         kfold_data['test'][foldname]       = combine(*arrs, testID)
         kfold_data['train'][foldname]      = combine(*arrs, trainID)
         kfold_data['validation'][foldname] = combine(*arrs, validID)
-    return kfold_data    
+    return kfold_data
 
 
 
@@ -606,7 +579,7 @@ def split2Kfolds(data, k=5, shuffle=True, random_seed=123):
     return kfold_data
 
 def read_split_write(path2file, path2output, k, random=True):
-    ''' 
+    '''
     read path2file, splits the data either randomly or ra-dec
     then writes the data onto path2output
     '''
@@ -635,7 +608,7 @@ def write(address, fname, data, fmt='txt'):
 
 def D(z, omega0):
     """
-        Growth Function 
+        Growth Function
     """
     a = 1/(1+z)
     v = scs.cbrt(omega0/(1.-omega0))/a
@@ -643,7 +616,7 @@ def D(z, omega0):
 
 def d1(v):
     """
-        d1(v) = D(a)/a where D is growth function see. Einsenstein 1997 
+        d1(v) = D(a)/a where D is growth function see. Einsenstein 1997
     """
     beta  = np.arccos((v+1.-np.sqrt(3.))/(v+1.+np.sqrt(3.)))
     sin75 = np.sin(75.*np.pi/180.)
@@ -676,20 +649,20 @@ def invaadot(a, om_m=0.3, om_L=0.0, h=.696):
 
 
 class camb_pk(object):
-    
+
     #
     def __init__(self, h=0.675, omc=.268, omb=0.048, omk=0.0, num_massive_neutrinos=1,
            mnu=0.06, nnu=3.046, YHe=None, meffsterile=0, standard_neutrino_neff=3.046,
            TCMB=2.7255, tau=None, ns=0.95, As=2e-9):
-        self.kwargs = dict(H0=h*100, ombh2=omb*h**2, omch2=omc*h**2, omk=omk, 
+        self.kwargs = dict(H0=h*100, ombh2=omb*h**2, omch2=omc*h**2, omk=omk,
                           num_massive_neutrinos=num_massive_neutrinos,
-                           mnu=mnu, nnu=nnu, YHe=YHe, meffsterile=meffsterile, 
+                           mnu=mnu, nnu=nnu, YHe=YHe, meffsterile=meffsterile,
                           standard_neutrino_neff=standard_neutrino_neff,
                            TCMB=TCMB, tau=tau)
         self.pars = camb.CAMBparams()
         self.pars.set_cosmology(**self.kwargs)
         self.pars.InitPower.set_params(ns=ns, As=As)
-        
+
     def get_pk(self, z, kmax=.4, npoints=200):
         h = self.kwargs['H0']/100
         self.pars.set_matter_power(redshifts=[z], kmax=kmax)
@@ -704,7 +677,7 @@ class camb_pk(object):
         #
         kh_nonlin,_, pk_nonlin = results.get_matter_power_spectrum(minkh=1e-4, maxkh=kmax, npoints=npoints)
         return kh_nonlin, np.ravel(pk_nonlin)
-    
+
     def get_plk(self, z, kmax=.4, npoints=200, poles=[0,2,4], bias=1.0):
         k, pk = self.get_pk(z, kmax=kmax, npoints=npoints)
         h = self.kwargs['H0']/100
@@ -715,7 +688,7 @@ class camb_pk(object):
             rsd_factor = rsd(pole, beta=beta)
             pks.append(rsd_factor * bias**2 * pk)
         return k, np.column_stack(pks)
-            
+
 
 def rsd(l, ngauss=50, beta=.6):
     x, wx = scs.roots_legendre(ngauss)
@@ -725,7 +698,7 @@ def rsd(l, ngauss=50, beta=.6):
         rsd_int += wx[i] * px[i] * ((1.0 + beta * x[i]*x[i])**2)
     rsd_int *= (l + 0.5)
     return rsd_int
-    
+
 class cosmology(object):
     '''
        cosmology
@@ -734,7 +707,7 @@ class cosmology(object):
        # or
        # https://arxiv.org/pdf/astro-ph/9905116.pdf
        # for equations, there is a typo in comoving-volume eqn
-    '''    
+    '''
     def __init__(self, om_m=1.0, om_L=0.0, h=.696):
         self.om_m = om_m
         self.om_L = om_L
@@ -742,16 +715,16 @@ class cosmology(object):
         self.om_r = 4.165e-5*h**-2 # T0 = 2.72528K
         self.tH  = 9.778/h         # Hubble time : 1/H0 Mpc --> Gyr
         self.DH  = clight*1.e-5/h       # Hubble distance : c/H0
-    
+
     def age(self, z=0):
-        ''' 
+        '''
             age of universe at redshift z [default z=0] in Gyr
         '''
         az = 1 / (1+z)
         answ,_ = integrate.quad(invadot, 0, az,
                                args=(self.om_m, self.om_L, self.h))
         return answ * self.tH
-        
+
     def DCMR(self, z):
         '''
             comoving distance (line of sight) in Mpc
@@ -760,7 +733,7 @@ class cosmology(object):
         answ,_ = integrate.quad(invaadot, az, 1,
                                args=(self.om_m, self.om_L, self.h))
         return answ * self.DH
-    
+
     def DA(self, z):
         '''
             angular diameter distance in Mpc
@@ -776,7 +749,7 @@ class cosmology(object):
         else:
             Sr = r
         return Sr*az
-    
+
     def DL(self, z):
         '''
             luminosity distance in Mpc
@@ -826,7 +799,7 @@ def nzhist(z, fsky, cosmology, bins=None, binw=0.01, weight=None):
     #zcenter = 0.5*(zedge[:-1]+zedge[1:])
     vol_hmpc3 = comvol(zedge, fsky=fsky, omega_c=cosmology['Om0'], hubble_param=cosmology['H0']/100.)
     return zedge, Nz/vol_hmpc3
-    
+
 
 
 

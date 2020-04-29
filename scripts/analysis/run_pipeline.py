@@ -170,8 +170,7 @@ class PhotData:
         nnbar_list= []
         for i in range(start, end):
             nnbar_i = MeanDensity(self.galmap, self.ranmap, self.mask, self.df[:,i],
-                                  nbins=self.args['nbin'], selection=self.wmap,
-                                  nside=self.args['nside'])
+                                  nbins=self.args['nbin'], selection=self.wmap)
             
             nnbar_i.run(njack=self.args['njack'])
             nnbar_i.output['sys'] = self.args['columns'][i] # add the name of the map
@@ -234,11 +233,7 @@ if rank == 0:
 
     if logfile is not None:print(f'log in {logfile}')
 
-    setup_logging('info', logfile=logfile)
-
-    
-        
-    
+    setup_logging('info', logfile=logfile)  
     
 else:
     ns = None
@@ -247,7 +242,6 @@ ns = comm.bcast(ns, root=0)
 
 
 #--- run
-
 engine = PhotData(ns, comm)
 engine.nnbar(comm) # mean density
 
