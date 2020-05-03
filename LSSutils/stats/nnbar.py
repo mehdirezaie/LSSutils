@@ -1,6 +1,11 @@
 import numpy as np
 import logging
 
+from LSSutils import CurrentMPIComm
+
+
+
+
 class MeanDensity(object):
     """
     INPUTS:
@@ -10,16 +15,13 @@ class MeanDensity(object):
 
     logger = logging.getLogger('MeanDensity')
 
+    @CurrentMPIComm.enable
     def __init__(self, galmap, ranmap, mask,
                        sysmap, nbins=8, selection=None, binning='equi-area',
                        percentiles=[0, 100], comm=None):
-        if comm is None:
-            from LSSutils import CurrentMPIComm
-            self.comm = CurrentMPIComm.get()
-        else:
-            self.comm = comm
         #
         # inputs
+        self.comm = comm
         self.galmap = galmap[mask]
         self.ranmap = ranmap[mask]
         self.sysmap = sysmap[mask]

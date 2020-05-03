@@ -23,7 +23,9 @@ sys.path.append(home + '/github/SYSNet/src')
 sys.path.append(home + '/github/LSSutils')
 
 
-from LSSutils import setup_logging
+from LSSutils import setup_logging, CurrentMPIComm
+from LSSutils.lab import MeanDensity, get_cl        
+
 
 if not sys.warnoptions:
     import warnings
@@ -44,14 +46,11 @@ class PhotData:
     
     logger = logging.getLogger('2DPipeline')
     
-    def __init__(self, ns, comm):        
+    @CurrentMPIComm.enable
+    def __init__(self, ns, comm=None):
         
-        self.warmup(ns, comm)
-        self.read(comm)
-        
-    def warmup(self, ns, comm):
-        
-        if comm.rank==0:
+        self.comm = comm                
+        if self.comm.rank==0:
             
             self.logger.info(f'There are {size} workers')
             self.logger.info('input parameters :')
@@ -69,11 +68,11 @@ class PhotData:
             optional_inputs = ['splitdata', 'wmap']
             for input_i in optional_inputs:
                 if not os.path.isfile(self.args[input_i]):
-                    self.logger.info(f'{input_i} : {self.args[input_i]} does not exit')
-
-    def read(self, comm):
+                    self.logger.info(f'{input_i} : {self.args[input_i]} does not exit')        
+                    
+    def read(self):
         
-        if comm.rank==0:
+        if self.comm.rank==0:
             
             self.logger.info('reading the input files')
             
@@ -144,27 +143,38 @@ class PhotData:
             self.args = None
             
         # bcast
-        self.args = comm.bcast(self.args, root=0)
-        self.mask = comm.bcast(self.mask, root=0)
-        self.galmap = comm.bcast(self.galmap, root=0)
-        self.ranmap = comm.bcast(self.ranmap, root=0)
-        self.df = comm.bcast(self.df, root=0)
-        self.wmap = comm.bcast(self.wmap, root=0)
+        self.args = self.comm.bcast(self.args, root=0)
+        self.mask = self.comm.bcast(self.mask, root=0)
+        self.galmap = self.comm.bcast(self.galmap, root=0)
+        self.ranmap = self.comm.bcast(self.ranmap, root=0)
+        self.df = self.comm.bcast(self.df, root=0)
+        self.wmap = self.comm.bcast(self.wmap, root=0)
+        
+    def run_cl(self):
+        
+        if self.comm.rank==0:
+            self.logger.info('C_ell vs systematics')
+            self.logger.info(f'{self.df.shape}')
             
+        cl_obs = get_cl(self.galmap, self.ranmap, self.mask, 
+                        systematics=self.df, njack=self.args['njack'])
         
-    def nnbar(self, comm):        
+        if self.comm.rank==0:
+            ouname = ''.join([self.args['oudir'], self.args['clfile']])
+            np.save(ouname, cl_obs)
+            self.logger.info(f'write cl in {ouname}')
+    
+    def run_nnbar(self):
         
-        from LSSutils.stats.nnbar import MeanDensity        
-        
-        if comm.rank==0:
+        if self.comm.rank==0:
             self.logger.info('mean density vs systematics')
             self.logger.info(f'{self.df.shape}')
-        
-        
-        chunk = self.df.shape[1]//comm.size
-        if self.df.shape[1]%comm.size != 0:chunk +=1
+
             
-        start = chunk*comm.rank
+        chunk = self.df.shape[1]//self.comm.size
+        if self.df.shape[1]%self.comm.size != 0:chunk +=1
+            
+        start = chunk*self.comm.rank
         end = np.minimum(start+chunk, self.df.shape[1])
 
         nnbar_list= []
@@ -176,9 +186,9 @@ class PhotData:
             nnbar_i.output['sys'] = self.args['columns'][i] # add the name of the map
             nnbar_list.append(nnbar_i.output)
         
-        comm.Barrier()
-        nnbar_list = comm.gather(nnbar_list, root=0)
-        if comm.rank==0:
+        self.comm.Barrier()
+        nnbar_list = self.comm.gather(nnbar_list, root=0)
+        if self.comm.rank==0:
 
             nnbar_list = [nnbar_j for nnbar_i in nnbar_list for nnbar_j in nnbar_i if len(nnbar_i)!=0]            
 
@@ -242,8 +252,15 @@ ns = comm.bcast(ns, root=0)
 
 
 #--- run
-engine = PhotData(ns, comm)
-engine.nnbar(comm) # mean density
+engine = PhotData(ns)
+engine.read()
+
+if ns.nnbar != 'none':
+    engine.run_nnbar() # mean density
+
+if ns.clfile != 'none':
+    engine.run_cl()
+
 
 
 

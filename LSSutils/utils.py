@@ -17,28 +17,130 @@ from scipy import integrate
 from scipy.constants import c as clight
 from scipy.stats import (binned_statistic, spearmanr, pearsonr)
 
-try:
-    import camb
-    from camb import model, initialpower
-except:
-    print("camb is not installed!")
-try:
-    from sklearn.model_selection import KFold
-    from sklearn.neighbors import KDTree
-except:
-    print('sklearn is not installed!')
-try:
-    import fitsio as ft
-except:
-    print('fitsio is not installed!')
-try:
-    import healpy as hp
-except:
-    print('healpy is not installed')
+from sklearn.cluster import KMeans
+from sklearn.model_selection import KFold
+from sklearn.neighbors import KDTree    
+import fitsio as ft
+import healpy as hp
+
+
+__all__ = ['overdensity', 'hpixsum', 'radec2hpix', 'hpix2radec',
+           'radec2r', 'r2radec', 'make_jackknifes']
 
 
 
-__all__ = ['overdensity', 'hpixsum', 'radec2hpix', 'hpix2radec']
+
+
+
+class SphericalKMeans(KMeans):
+    
+    def __init__(self, n_clusters=40, random_state=42, **kwargs):        
+        
+        super().__init__(n_clusters=n_clusters, 
+                         random_state=random_state,
+                         **kwargs)
+        
+    def fit_radec(self, ra, dec, sample_weight=None):          
+        r = radec2r(ra, dec)
+        self.fit(r, sample_weight=sample_weight)
+        self.centers_radec = r2radec(self.cluster_centers_)
+        
+    def predict_radec(self, ra, dec):
+        r = radec2r(ra, dec)
+        return self.predict(r)
+        
+    def histogram(self, y, aggregate_by=np.mean):
+        
+        y_binned = []        
+        for i in range(self.n_clusters):            
+            indices = self.labels_ == i            
+            y_binned.append(aggregate_by(y[indices], axis=0))            
+        return y_binned
+    
+    
+def r2radec(r):
+    #x:0, y:1, z:2    
+    rad2deg = 180./np.pi
+    dec = rad2deg*np.arcsin(r[:, 2])
+    ra = rad2deg*np.arctan(r[:, 1]/r[:, 0])
+    ra[r[:, 0]<0] += 180. 
+    return ra, dec
+
+
+def radec2r(ra, dec):
+    '''
+    inputs
+    --------
+    ra and dec in deg
+    
+    retuns
+    --------
+    r in `distance`
+    
+    notes:
+    x = cos(phi)sin(theta) or cos(ra)cos(dec)
+    y = sin(phi)sin(theta) or sin(ra)cos(dec)
+    z = cos(theta) or sin(dec)
+    '''     
+    ra_rad, dec_rad = np.deg2rad(ra), np.deg2rad(dec)
+    x = np.cos(dec_rad)*np.cos(ra_rad)
+    y = np.cos(dec_rad)*np.sin(ra_rad)
+    z = np.sin(dec_rad)        
+    r = np.column_stack([x, y, z])      
+    return r
+
+
+def make_jackknifes(mask, weight, njack=20, subsample=True,
+                    kmeans_kw={'n_jobs':4, 'n_init':1},
+                    visualize=False,
+                    seed=42):
+    '''
+    
+    
+    '''
+    np.random.seed(seed)
+    
+    nside = hp.get_nside(mask)
+    assert hp.get_nside(weight) == nside
+    
+    hpix = np.argwhere(mask).flatten()
+    ra, dec = hpix2radec(nside, hpix)
+    
+    #--- K Means
+    
+    km = SphericalKMeans(n_clusters=njack, **kmeans_kw)
+    if subsample:
+        ind = np.random.choice(np.arange(0, ra.size), size=ra.size//10, replace=False)
+        km.fit_radec(ra[ind], dec[ind], sample_weight=weight[mask][ind])
+    else:
+        km.fit_radec(ra, dec, sample_weight=weight[mask])        
+    labels = km.predict_radec(ra, dec)
+    
+    masks = {-1:mask}
+    for i in range(njack):
+        mask_i = mask.copy()       
+        mask_i[hpix[labels == i]] = False
+        masks[i] = mask_i
+    
+    if visualize:
+        import matplotlib.pyplot as plt
+        
+        for i in range(njack):
+            mask_i = labels == i
+            plt.scatter(shiftra(ra[mask_i]),
+                        dec[mask_i], 
+                        s=1,
+                        marker='o',
+                        color=plt.cm.jet(i/(njack)),
+                        alpha=0.8)
+        plt.xlabel('RA [deg]')
+        plt.ylabel('DEC [deg]')
+        plt.show()
+    
+    
+    return masks
+
+
 
 def corrmatrix(matrix, estimator='pearsonr'):
     '''
