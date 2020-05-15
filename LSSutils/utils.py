@@ -290,7 +290,7 @@ def histogram(el, cel, bins=None):
         bin the C_ell measurements
     '''
     if bins is None:
-        bins = np.logspace(0, 2.71, 10)
+        bins = np.logspace(0, np.log10(el.max()+1), 10)
     kw  = dict(bins=bins, statistic='sum')
     bins_mid  = 0.5*(bins[1:]+bins[:-1])
     a2lp1 = 2*el + 1
