@@ -19,7 +19,7 @@ from scipy.stats import (binned_statistic, spearmanr, pearsonr)
 
 from sklearn.cluster import KMeans
 from sklearn.model_selection import KFold
-from sklearn.neighbors import KDTree    
+from sklearn.neighbors import KDTree
 import fitsio as ft
 import healpy as hp
 
@@ -33,37 +33,37 @@ __all__ = ['overdensity', 'hpixsum', 'radec2hpix', 'hpix2radec',
 
 
 class SphericalKMeans(KMeans):
-    
-    def __init__(self, n_clusters=40, random_state=42, **kwargs):        
-        
-        super().__init__(n_clusters=n_clusters, 
+
+    def __init__(self, n_clusters=40, random_state=42, **kwargs):
+
+        super().__init__(n_clusters=n_clusters,
                          random_state=random_state,
                          **kwargs)
-        
-    def fit_radec(self, ra, dec, sample_weight=None):          
+
+    def fit_radec(self, ra, dec, sample_weight=None):
         r = radec2r(ra, dec)
         self.fit(r, sample_weight=sample_weight)
         self.centers_radec = r2radec(self.cluster_centers_)
-        
+
     def predict_radec(self, ra, dec):
         r = radec2r(ra, dec)
         return self.predict(r)
-        
-    def histogram(self, y, aggregate_by=np.mean):
-        
-        y_binned = []        
-        for i in range(self.n_clusters):            
-            indices = self.labels_ == i            
-            y_binned.append(aggregate_by(y[indices], axis=0))            
+
+    def histogram(self, y, aggregate=np.mean):
+
+        y_binned = []
+        for i in range(self.n_clusters):
+            indices = self.labels_ == i
+            y_binned.append(aggregate(y[indices], axis=0))            
         return y_binned
-    
-    
+
+
 def r2radec(r):
-    #x:0, y:1, z:2    
+    #x:0, y:1, z:2
     rad2deg = 180./np.pi
     dec = rad2deg*np.arcsin(r[:, 2])
     ra = rad2deg*np.arctan(r[:, 1]/r[:, 0])
-    ra[r[:, 0]<0] += 180. 
+    ra[r[:, 0]<0] += 180.
     return ra, dec
 
 
@@ -72,21 +72,21 @@ def radec2r(ra, dec):
     inputs
     --------
     ra and dec in deg
-    
+
     retuns
     --------
     r in `distance`
-    
+
     notes:
     x = cos(phi)sin(theta) or cos(ra)cos(dec)
     y = sin(phi)sin(theta) or sin(ra)cos(dec)
     z = cos(theta) or sin(dec)
-    '''     
+    '''
     ra_rad, dec_rad = np.deg2rad(ra), np.deg2rad(dec)
     x = np.cos(dec_rad)*np.cos(ra_rad)
     y = np.cos(dec_rad)*np.sin(ra_rad)
-    z = np.sin(dec_rad)        
-    r = np.column_stack([x, y, z])      
+    z = np.sin(dec_rad)
+    r = np.column_stack([x, y, z])
     return r
 
 
@@ -95,40 +95,40 @@ def make_jackknifes(mask, weight, njack=20, subsample=True,
                     visualize=False,
                     seed=42):
     '''
-    
-    
+
+
     '''
     np.random.seed(seed)
-    
+
     nside = hp.get_nside(mask)
     assert hp.get_nside(weight) == nside
-    
+
     hpix = np.argwhere(mask).flatten()
     ra, dec = hpix2radec(nside, hpix)
-    
+
     #--- K Means
-    
+
     km = SphericalKMeans(n_clusters=njack, **kmeans_kw)
     if subsample:
         ind = np.random.choice(np.arange(0, ra.size), size=ra.size//10, replace=False)
         km.fit_radec(ra[ind], dec[ind], sample_weight=weight[mask][ind])
     else:
-        km.fit_radec(ra, dec, sample_weight=weight[mask])        
+        km.fit_radec(ra, dec, sample_weight=weight[mask])
     labels = km.predict_radec(ra, dec)
-    
+
     masks = {-1:mask}
     for i in range(njack):
-        mask_i = mask.copy()       
+        mask_i = mask.copy()
         mask_i[hpix[labels == i]] = False
         masks[i] = mask_i
-    
+
     if visualize:
         import matplotlib.pyplot as plt
-        
+
         for i in range(njack):
             mask_i = labels == i
             plt.scatter(shiftra(ra[mask_i]),
-                        dec[mask_i], 
+                        dec[mask_i],
                         s=1,
                         marker='o',
                         color=plt.cm.jet(i/(njack)),
@@ -136,8 +136,8 @@ def make_jackknifes(mask, weight, njack=20, subsample=True,
         plt.xlabel('RA [deg]')
         plt.ylabel('DEC [deg]')
         plt.show()
-    
-    
+
+
     return masks
 
 
@@ -353,7 +353,7 @@ def hpixsum(nside, ra, dec, value=None):
 
 def overdensity(galmap, weight, mask,
                 select_fun=None, is_sys=False, nnbar=False):
-    
+
     delta = np.zeros_like(galmap)*np.nan
     if select_fun is not None:
         galmap /= select_fun
