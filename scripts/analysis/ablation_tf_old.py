@@ -85,6 +85,7 @@ if rank == 0:
         os.makedirs(ns.output)    
     del data
     LOGS = {'validmin':[], 'importance':[], 'indices':[]}
+    
 else:
     INDICES  = None
     train    = None
@@ -157,7 +158,11 @@ while len(INDICES_temp) > 1:
 #
 #
 if rank == 0:
-    net = Netregression(train, valid, test)
+    train_2 = fix(train, ax=INDICES)
+    test_2  = fix(test,  ax=INDICES)
+    valid_2 = fix(valid, ax=INDICES)
+    
+    net = Netregression(train_2, valid_2, test_2)
     net.train_evaluate(**CONFIG)
     mse = []
     for a in net.epoch_MSEs:

@@ -28,11 +28,12 @@ class gaia_dr2(object):
     """
       Read the Gaia DR2 star density catalog (c) Anand Raichoor
     """
-    def __init__(self, nside=256):
+    def __init__(self, name='/Volumes/TimeMachine/data/gaia/Gaia.dr2.bGT10.12g17.hp256.fits', 
+                 nside=256):
         self.nside    = nside
         self.ordering = 'ring'
         self.unit     = 'Gaia DR2'
-        self.name     = '/Volumes/TimeMachine/data/gaia/Gaia.dr2.bGT10.12g17.hp256.fits'
+        self.name     = name
         self.gaia     = ft.read(self.name, lower=True, columns=['hpstardens'])['hpstardens'] # only column
         self.gaia     = self.gaia.astype('f8')
 

@@ -46,7 +46,8 @@ def get_cl(ngal, nran, mask, select_fun=None,
         cl_ss_list = []
         cl_sg_list = []
         for i in range(start, end):
-            print('.', end='')
+            if comm.rank==0:
+                print('.', end='')
             systematic_i = overdensity(systematics[:, i],
                                         weight, mask, is_sys=True)
             cl_ss_list.append(af(systematic_i, weight, mask, **af_kw))

@@ -401,12 +401,12 @@ class RegressionCatalog:
                 fracgood  = None # output_dir + f'/frac_{cap}_{key_i}_{nside}.hp.fits'
                 fitname   = None # output_dir + f'/ngal_features_{cap}_{key_i}_{nside}.fits'    
             else:
-                hpcat = output_dir + f'/galmap_{cap}_{key_i}_{nside}.hp.fits'
-                hpmask = output_dir + f'/mask_{cap}_{key_i}_{nside}.hp.fits'
-                fracgood = output_dir + f'/frac_{cap}_{key_i}_{nside}.hp.fits'
-                fitname = output_dir + f'/ngal_features_{cap}_{key_i}_{nside}.fits'    
+                hpcat = output_dir + f'galmap_{cap}_{key_i}_{nside}.hp.fits'
+                hpmask = output_dir + f'mask_{cap}_{key_i}_{nside}.hp.fits'
+                fracgood = output_dir + f'frac_{cap}_{key_i}_{nside}.hp.fits'
+                fitname = output_dir + f'ngal_features_{cap}_{key_i}_{nside}.fits'    
                 
-            fitkfold = output_dir + f'/ngal_features_{cap}_{key_i}_{nside}.5r.npy'
+            fitkfold = output_dir + f'ngal_features_{cap}_{key_i}_{nside}.5r.npy'
 
             # cut data
             self.data.cutz(zcuts[key_i])

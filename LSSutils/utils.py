@@ -11,8 +11,11 @@ import os
 import sys
 import numpy as np
 import numpy.lib.recfunctions as rfn
-import scipy.special as scs
 
+
+import pandas as pd
+
+import scipy.special as scs
 from scipy import integrate
 from scipy.constants import c as clight
 from scipy.stats import (binned_statistic, spearmanr, pearsonr)
@@ -222,14 +225,16 @@ def flux_to_mag(flux, band, ebv=None):
 
     credit: eBOSS pipeline (Ashley Ross, Julian Bautista et al.)
     '''
-    #index_b = dict(zip(['u', 'g', 'r', 'i', 'z'], np.arange(5)))
-    #index_e = dict(zip(['u', 'g', 'r', 'i', 'z'], [4.239,3.303,2.285,1.698,1.263]))
+    index_b = dict(zip(['u', 'g', 'r', 'i', 'z'], np.arange(5)))
+    index_e = dict(zip(['u', 'g', 'r', 'i', 'z'], [4.239,3.303,2.285,1.698,1.263]))
     #-- coefs to convert from flux to magnitudes
-    b   = np.array([1.4, 0.9, 1.2, 1.8, 7.4])[band]*1.e-10
+    iband = index_b[band]
+    ext_coeff = index_e[band]
+    b   = np.array([1.4, 0.9, 1.2, 1.8, 7.4])[iband]*1.e-10
     mag = -2.5/np.log(10.)*(np.arcsinh((flux/1.e9)/(2*b)) + np.log(b))
     if ebv is not None:
         #-- extinction coefficients for SDSS u, g, r, i, and z bands
-        ext_coeff = np.array([4.239, 3.303, 2.285, 1.698, 1.263])[band]
+        #ext_coeff = np.array([4.239, 3.303, 2.285, 1.698, 1.263])[band]
         mag -= ext_coeff*ebv
     return mag
 
@@ -377,9 +382,41 @@ def overdensity(galmap, weight, mask,
     return delta
 
 
+# def fixdepth(depth, ebv, band):
+    
 
-
-
+def make_symaps(ran, path_lenz, path_gaia, nside=256):
+    from LSSutils.extrn.GalacticForegrounds.hpmaps import gaia_dr2, logHI
+    #ran = ft.read('/Volumes/TimeMachine/data/eboss/sysmaps/eBOSSrandoms.ran.fits', lower=True)
+    maps = {'sky_g':ran['skyflux'][:,1],
+            'sky_r':ran['skyflux'][:,2],
+            'sky_i':ran['skyflux'][:,3],
+            'sky_z':ran['skyflux'][:,4],
+            'airmass':ran['airmass'],
+            'ebv':ran['eb_minus_v'],
+            'depth_g':ran['image_depth'][:,1],
+            'depth_r':ran['image_depth'][:,2],
+            'depth_i':ran['image_depth'][:,3],
+            'depth_z':ran['image_depth'][:,4],
+            'psf_g':ran['psf_fwhm'][:,1],
+            'psf_r':ran['psf_fwhm'][:,2],
+            'psf_i':ran['psf_fwhm'][:,3],
+            'psf_z':ran['psf_fwhm'][:,4],
+            'run':ran['run']}
+    
+    hpmaps = {}
+    for name in maps:
+        print('.', end='')
+        hpmaps[name] = hpixmean(nside, ran['ra'], ran['dec'], maps[name])
+    
+    lenz = logHI(nside=nside, name=path_lenz)
+    gaia = gaia_dr2(nside=nside, name=path_gaia)
+    hpmaps['loghi'] = lenz.loghi
+    hpmaps['star_density'] = gaia.gaia
+    hpmaps['depth_g_minus_ebv'] = flux_to_mag(hpmaps['depth_g'], 'g', ebv=hpmaps['ebv'])
+    hpmaps['w1_med'] = np.ones(12*nside*nside)
+    hpmaps['w1_covmed'] = np.ones(12*nside*nside)
+    return pd.DataFrame(hpmaps)
 
 
 
