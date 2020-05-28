@@ -386,7 +386,7 @@ def overdensity(galmap, weight, mask,
     
 
 def make_symaps(ran, path_lenz, path_gaia, nside=256):
-    from LSSutils.extrn.GalacticForegrounds.hpmaps import gaia_dr2, logHI
+    from LSSutils.extrn.GalacticForegrounds.hpmaps import NStarSDSS, logHI
     #ran = ft.read('/Volumes/TimeMachine/data/eboss/sysmaps/eBOSSrandoms.ran.fits', lower=True)
     maps = {'sky_g':ran['skyflux'][:,1],
             'sky_r':ran['skyflux'][:,2],
@@ -410,9 +410,9 @@ def make_symaps(ran, path_lenz, path_gaia, nside=256):
         hpmaps[name] = hpixmean(nside, ran['ra'], ran['dec'], maps[name])
     
     lenz = logHI(nside=nside, name=path_lenz)
-    gaia = gaia_dr2(nside=nside, name=path_gaia)
+    nstar = NStarSDSS(nside_out=nside, name=path_gaia)
     hpmaps['loghi'] = lenz.loghi
-    hpmaps['star_density'] = gaia.gaia
+    hpmaps['star_density'] = nstar.nstar
     hpmaps['depth_g_minus_ebv'] = flux_to_mag(hpmaps['depth_g'], 'g', ebv=hpmaps['ebv'])
     hpmaps['w1_med'] = np.ones(12*nside*nside)
     hpmaps['w1_covmed'] = np.ones(12*nside*nside)

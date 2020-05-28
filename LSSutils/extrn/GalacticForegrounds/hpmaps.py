@@ -11,6 +11,23 @@ import fitsio as ft
 import warnings
 
 
+class NStarSDSS:
+    '''
+        Uses the SDSS stellar density map (used in Bautista et al. 2018)
+        
+        (c) Ashley Ross
+    '''
+    
+    def __init__(self, name='/B/Shared/mehdi/templates/allstars17.519.9Healpixall256.dat', nside_out=256):
+        self.unit = '# stars'        
+        self.nstar = np.loadtxt(name)
+        self.nstar = hp.reorder(self.nstar, n2r=True)
+        self.nside = hp.get_nside(self.nstar)
+        
+        if nside_out != self.nside:
+            self.nstar = hp.ud_grade(self.nstar, nside_out=nside_out, power=-2)
+            warnings.warn('upgrading/downgrading SDSS star density')
+
 class sfd98(object):
     """ Read E(B-V) from SFD 1998 """
     def __init__(self, nside=256):
@@ -28,17 +45,19 @@ class gaia_dr2(object):
     """
       Read the Gaia DR2 star density catalog (c) Anand Raichoor
     """
-    def __init__(self, name='/Volumes/TimeMachine/data/gaia/Gaia.dr2.bGT10.12g17.hp256.fits', 
-                 nside=256):
-        self.nside    = nside
+    def __init__(self, name='/Volumes/TimeMachine/data/gaia/Gaia.dr2.bGT10.12g17.hp256.fits', nside_out=256):
+
         self.ordering = 'ring'
         self.unit     = 'Gaia DR2'
         self.name     = name
         self.gaia     = ft.read(self.name, lower=True, columns=['hpstardens'])['hpstardens'] # only column
-        self.gaia     = self.gaia.astype('f8')
+        
+        self.nside_in = hp.get_nside(self.gaia)
+        # the map is in per sq. deg., this transforms it to # of stars
+        self.gaia     = self.gaia.astype('f8') * hp.nside2pixarea(self.nside_in, degrees=True)
 
-        if nside!=256:
-            self.gaia = hp.ud_grade(self.gaia, nside_out=nside)
+        if nside_out!=self.nside_in:
+            self.gaia = hp.ud_grade(self.gaia, nside_out=nside_out, power=-2)
             warnings.warn('upgrading/downgrading Gaia star density')
 
 

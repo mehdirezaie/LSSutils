@@ -369,9 +369,9 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
 
 
 
-def get_selected_maps(files1=None, tl=['eBOSS QSO V6'], 
+def get_selected_maps(files=None, tl='eBOSS QSO V6', 
                       verbose=False, labels=None, ax=None,
-                     hold=False, saveto=None):
+                      hold=False, saveto=None):
     '''
     from LSSutils.catalogs.datarelease import cols_dr8 as labels
     fig, ax = plt.subplots(ncols=3, nrows=2, figsize=(18, 12), sharey=True)
@@ -382,88 +382,91 @@ def get_selected_maps(files1=None, tl=['eBOSS QSO V6'],
         for key in ['decals','decaln', 'bmzls']:
             mycap = cap+'_'+key+'_'+'256' # NGC_0.8
             get_selected_maps(glob(f'/home/mehdi/data/alternative/results_{cap}/ablation_{key}/dr8.log_fold*.npy'),
-                              ['DR8 '+mycap], labels=labels, ax=ax[i], hold=True)
+                              'DR8 '+mycap, labels=labels, ax=ax[i], hold=True)
             i += 1
     #plt.savefig('./maps_selected_eboss.pdf', bbox_inches='tight')
     plt.show()   
     
-    '''
-    def get_all(ablationlog):
-        d = np.load(ablationlog, allow_pickle=True).item()
-        indices = None
-        for il, l in enumerate(d['validmin']):
-            m = (np.array(l) - d['MSEall']) > 0.0
-            #print(np.any(m), np.all(m))
-            if np.all(m):
-                #print(il, d['indices'][il])
-                #print(il, [lbs[m] for m in d['indices'][il]])
-                #break
-                indices = d['indices'][il]
-                break
-            if (il == len(d['validmin'])-1) & (np.any(m)):
-                indices = [d['indices'][il][-1]]       
-        # return either None or indices
-        num_f   = len(d['importance'])+1
-        FEAT    = d['importance'] + [i for i in range(num_f)\
-              if i not in d['importance']]
-        if indices is not None:
-            return FEAT[num_f-len(indices):], num_f
-        else:
-            return FEAT[num_f:], num_f
-        
-    def add_plot(axes, ax, **kw):
-        '''
-        Aug 20: https://stackoverflow.com/questions/52876985/
-                matplotlib-warning-using-pandas-dataframe-plot-scatter/52879804#52879804
-        '''
-        
-        m = 0
-        for i in range(len(axes)):
-            if axes[i] is np.nan:
-                continue
-            else:
-                #print(axes[i])                
-                n = len(axes[i])
-                colors = np.array([plt.cm.Reds(i/n) for i in range(n)])
-                m += n
-                for j in range(n):
-                    ax.scatter(i, axes[i][j], c='k', marker='x')                    
-                    ax.scatter(i, axes[i][j], c=[colors[j]], marker='o', **kw)   
-   
-                    
-    def get_axes(files, verbose=False):    
-        axes = []
-        for filei in files:
-            axi, num_f = get_all(filei)
-            if verbose:print(axi)
-            if axi is not None:
-                axes.append(axi)
-            else:
-                axes.append(np.nan)
-        return axes, num_f
-    
-    if verbose:print(files1)
-    axes1, num_f = get_axes(files1, verbose=verbose)
-     
-        
+    '''        
+    best_features, num_features = get_best_features_kfold(files, verbose=verbose)
     if ax is None:
         fig, ax = plt.subplots(ncols=1, 
                                sharey=True, 
                                figsize=(6, 4))
-    ax = [ax]
-    add_plot(axes1, ax[0])
-    ax[0].set_yticks(np.arange(num_f))
-    ax[0].set_yticklabels(labels)
-    ax[0].set_xticks(np.arange(5))
-    ax[0].set_xticklabels(['1', '2', '3', '4', '5'])
 
-    for i,axi in enumerate(ax):
-        #axi.set_title(tl[i])
-        axi.grid()
-        axi.set_xlabel(tl[i]+' Partition-ID')    
+    add_plot(best_features, ax)
+    ax.set_ylim(-1, len(labels)+1)
+    ax.set_yticks(np.arange(len(labels)))
+    ax.set_yticklabels(labels)
+    ax.set_xticks(np.arange(5))
+    ax.set_xticklabels(['1', '2', '3', '4', '5'])
+
+    ax.grid()
+    ax.set_xlabel(f'{tl} Partition-ID')    
+    
     if saveto is not None:plt.savefig(saveto, bbox_inches='tight')
     if not hold:plt.show()
+        
+def add_plot(best_features, ax, **kw):
+    '''
+    Aug 20: https://stackoverflow.com/questions/52876985/
+            matplotlib-warning-using-pandas-dataframe-plot-scatter/52879804#52879804
+    '''
 
+    m = 0
+    for i in range(len(best_features)):
+        if best_features[i] is np.nan:
+            continue
+        else:
+            #print(axes[i])                
+            n = len(best_features[i])
+            colors = np.array([plt.cm.Reds(i/n) for i in range(n)])
+            m += n
+            for j in range(n):
+                ax.scatter(i, best_features[i][j], c='k', marker='x')                    
+                ax.scatter(i, best_features[i][j], c=[colors[j]], marker='o', **kw)
+                
+def get_best_features_kfold(files, verbose=False):
+    axes = []
+    
+    for filei in files:
+        
+        axi, num_f = get_best_features(filei)
+        
+        if verbose:
+            print(axi)
+            
+        if axi is not None:
+            axes.append(axi)
+        else:
+            axes.append(np.nan)
+            
+    return axes, num_f    
+
+def get_best_features(ablationlog):
+    d = np.load(ablationlog, allow_pickle=True).item()
+    
+    indices_all = d['indices'][0]    
+    indices = None
+    for il, l in enumerate(d['validmin']):
+        m = (np.array(l) - d['MSEall']) > 0.0
+        #print(np.any(m), np.all(m))
+        if np.all(m):
+            #print(il, d['indices'][il])
+            #print(il, [lbs[m] for m in d['indices'][il]])
+            #break
+            indices = d['indices'][il]
+            break
+        if (il == len(d['validmin'])-1) & (np.any(m)):
+            indices = [d['indices'][il][-1]]       
+    # return either None or indices
+    num_f = len(d['importance'])+1
+    #FEAT = d['importance'] + [i for i in range(num_f) if i not in d['importance']]
+    FEAT = d['importance'] + [i for i in indices_all if i not in d['importance']]
+    if indices is not None:
+        return FEAT[num_f-len(indices):], num_f
+    else:
+        return FEAT[num_f:], num_f        
 
 
 def read_ablation_file(filename, 

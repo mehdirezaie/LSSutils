@@ -1,119 +1,130 @@
 
+import os
 
-from LSSutils import CurrentMPIComm
-from nbodykit.transform import SkyToCartesian
-from nbodykit.cosmology import Cosmology
 import nbodykit.lab as nb
 
+from nbodykit.source.catalog import FITSCatalog
+from nbodykit.transform import SkyToCartesian
+from nbodykit.cosmology import Cosmology
+from nbodykit import CurrentMPIComm
 
 
-__all__ = ['power']
+
+
+
+
+
+__all__ = ['run_ConvolvedFFTPower']
 
 @CurrentMPIComm.enable
-def power(data, randoms, zlim=[0.8, 2.2], poles=[0, 2, 4],
-          dk=0.001, sys_tot=True, nmesh=512, comm=None):
+def run_ConvolvedFFTPower(galaxy_path, 
+                          random_path,
+                          output_path,
+                          use_systot=True, 
+                          zmin=None, 
+                          zmax=None, 
+                          compmin=0.5,
+                          cosmo=None,
+                          boxsize=None,
+                          nmesh=512,
+                          dk=0.002,
+                          comm=None):
     
-    data = nb.ArrayCatalog(data)
-    randoms = nb.ArrayCatalog(randoms)
+    if comm.rank == 0:
+        output_dir = os.path.dirname(os.path.abspath(output_path))
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)            
+        
+    if cosmo is None:
+        # the fiducial BOSS DR12 cosmology 
+        # see Alam et al. https://arxiv.org/abs/1607.03155        
+        cosmo = Cosmology(h=0.676).match(Omega0_m=0.31)
+
+    data = FitsCatalog(galaxy_path)
+    random = FitsCatalog(random_path)
     
-    if comm.rank == 0:    
-        print('data    columns = ',    data.columns)#data.size)
-        print('randoms columns = ', randoms.columns)#, randoms.size)
-
-
-    ZMIN = zlim[0]
-    ZMAX = zlim[1]
-
-
-    # slice the data and randoms
-    compmin=0.5
-    valid = (data['Z'] >= ZMIN) & (data['Z'] <= ZMAX)
-    if 'IMATCH' in data.columns:
-        valid &= (data['IMATCH']==1) | (data['IMATCH']==2)
-    if 'COMP_BOSS' in data.columns:
-        valid &= data['COMP_BOSS'] > compmin
-    if 'sector_SSR' in data.columns:
-        valid &= data['sector_SSR'] > compmin
-    data  = data[valid]
-
-
-    valid  = (randoms['Z'] >= ZMIN) & (randoms['Z'] <= ZMAX)
-    if 'COMP_BOSS' in randoms.columns:
-        valid &= randoms['COMP_BOSS']  > compmin
-    if 'sector_SSR' in randoms.columns:
-        valid &= randoms['sector_SSR'] > compmin
-    randoms  = randoms[valid]
-
-
-
-    # the fiducial BOSS DR12 cosmology
-    cosmo = Cosmology(h=0.676).match(Omega0_m=0.31)
-
-    # add Cartesian position column
-    data['Position']    = SkyToCartesian(data['RA'],    data['DEC'],    data['Z'],    cosmo=cosmo)
-    randoms['Position'] = SkyToCartesian(randoms['RA'], randoms['DEC'], randoms['Z'], cosmo=cosmo)
-
-    # apply the Completeness weights to both data and randoms
-    if sys_tot:
-        if comm.rank ==0:print('including sys_tot')
-        data['WEIGHT']      = data['WEIGHT_SYSTOT']    * data['WEIGHT_NOZ']    * data['WEIGHT_CP']
-    else:
-        if comm.rank ==0:print('excluding sys_tot')    
-        data['WEIGHT']      = data['WEIGHT_NOZ']    * data['WEIGHT_CP'] # data['WEIGHT_SYSTOT'] 
-
-    randoms['WEIGHT']   = randoms['WEIGHT_SYSTOT'] * randoms['WEIGHT_NOZ'] * randoms['WEIGHT_CP']
-
+    # select based on redshift and comp_BOSS
+    kwargs = dict(compmin=compmin, zmin=zmin, zmax=zmax)
+    data = data.cut(**kwargs)
+    random = random.cut(**kwargs)
+    
+    # sky to xyz
+    data.sky_to_xyz(cosmo)
+    random.sky_to_xyz(cosmo)
+    
+    # prepare weights
+    data.apply_weight(use_systot=use_systot)
+    random.apply_weight(use_systot=True)  # always weight randoms by systot
+    
+    #
     # combine the data and randoms into a single catalog
-    fkp  = nb.FKPCatalog(data, randoms, nbar='NZ')
-    mesh = fkp.to_mesh(Nmesh=nmesh, fkp_weight='WEIGHT_FKP', comp_weight='WEIGHT', window='tsc')
-
-    # compute 
-    r = nb.ConvolvedFFTPower(mesh, poles=poles, dk=dk, kmin=0.0)
+    fkp = nb.FKPCatalog(data, random, nbar='NZ', BoxSize=boxsize)
+    mesh = fkp.to_mesh(Nmesh=nmesh, fkp_weight='WEIGHT_FKP', window='tsc')    
+    r = nb.ConvolvedFFTPower(mesh, poles=[0, 2, 4], dk=dk, kmin=0.0)
     
-    return r
+    comm.Barrier()    
+    if comm.rank == 0:        
+        for parameter in ['sigma8',  'Omega0_m', 'h', 'n_s',
+                          'Omega0_b', 'Omega0_lambda']:
+            r.attrs[parameter] = getattr(cosmo, parameter)
+    
+    r.save(output_path) 
+    
+    # --- save in txt format
+    # comm.Barrier()
+    # if comm.rank == 0:
+    #     #
+    #     # write P0-shotnoise P2 P4 to file
+    #     with open(result_path.replace('.json', '.txt'), 'w') as output:
 
-# # save
-# r.save(output_path)
+    #         # write the attributes
+    #         for k in r.attrs:
+    #             output.write(f'#{k:20s} : {r.attrs[k]}\n')
 
-# # --- save in txt format
-# comm.Barrier()
+    #         nbins = len(r.poles.coords['k'])
+    #         output.write('# kmid, kavg, P0, P2, P4, Nmodes\n')
+    #         for i in range(nbins):
+    #             output.write('{} {} {} {} {} {}\n'.format(r.poles.coords['k'][i], 
+    #                                                      r.poles['k'][i], 
+    #                                                      r.poles['power_0'][i].real, 
+    #                                                      r.poles['power_2'][i].real, 
+    #                                                      r.poles['power_4'][i].real, 
+    #                                                      r.poles['modes'][i]))
 
-# if rank == 0:
-#     #
-#     # write P0-shotnoise P2 P4 to file
-#     with open(output_path.replace('.json', '.txt'), 'w') as output:
 
-#         # write the attributes
-#         for k in r.attrs:
-#             output.write(f'#{k:20s} : {r.attrs[k]}\n')
 
-#         nbins = len(r.poles.coords['k'])
-#         output.write('# kmid, kavg, P0, P2, P4, Nmodes\n')
-#         for i in range(nbins):
-#            output.write('{} {} {} {} {} {}\n'.format(r.poles.coords['k'][i], 
-#                                                      r.poles['k'][i], 
-#                                                      r.poles['power_0'][i].real, 
-#                                                      r.poles['power_2'][i].real, 
-#                                                      r.poles['power_4'][i].real, 
-#                                                      r.poles['modes'][i]))
-
-#     #
-#     if ns.plot:
-#         # plot k vs kPell
-#         import matplotlib
-#         matplotlib.use('Agg')
-#         import matplotlib.pyplot as plt
-
-#         k = r.poles['k']
-#         plt.figure()
-#         plt.title(f'{ns.zlim}')
-#         for ell in [0, 2, 4]:
-#             pk = r.poles['power_%d'%ell].real
-#             if ell == 0:pk -= r.poles.attrs['shotnoise']
-#             plt.plot(k, k*pk, label=r'$\ell$=%d'%ell)
-#         plt.ylabel(r'kP$_{\ell}$(k)')
-#         plt.xlabel('k [h/Mpc]')
-#         plt.legend()
-#         plt.savefig(output_path.replace('.json', '.pdf'), bbox_inches='tight')
-#     print('plot and txt done!')
-
+class FitsCatalog(FITSCatalog):
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+    def cut(self, compmin=0.5, zmin=None, zmax=None):
+        '''
+            - z cut
+            - comp_BOSS cut
+            - sector_SSR cut
+        '''
+        if zmin is None:
+            zmin = self['Z'].min()-1.0e-7
+        if zmax is None:
+            zmax = self['Z'].max()+1.0e-7
+        
+        
+        valid = (self['Z'] >= zmin) & (self['Z'] <= zmax)
+        
+        if 'IMATCH' in self.columns: # eBOSS or Legacy
+            valid &= (self['IMATCH']==1) | (self['IMATCH']==2)
+        if 'COMP_BOSS' in self.columns: 
+            valid &= self['COMP_BOSS'] > compmin
+        if 'sector_SSR' in self.columns:
+            valid &= self['sector_SSR'] > compmin
+        
+        return self[valid]
+        
+    def sky_to_xyz(self, cosmo):
+        self['Position'] = SkyToCartesian(self['RA'], self['DEC'], self['Z'], cosmo=cosmo)
+        
+    def apply_weight(self, use_systot=True):
+        self['Weight'] = self['WEIGHT_NOZ'] * self['WEIGHT_CP']
+        if use_systot:
+            self['Weight'] *= self['WEIGHT_SYSTOT']
