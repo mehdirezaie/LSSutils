@@ -1,10 +1,11 @@
 name: py3p6
 channels:
-  - conda-forge
   - bccp
+  - conda-forge
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
+  - _tflow_select=2.3.0=mkl
   - asn1crypto=0.24.0=py37_0
   - astropy=3.2.1=py37h7b6447c_0
   - atomicwrites=1.3.0=py37_1
@@ -16,9 +17,10 @@ dependencies:
   - bleach=3.1.0=py37_0
   - bokeh=1.3.4=py37_0
   - bzip2=1.0.8=h7b6447c_0
-  - ca-certificates=2019.11.27=0
+  - c-ares=1.15.0=h7b6447c_1001
+  - ca-certificates=2020.1.1=0
   - cachey=0.1.1=py37_0
-  - certifi=2019.11.28=py37_0
+  - certifi=2020.4.5.1=py37_0
   - cffi=1.12.3=py37h2e261b9_0
   - chardet=3.0.4=py37_1003
   - classylss=0.2.9=py37ha5dfbcb_7
@@ -76,6 +78,8 @@ dependencies:
   - jupyter_console=6.0.0=py37_0
   - jupyter_core=4.5.0=py_0
   - kdcount=0.3.29=py37hb3ffb1f_5
+  - keras-applications=1.0.8=py_0
+  - keras-preprocessing=1.1.0=py_1
   - kiwisolver=1.1.0=py37he6710b0_0
   - krb5=1.16.1=h173b8e3_7
   - libcurl=7.65.3=h20c2e04_0
@@ -84,6 +88,7 @@ dependencies:
   - libgcc-ng=9.1.0=hdf63c60_0
   - libgfortran-ng=7.3.0=hdf63c60_0
   - libpng=1.6.37=hbc83047_0
+  - libprotobuf=3.11.4=hd408876_0
   - libsodium=1.0.16=h1bed415_0
   - libssh2=1.8.2=h1ba5d50_0
   - libstdcxx-ng=9.1.0=hdf63c60_0
@@ -92,6 +97,7 @@ dependencies:
   - libxcb=1.13=h1bed415_1
   - libxml2=2.9.9=hea5a465_1
   - locket=0.2.0=py37_1
+  - markdown=3.1.1=py37_0
   - markupsafe=1.1.1=py37h7b6447c_0
   - matplotlib=3.1.0=py37h5429711_0
   - mcfit=0.0.16=py37h5ca1d4c_1
@@ -104,7 +110,7 @@ dependencies:
   - mpc=1.1.0=h10f8cd9_1
   - mpfr=4.0.1=hdf1c602_3
   - mpi=1.0=mpich
-  - mpi4py=3.0.2=py37hf046da1_1
+  - mpi4py=3.0.2=py37hcf07815_0
   - mpich=3.2.1=hf39692e_8
   - mpmath=1.1.0=py37_0
   - mpsort=0.1.17=py37he0e0d13_7
@@ -118,7 +124,7 @@ dependencies:
   - numpy=1.16.4=py37h7e9f1db_0
   - numpy-base=1.16.4=py37hde5b4d6_0
   - olefile=0.46=py37_0
-  - openssl=1.1.1d=h7b6447c_3
+  - openssl=1.1.1g=h7b6447c_0
   - packaging=19.2=py_0
   - pandas=0.25.0=py37he6710b0_0
   - pandoc=2.2.3.2=0
@@ -177,6 +183,10 @@ dependencies:
   - statsmodels=0.10.1=py37hdd07704_0
   - sympy=1.4=py37_0
   - tblib=1.4.0=py_0
+  - tensorboard=1.14.0=py37hf484d3e_0
+  - tensorflow=1.14.0=mkl_py37h45c423b_0
+  - tensorflow-base=1.14.0=mkl_py37h7ce6ba3_0
+  - tensorflow-estimator=1.14.0=py_0
   - terminado=0.8.2=py37_0
   - testpath=0.4.2=py37_0
   - tk=8.6.8=hbc83047_0
@@ -205,16 +215,11 @@ dependencies:
     - gast==0.2.2
     - google-pasta==0.1.7
     - grpcio==1.23.0
-    - keras-applications==1.0.8
-    - keras-preprocessing==1.1.0
-    - markdown==3.1.1
     - mock==3.0.5
     - protobuf==3.9.2
     - tables==3.5.2
-    - tensorboard==1.14.0
-    - tensorflow==1.14.0
-    - tensorflow-estimator==1.14.0
     - termcolor==1.1.0
     - werkzeug==0.16.0
     - wrapt==1.11.2
+prefix: /home/mehdi/miniconda3/envs/py3p6
 
