@@ -28,7 +28,8 @@ def run_ConvolvedFFTPower(galaxy_path,
                           boxsize=None,
                           nmesh=512,
                           dk=0.002,
-                          comm=None):
+                          comm=None,
+                          return_pk=False):
     
     if comm.rank == 0:
         output_dir = os.path.dirname(os.path.abspath(output_path))
@@ -69,6 +70,10 @@ def run_ConvolvedFFTPower(galaxy_path,
             r.attrs[parameter] = getattr(cosmo, parameter)
     
     r.save(output_path) 
+    
+    if return_pk:
+        if comm.rank == 0:
+            return r
     
     # --- save in txt format
     # comm.Barrier()
