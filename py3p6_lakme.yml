@@ -104,7 +104,7 @@ dependencies:
   - mpc=1.1.0=h10f8cd9_1
   - mpfr=4.0.1=hdf1c602_3
   - mpi=1.0=mpich
-  - mpi4py=3.0.2=py37hf046da1_1
+  - mpi4py=3.0.2
   - mpich=3.2.1=hf39692e_8
   - mpmath=1.1.0=py37_0
   - mpsort=0.1.17=py37he0e0d13_7
@@ -217,5 +217,4 @@ dependencies:
     - termcolor==1.1.0
     - werkzeug==0.16.0
     - wrapt==1.11.2
-prefix: /home/mehdi/miniconda3/envs/py3p6
 

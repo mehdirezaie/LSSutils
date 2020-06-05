@@ -379,8 +379,7 @@ class RegressionCatalog:
         if columns is None:
             columns = self.columns
         
-        if not os.path.exists(output_dir):
-            
+        if not os.path.exists(output_dir):            
             os.makedirs(output_dir)
             self.logger.info(f'created {output_dir}')
         
