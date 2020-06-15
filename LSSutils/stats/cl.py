@@ -76,10 +76,9 @@ def get_cl(ngal, nran, mask, select_fun=None,
             return output
 
 def get_shotnoise(ngal, weight, mask):
-    area_steradian = 4*np.pi * (np.sum(weight[mask])/weight.size)
-    nbar = np.sum(ngal[mask]) / area_steradian
+    area = hp.nside2pixarea(256, degrees=True)*nran[mask].sum()*3.0462e-4
+    return area/ngal[mask].sum()
     #shotnoise = np.std(ngal[mask]) / nbar # fixme
-    return 1. / nbar
 
 class AnaFast:
     '''
