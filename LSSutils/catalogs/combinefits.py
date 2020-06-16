@@ -443,8 +443,101 @@ class RegressionCatalog:
                        res=nside, 
                        k=5,
                        logger=self.logger)                
-
 class EbossCatalog:
+    
+    logger = logging.getLogger('EbossCatalog')
+    
+    columns = ['RA', 'DEC', 'Z', 
+               'WEIGHT_FKP', 'WEIGHT_SYSTOT', 'WEIGHT_CP',
+               'WEIGHT_NOZ', 'NZ', 'QSO_ID', 'IMATCH',
+               'COMP_BOSS', 'sector_SSR']    
+    comp_min = 0.5
+    
+    def __init__(self, filename, kind='galaxy', **clean_kwargs):
+        self.kind  = kind
+        self.read(filename)
+        self.clean(**clean_kwargs)
+        
+    def read(self, filename):
+        if filename.endswith('.fits'):
+            self.data  = Table.read(filename)
+        else:
+            raise NotImplementedError(f'file {filename} not implemented')
+    
+    def clean(self, zmin=0.8, zmax=2.2):
+        ''' `Full` to `Clustering` Catalog
+        '''           
+        columns = []
+        for i, column in enumerate(self.columns):
+            if column not in self.data.columns:
+                self.logger.warning(f'column {column} not in the {self.kind} file')
+            else:
+                columns.append(column)
+                
+        self.columns = columns
+        self.data  = self.data[self.columns]        
+        
+        #-- apply cuts on galaxy or randoms
+        good = (self.data['Z'] > zmin) & (self.data['Z'] < zmax)
+        self.logger.info(f'{zmin} < z < {zmax}')
+        for column in ['COMP_BOSS', 'sector_SSR']:
+            if column in self.data.columns:                
+                good &= self.data[column] > self.comp_min
+                self.logger.info(f'{column} > {self.comp_min}')
+                
+        if self.kind=='galaxy':
+            if 'IMATCH' in self.data.columns:
+                good &= (self.data['IMATCH']==1) | (self.data['IMATCH']==2)
+                self.logger.info(f'IMATCH = 1 or 2 for {self.kind}')
+                                
+        self.logger.info(f'{good.sum()} ({100*good.mean():3.1f}%) {self.kind} pass the cuts')
+        self.data = self.data[good]
+        
+    def prepare_weights(self, raw=0):        
+        self.logger.info(f'raw: {raw}')        
+        
+        if raw==1:                        
+            if self.kind == 'galaxy':
+                self.data['WEIGHT'] = self.data['WEIGHT_FKP']
+                self.data['WEIGHT'] *= self.data['WEIGHT_CP']
+                self.data['WEIGHT'] *= self.data['WEIGHT_NOZ']
+                
+            elif self.kind == 'random':                
+                self.data['WEIGHT'] = self.data['WEIGHT_FKP']
+                self.data['WEIGHT'] *= self.data['COMP_BOSS']
+                
+            else:
+                raise ValueError(f'{self.kind} not defined')
+                
+        elif raw==2:
+            # data and randoms both are weighted by CP x FKP x NOZ x SYSTOT
+            self.data['WEIGHT'] = self.data['WEIGHT_FKP']
+            self.data['WEIGHT'] *= self.data['WEIGHT_CP']            
+            self.data['WEIGHT'] *= self.data['WEIGHT_NOZ']
+            self.data['WEIGHT'] *= self.data['WEIGHT_SYSTOT']
+        elif raw==0:
+            self.data['WEIGHT'] = 1.0
+        else:
+            raise ValueError(f'{raw} should be 0, 1, or 2!')
+            
+    def tohp(self, nside, zmin, zmax, raw=0): 
+        self.prepare_weights(raw=raw)
+        assert 'WEIGHT' in self.data.columns, "run `self.prepare_weights'"
+        self.logger.info(f'Projecting {self.kind}  to HEALPix with {nside}')
+        good = (self.data['Z'] > zmin) & (self.data['Z'] < zmax)
+        self.logger.info((f'{good.sum()} ({100*good.mean():3.1f}%)'
+                          f' {self.kind} pass ({zmin:.1f} < z < {zmax:.1f})'))
+        
+        return hpixsum(nside, 
+                       self.data['RA'][good], 
+                       self.data['DEC'][good], 
+                       weights=self.data['WEIGHT'][good])
+    
+    def __getitem__(self, index):
+        return self.data[index]
+
+
+class EbossCatalogOld:
     
     logger = logging.getLogger('EbossCatalog')
     

@@ -343,31 +343,52 @@ def hpixmean(nside, ra, dec, value, statistic='mean'):
                                  bins=nmax, range=(0, nmax))[0]
     return result
 
-def hpixsum(nside, ra, dec, value=None):
+def hpixsum(nside, ra, dec, weights=None):
     '''
-        make a healpix map from ra-dec
-        default is RING format
-        hpixsum(nside, ra, dec, value=None)
+        make a HEALPix map of point sources ra and dec
+        default ordering is RING
 
         credit: Yu Feng, Ellie Kitanidis
+        
+        
+        args:
+            nside: int
+            ra: array (N), right ascention in degree
+            dec: array (N), declination in degree
+            
+        returns:
+            w: array (12*NSIDE*NSIDE)
+            
     '''
     pix  = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra))
     npix = hp.nside2npix(nside)
-    w    = np.bincount(pix, weights=value, minlength=npix)
+    w    = np.bincount(pix, weights=weights, minlength=npix)
     return w
 
-def overdensity(galmap, weight, mask,
-                select_fun=None, is_sys=False, nnbar=False):
-
-    delta = np.zeros_like(galmap)*np.nan
-    if select_fun is not None:
-        galmap /= select_fun
-
-    #assert((randc[mask]==0).sum() == 0) # make sure there is no empty pixel
-    if (weight[mask]==0).sum() != 0:
-        print('there are empty weights')
-        m = weight == 0
-        weight[m] = 1.0 # enforce one
+def overdensity(galmap, 
+                weight, 
+                mask,
+                selection_fn=None, 
+                is_sys=False, 
+                nnbar=False):
+    """
+        constructs a density contrast
+        
+        args
+            galmap: galaxy counts map in HEALPix
+            weight: random counts map in HEALPix
+            mask: boolean, footprint mask in HEALPix
+            selection_fn: selection function in HEALpix
+            is_sys: boolean, whether the input 'galmap' is a systematic template
+            minus_one: boolean, whether subtract one to make density contrast
+    
+    """
+    assert (weight[mask]>1.0e-8).sum() > 0, "'weight' must be > 0"
+    
+    delta = np.zeros_like(galmap, dtype=galmap.dtype)*np.nan
+    if selection_fn is not None:
+        assert (selection_fn[mask]>1.0e-8).sum() > 0, "'selection_mask' must be > 0"
+        galmap /= selection_fn
 
     if is_sys:
         sf = (galmap[mask]*weight[mask]).sum() / weight[mask].sum()
@@ -375,14 +396,11 @@ def overdensity(galmap, weight, mask,
     else:
         sf = galmap[mask].sum()/weight[mask].sum()
         delta[mask] = galmap[mask]/(weight[mask]*sf)
-
+        
     if not nnbar:
-        delta[mask] -= 1
+        delta[mask] -= 1.0
 
     return delta
-
-
-# def fixdepth(depth, ebv, band):
     
 
 def make_symaps(ran, path_lenz, path_gaia, nside=256):
