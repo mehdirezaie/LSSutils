@@ -293,6 +293,18 @@ def hpix2caps(hpind, nside=256, mindec_bass=32.375,
 def histogram(el, cel, bins=None):
     '''
         bin the C_ell measurements
+        
+        
+        args:
+            el
+            cel
+            bins
+            
+        returns:
+            el mid
+            cel mid
+            wt weights
+        
     '''
     if bins is None:
         bins = np.logspace(0, np.log10(el.max()+1), 10)
