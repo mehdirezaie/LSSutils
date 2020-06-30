@@ -7,7 +7,7 @@ import fitsio as ft
 import numpy as np
 import healpy as hp
 
-from LSSutils.utils import radec2hpix, hpixsum, shiftra
+from LSSutils.utils import radec2hpix, hpixsum, shiftra, overdensity
 from astropy.table import Table
 import logging
 
@@ -536,6 +536,97 @@ class EbossCatalog:
     def __getitem__(self, index):
         return self.data[index]
 
+class HEALPixDataset:
+    logger = logging.getLogger('HEALPixDataset')
+    
+    def __init__(self, data, randoms, templates, columns):
+
+        self.data = data
+        self.randoms = randoms        
+        self.features = templates[columns].values
+        self.nside = hp.get_nside(self.features[:, 0])
+        self.mask = np.ones(self.features.shape[0], '?')
+        for i in range(self.features.shape[1]):
+            self.mask &= np.isfinite(self.features[:, i])
+        self.logger.info(f'{self.mask.sum()} pixels ({self.mask.mean()*100:.1f}%) have imaging')
+        
+    def prepare(self, nside, zmin, zmax, label='nnbar', frac_min=0):        
+        assert nside == self.nside, f'template has NSIDE={self.nside}'
+               
+        if label=='nnbar':
+            return self._prep_nnbar(nside, zmin, zmax, frac_min)
+        elif label=='ngal':
+            return self._prep_ngal(nside, zmin, zmax, frac_min)
+        elif label=='ngalw':
+            return self._prep_ngalw(nside, zmin, zmax, frac_min)
+        else:
+            raise ValueError(f'{label} must be nnbar, ngal, or ngalw')
+    
+    def _prep_nnbar(self, nside, zmin, zmax, frac_min):
+        
+        ngal = self.data.tohp(nside, zmin, zmax, raw=1)        
+        nran = self.randoms.tohp(nside, zmin, zmax, raw=1)
+        frac = nran / np.mean(nran[nran>0])
+        
+        mask_random = (frac >  frac_min)        
+        mask = mask_random & self.mask                
+        self.logger.info(f'{mask.sum()} pixels ({mask.mean()*100:.1f}%) have imaging')
+        
+        nnbar = overdensity(ngal, nran, mask, nnbar=True) 
+        
+        return self._to_numpy(nnbar[mask], self.features[mask, :],
+                             frac[mask], np.argwhere(mask).flatten())        
+        
+    def _prep_ngalw(self, nside, zmin, zmax, frac_min):
+        
+        ngal = self.data.tohp(nside, zmin, zmax, raw=1)        
+        nran = self.randoms.tohp(nside, zmin, zmax, raw=1)
+        frac = nran / np.mean(nran[nran>0])
+        
+        mask_random = (frac >  frac_min)        
+        mask = mask_random & self.mask        
+        self.logger.info(f'{mask.sum()} pixels ({mask.mean()*100:.1f}%) have imaging')
+        
+        return self._to_numpy(ngal[mask], self.features[mask, :],
+                             frac[mask], np.argwhere(mask).flatten())
+
+    def _prep_ngal(self, nside, zmin, zmax, frac_min):
+        
+        ngal = self.data.tohp(nside, zmin, zmax, raw=0)
+        ngalw = self.data.tohp(nside, zmin, zmax, raw=1)        
+        
+        wratio = np.zeros_like(ngal)
+        good = ngal > 0.0
+        wratio[good] = ngalw[good]/ngal[good]        
+        
+        nran = self.randoms.tohp(nside, zmin, zmax, raw=1)
+        frac = nran / np.mean(nran[nran>0])
+        
+        mask_random = (frac >  frac_min)        
+        mask = mask_random & self.mask        
+        self.logger.info(f'{mask.sum()} pixels ({mask.mean()*100:.1f}%) have imaging')
+        
+        wratio[mask & (~good)] = 1.0 # have randoms but no data
+        fracw = np.zeros_like(frac)
+        fracw[mask] = frac[mask] / wratio[mask]
+        
+        return self._to_numpy(ngal[mask], self.features[mask, :],
+                             fracw[mask], np.argwhere(mask).flatten())    
+    
+    def _to_numpy(self, t, features, frac, hpind):
+        
+        dtype = [('features', ('f8', features.shape[1])), 
+                 ('label', 'f8'),
+                 ('fracgood', 'f8'),
+                 ('hpind', 'i8')]    
+        
+        dataset = np.zeros(t.size, dtype=dtype)
+        dataset['label'] = t
+        dataset['fracgood'] = frac
+        dataset['features'] = features
+        dataset['hpind'] = hpind
+        
+        return dataset    
 
 class EbossCatalogOld:
     

@@ -392,7 +392,7 @@ def overdensity(galmap,
             mask: boolean, footprint mask in HEALPix
             selection_fn: selection function in HEALpix
             is_sys: boolean, whether the input 'galmap' is a systematic template
-            minus_one: boolean, whether subtract one to make density contrast
+            nnbar: boolean, whether subtract one to make density contrast
     
     """
     assert (weight[mask]>1.0e-8).sum() > 0, "'weight' must be > 0"

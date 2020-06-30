@@ -72,7 +72,7 @@ if __name__ == '__main__':
         ns = ap.parse_args()
         NSIDE = ns.nside
         config = dict(nchain=1, batchsize=1024, nepoch=500, Units=[0],
-                  tol=1.e-6, scale=0.0, learning_rate=0.001)
+                      tol=1.e-6, scale=0.0, learning_rate=0.001)
         log += 'reading input : {} with nside : {} \n'.format(ns.input, NSIDE)
         log += 'the fiducial config is {}\n'.format(config)
         data   = np.load(ns.input, allow_pickle=True).item()
@@ -212,12 +212,12 @@ if __name__ == '__main__':
         predY = stdY*np.array(y_avg) + meanY
     #    
     comm.Barrier()
-    log      = comm.gather(log, root=0)
-    predY    = comm.gather(predY, root=0)
-    predP    = comm.gather(predP, root=0)
-    if rank ==0:
-        hpix   = np.concatenate(predP)
-        ngal   = np.concatenate(predY, axis=1)
+    log = comm.gather(log, root=0)
+    predY = comm.gather(predY, root=0)
+    predP = comm.gather(predP, root=0)
+    if rank == 0:
+        hpix = np.concatenate(predP)
+        ngal = np.concatenate(predY, axis=1)
         oudata = np.zeros(ngal.shape[1], dtype=[('hpind', 'i8'), \
                          ('weight',('f8', ngal.shape[0]))])
         oudata['hpind']   = hpix
