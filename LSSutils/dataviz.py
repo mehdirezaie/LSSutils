@@ -371,7 +371,7 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
 
 def get_selected_maps(files=None, tl='eBOSS QSO V6', 
                       verbose=False, labels=None, ax=None,
-                      hold=False, saveto=None):
+                      hold=False, saveto=None, colorbar=False, fig=None):
     '''
     from LSSutils.catalogs.datarelease import cols_dr8 as labels
     fig, ax = plt.subplots(ncols=3, nrows=2, figsize=(18, 12), sharey=True)
@@ -393,8 +393,16 @@ def get_selected_maps(files=None, tl='eBOSS QSO V6',
         fig, ax = plt.subplots(ncols=1, 
                                sharey=True, 
                                figsize=(6, 4))
+    
 
-    add_plot(best_features, ax)
+    map1, nmaps = add_plot(best_features, ax)
+
+    if colorbar:
+        cax = plt.axes([.93, 0.2, 0.01, 0.6])    
+        cbar = fig.colorbar(map1, cax=cax, label='Rank', 
+                            shrink=0.7, ticks=[0, nmaps-1])#, extend='both')
+        cbar.ax.set_yticklabels(['low', 'high'])
+    
     ax.set_ylim(-1, len(labels)+1)
     ax.set_yticks(np.arange(len(labels)))
     ax.set_yticklabels(labels)
@@ -413,34 +421,42 @@ def add_plot(best_features, ax, **kw):
             matplotlib-warning-using-pandas-dataframe-plot-scatter/52879804#52879804
     '''
 
-    m = 0
+    mapo = None
+    nmaps = 0
+    
     for i in range(len(best_features)):
         if best_features[i] is np.nan:
             continue
         else:
             #print(axes[i])                
-            n = len(best_features[i])
-            colors = np.array([plt.cm.Reds(i/n) for i in range(n)])
-            m += n
-            for j in range(n):
-                ax.scatter(i, best_features[i][j], c='k', marker='x')                    
-                ax.scatter(i, best_features[i][j], c=[colors[j]], marker='o', **kw)
+            n = len(best_features[i])            
+            colors = np.arange(n) #np.array([plt.cm.Reds(i/n) for i in range(n)])
+            x = n*[i]            
+            ax.scatter(x, best_features[i], c='k', marker='x')                    
+            map1 = ax.scatter(x, best_features[i], c=colors,
+                              marker='o', cmap=plt.cm.Reds, **kw)   
+            if n > nmaps:
+                nmaps = n
+                mapo = map1
                 
+    return mapo, nmaps
+               
 def get_best_features_kfold(files, verbose=False):
+    # sort the files in place
+    files.sort()
     axes = []
     
     for filei in files:
-        
         axi, num_f = get_best_features(filei)
         
         if verbose:
-            print(axi)
+            print(filei, axi)
             
         if axi is not None:
             axes.append(axi)
         else:
             axes.append(np.nan)
-            
+    
     return axes, num_f    
 
 def get_best_features(ablationlog):
@@ -463,6 +479,7 @@ def get_best_features(ablationlog):
     num_f = len(d['importance'])+1
     #FEAT = d['importance'] + [i for i in range(num_f) if i not in d['importance']]
     FEAT = d['importance'] + [i for i in indices_all if i not in d['importance']]
+
     if indices is not None:
         return FEAT[num_f-len(indices):], num_f
     else:
