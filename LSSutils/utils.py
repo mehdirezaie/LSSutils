@@ -400,7 +400,7 @@ def overdensity(galmap,
     delta = np.zeros_like(galmap, dtype=galmap.dtype)*np.nan
     if selection_fn is not None:
         assert (selection_fn[mask]>1.0e-8).sum() > 0, "'selection_mask' must be > 0"
-        galmap /= selection_fn
+        galmap = galmap / selection_fn
 
     if is_sys:
         sf = (galmap[mask]*weight[mask]).sum() / weight[mask].sum()

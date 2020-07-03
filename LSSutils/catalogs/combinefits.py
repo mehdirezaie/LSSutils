@@ -550,23 +550,27 @@ class HEALPixDataset:
             self.mask &= np.isfinite(self.features[:, i])
         self.logger.info(f'{self.mask.sum()} pixels ({self.mask.mean()*100:.1f}%) have imaging')
         
-    def prepare(self, nside, zmin, zmax, label='nnbar', frac_min=0):        
+    def prepare(self, nside, zmin, zmax, label='nnbar', frac_min=0, nran_exp=None):        
         assert nside == self.nside, f'template has NSIDE={self.nside}'
                
         if label=='nnbar':
-            return self._prep_nnbar(nside, zmin, zmax, frac_min)
+            return self._prep_nnbar(nside, zmin, zmax, frac_min, nran_exp)
         elif label=='ngal':
-            return self._prep_ngal(nside, zmin, zmax, frac_min)
+            return self._prep_ngal(nside, zmin, zmax, frac_min, nran_exp)
         elif label=='ngalw':
-            return self._prep_ngalw(nside, zmin, zmax, frac_min)
+            return self._prep_ngalw(nside, zmin, zmax, frac_min, nran_exp)
         else:
             raise ValueError(f'{label} must be nnbar, ngal, or ngalw')
     
-    def _prep_nnbar(self, nside, zmin, zmax, frac_min):
+    def _prep_nnbar(self, nside, zmin, zmax, frac_min, nran_exp):
         
         ngal = self.data.tohp(nside, zmin, zmax, raw=1)        
         nran = self.randoms.tohp(nside, zmin, zmax, raw=1)
-        frac = nran / np.mean(nran[nran>0])
+        if nran_exp is None:
+            nran_exp = np.mean(nran[nran>0])
+            self.logger.info(f'using {nran_exp} as nran_exp')            
+            
+        frac = nran / nran_exp
         
         mask_random = (frac >  frac_min)        
         mask = mask_random & self.mask                
@@ -577,12 +581,15 @@ class HEALPixDataset:
         return self._to_numpy(nnbar[mask], self.features[mask, :],
                              frac[mask], np.argwhere(mask).flatten())        
         
-    def _prep_ngalw(self, nside, zmin, zmax, frac_min):
+    def _prep_ngalw(self, nside, zmin, zmax, frac_min, nran_exp):
         
         ngal = self.data.tohp(nside, zmin, zmax, raw=1)        
         nran = self.randoms.tohp(nside, zmin, zmax, raw=1)
-        frac = nran / np.mean(nran[nran>0])
-        
+        if nran_exp is None:
+            nran_exp = np.mean(nran[nran>0])
+            self.logger.info(f'using {nran_exp} as nran_exp')            
+            
+        frac = nran / nran_exp        
         mask_random = (frac >  frac_min)        
         mask = mask_random & self.mask        
         self.logger.info(f'{mask.sum()} pixels ({mask.mean()*100:.1f}%) have imaging')
@@ -590,7 +597,7 @@ class HEALPixDataset:
         return self._to_numpy(ngal[mask], self.features[mask, :],
                              frac[mask], np.argwhere(mask).flatten())
 
-    def _prep_ngal(self, nside, zmin, zmax, frac_min):
+    def _prep_ngal(self, nside, zmin, zmax, frac_min, nran_exp):
         
         ngal = self.data.tohp(nside, zmin, zmax, raw=0)
         ngalw = self.data.tohp(nside, zmin, zmax, raw=1)        
@@ -600,7 +607,11 @@ class HEALPixDataset:
         wratio[good] = ngalw[good]/ngal[good]        
         
         nran = self.randoms.tohp(nside, zmin, zmax, raw=1)
-        frac = nran / np.mean(nran[nran>0])
+        if nran_exp is None:
+            nran_exp = np.mean(nran[nran>0])
+            self.logger.info(f'using {nran_exp} as nran_exp')            
+            
+        frac = nran / nran_exp
         
         mask_random = (frac >  frac_min)        
         mask = mask_random & self.mask        
