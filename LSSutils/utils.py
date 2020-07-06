@@ -4,14 +4,21 @@
    cosmological quantities
 
    (c) Mehdi Rezaie medirz90@icloud.com
-   Last update: Jun 23, 2019
+   Last update: Jul 5, 2020
 
 """
 import os
 import sys
 import numpy as np
+import healpy as hp
+from sklearn.cluster import KMeans
+
+
+
+
 import numpy.lib.recfunctions as rfn
 
+import fitsio as ft
 
 import pandas as pd
 
@@ -20,11 +27,10 @@ from scipy import integrate
 from scipy.constants import c as clight
 from scipy.stats import (binned_statistic, spearmanr, pearsonr)
 
-from sklearn.cluster import KMeans
+
 from sklearn.model_selection import KFold
 from sklearn.neighbors import KDTree
-import fitsio as ft
-import healpy as hp
+
 
 
 __all__ = ['overdensity', 'hpixsum', 'radec2hpix', 'hpix2radec',
@@ -32,59 +38,141 @@ __all__ = ['overdensity', 'hpixsum', 'radec2hpix', 'hpix2radec',
 
 
 
-
-
-
 class SphericalKMeans(KMeans):
-
+    """
+    Class provides K-Means clustering on the surface of a sphere.
+    
+    
+    attributes
+    ----------
+    centers_radec : array_like
+        the center ra and dec of the clusters
+    
+    
+    methods
+    -------
+    fit_radec(ra, dec, sample_weight=None)
+        compute K-Means clustering 
+        
+    predict_radec(ra, dec)
+        return the cluster index the ra and dec belong to
+    
+    see also
+    --------
+    sklearn.cluster.KMeans
+        https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html
+        
+    """
     def __init__(self, n_clusters=40, random_state=42, **kwargs):
-
-        super().__init__(n_clusters=n_clusters,
-                         random_state=random_state,
-                         **kwargs)
+        """ initialize self
+        
+            parameters
+            ----------
+            n_clusters : int, optional
+            the number of clusters to form as well as the number of centroids to generate.
+        
+            random_state : int, optional
+            the seed determines random generator for centroid initialization. 
+            Use an int to make the randomness deterministic
+            
+            kwargs: dict
+            optional arguments to sklearn.cluster.Kmeans
+        """
+        super(SphericalKMeans, self).__init__(n_clusters=n_clusters,
+                                             random_state=random_state,
+                                             **kwargs)
 
     def fit_radec(self, ra, dec, sample_weight=None):
+        """ Compute K-Means clustering
+        
+        parameters
+        ----------
+        ra : array_like
+            right ascention of the examples in degrees
+        
+        dec : array_like
+            declination of the examples in degrees
+            
+            
+        """
         r = radec2r(ra, dec)
         self.fit(r, sample_weight=sample_weight)
         self.centers_radec = r2radec(self.cluster_centers_)
 
     def predict_radec(self, ra, dec):
+        """ Predict the closest cluster each ra and dec belong to
+        
+        
+        parameters
+        ----------
+        ra : array_like
+            right ascention of the examples in degrees
+            
+        dec : array_like
+            declination of the examples in degrees
+            
+        returns
+        -------
+        labels : array_like
+            index of the cluster each ra and dec belong to
+        
+        """
         r = radec2r(ra, dec)
         return self.predict(r)
 
-    def histogram(self, y, aggregate=np.mean):
-
-        y_binned = []
-        for i in range(self.n_clusters):
-            indices = self.labels_ == i
-            y_binned.append(aggregate(y[indices], axis=0))            
-        return y_binned
-
 
 def r2radec(r):
-    #x:0, y:1, z:2
+    """
+    Function transforms r to ra and dec
+    
+    parameters
+    ----------
+    r : array_like (N, 3)
+        x, y, z coordinates in the Cartesion coordinate system
+        
+    returns
+    -------
+    ra : array_like
+        right ascention in degrees
+        
+    dec : array_like
+        declination in degrees
+        
+        
+    see also
+    --------
+    radec2r 
+        
+    """    
     rad2deg = 180./np.pi
     dec = rad2deg*np.arcsin(r[:, 2])
     ra = rad2deg*np.arctan(r[:, 1]/r[:, 0])
-    ra[r[:, 0]<0] += 180.
+    ra[r[:, 0]<0] += 180. # if x < 0, we are in the 2nd or 3rd quadrant
     return ra, dec
 
 
 def radec2r(ra, dec):
-    '''
-    inputs
-    --------
-    ra and dec in deg
-
-    retuns
-    --------
-    r in `distance`
-
-    notes:
+    """
+    Function transforms ra and dec to r
+    
     x = cos(phi)sin(theta) or cos(ra)cos(dec)
     y = sin(phi)sin(theta) or sin(ra)cos(dec)
     z = cos(theta) or sin(dec)
-    '''
+    
+    parameters
+    ----------
+    ra : array_like
+        right ascention in degrees
+    
+    dec : array_like
+        declination in degrees
+        
+    returns
+    --------
+    r : array_like
+        Euclidean `distance` from the center
+
+    """
     ra_rad, dec_rad = np.deg2rad(ra), np.deg2rad(dec)
     x = np.cos(dec_rad)*np.cos(ra_rad)
     y = np.cos(dec_rad)*np.sin(ra_rad)
@@ -93,55 +181,122 @@ def radec2r(ra, dec):
     return r
 
 
-def make_jackknifes(mask, weight, njack=20, subsample=True,
-                    kmeans_kw={'n_jobs':4, 'n_init':1},
-                    visualize=False,
-                    seed=42):
-    '''
+class KMeansJackknifes:
+    """
+    Class constructs K-Means clusters for Jackknife resampling
+    
+    
+    attributes
+    ----------
+    mask : array_like
+        boolean mask represents the footprint
+        
+    hpix : array_like
+        HEALPix pixels indices represent the footprint
+        
+    weight : array_like
+        weight associated with each pixel
+        
+    radec : (array_like, array_like)
+        right ascention and declination of the footprint
+        
+    centers : (array_like, array_like)
+        ra and dec of the cluster centers
+        
+    masks : dict
+        Jackknife masks
+        
+        
+    methods
+    -------
+    build_masks(self, njack, seed=42, kmeans_kw={'n_init':1})
+        build the jackknife masks
+    
+    
+    examples
+    --------
+    >>> mask = hp.read_map('mask_NGC.hp512.ran.fits') > 0
+    >>> jk = KMeansJackknifes(mask, mask.astype('f8'))
+    >>> jk.build_masks(20)
+    >>> jk.centers
+    array([2, 2, 2, ..., 8, 8, 8], dtype=int32)
+    >>> jk.visualize()
+    >>> jk[0]            # to get mask 0
+    
+    """
+    def __init__(self, mask, weight):
+        """ initialize self
+        
+        parameters
+        ----------
+        mask : array_like
+            boolean mask of the footprint
+            
+        weight : array_like
+            weight associated with the footprint
+            
+        """
+        
+        self.nside = hp.get_nside(mask)
+        assert hp.get_nside(weight)==self.nside
+        
+        self.mask = mask
+        self.hpix = np.argwhere(mask).flatten()
+        self.weight = weight[mask]
+        self.radec = hpix2radec(self.nside, self.hpix)
 
+    def build_masks(self, njack, seed=42, kmeans_kw={'n_init':1}):
+        """ 
+        function creates Jackknife masks
+        
+        parameters
+        ----------
+        njack : int
+            the number of jackknife regions
+            
+        seed : int
+            the seed for the random number generator
+            
+        kmeans_kw: dict
+            optional parameters for SphericalKMeans
+        
+        
+        """        
+        
+        np.random.seed(seed) # for KMeans centeroid initialization
+        
+        km = SphericalKMeans(n_clusters=njack, **kmeans_kw)
+        km.fit_radec(*self.radec, sample_weight=self.weight)        
+        self.centers = km.predict_radec(*self.radec)
+        
+        self.masks = {-1:self.mask}        
+        for i in range(njack):            
+            mask_i = self.mask.copy()
+            mask_i[self.hpix[self.centers == i]] = False            
+            self.masks[i] = mask_i        
 
-    '''
-    np.random.seed(seed)
-
-    nside = hp.get_nside(mask)
-    assert hp.get_nside(weight) == nside
-
-    hpix = np.argwhere(mask).flatten()
-    ra, dec = hpix2radec(nside, hpix)
-
-    #--- K Means
-
-    km = SphericalKMeans(n_clusters=njack, **kmeans_kw)
-    if subsample:
-        ind = np.random.choice(np.arange(0, ra.size), size=ra.size//10, replace=False)
-        km.fit_radec(ra[ind], dec[ind], sample_weight=weight[mask][ind])
-    else:
-        km.fit_radec(ra, dec, sample_weight=weight[mask])
-    labels = km.predict_radec(ra, dec)
-
-    masks = {-1:mask}
-    for i in range(njack):
-        mask_i = mask.copy()
-        mask_i[hpix[labels == i]] = False
-        masks[i] = mask_i
-
-    if visualize:
+    def visualize(self):        
+        """ function plots K-Means clusters
+        """
         import matplotlib.pyplot as plt
+        fig, ax = plt.subplots()
+        
+        njack = len(self.masks)-1 # drop -1 as the global mask        
+        for i in range(njack): 
+            mask_i = self.centers == i
+            ax.scatter(shiftra(self.radec[0][mask_i]), 
+                       self.radec[1][mask_i],
+                       s=1, marker='o',
+                       alpha=0.2, 
+                       color=plt.cm.jet(i/njack)) 
+        ax.set(xlabel='RA [deg]', ylabel='DEC [deg]')        
+        return ax
 
-        for i in range(njack):
-            mask_i = labels == i
-            plt.scatter(shiftra(ra[mask_i]),
-                        dec[mask_i],
-                        s=1,
-                        marker='o',
-                        color=plt.cm.jet(i/(njack)),
-                        alpha=0.8)
-        plt.xlabel('RA [deg]')
-        plt.ylabel('DEC [deg]')
-        plt.show()
-
-
-    return masks
+    
+    def __getitem__(self, item):
+        """ function returns i'th Jackknife mask
+        """
+        return self.masks[item]
 
 
 
@@ -167,23 +322,37 @@ def corrmatrix(matrix, estimator='pearsonr'):
 
     Examples
     --------
+    >>> # example 1
+    >>> x = np.random.multivariate_normal([1, -1], 
+                                  [[1., 0.9], [0.9, 1.]], 
+                                  size=1000)                                  
+    >>> corr = corrmatrix(x, estimator='pearsonr')
+    >>> assert np.allclose(corr, [[1., 0.9], [0.9, 1.]], rtol=1.0e-2)
+    >>>
+    >>> # example 2
+    >>> df = pd.read_hdf('SDSS_WISE_HI_imageprop_nside512.h5', key='templates')
+    >>> df.dropna(inplace=True)
+    >>> corr = corrmatrix(df.values)
+    >>> plt.imshow(corr)
 
     '''
     if estimator == 'pearsonr':
         festimator = pearsonr
     elif estimator == 'spearmanr':
         festimator = spearmanr
+    else:
+        raise ValueError(f'{estimator} is pearsonr or spearmanr')
 
-    n, m = matrix.shape
-    corr = np.ones((m,m)) # initialize with one, fill non-diagonal terms later
+    n_examples, n_features = matrix.shape
+    
+    corr = np.ones((n_features, n_features))
 
-    for i in range(m):
+    for i in range(n_features):
         column_i = matrix[:,i]
 
-        for j in range(i+1, m):
-            # corr matrix is symmetric
+        for j in range(i+1, n_features):
             corr_ij = festimator(column_i, matrix[:,j])[0]
-            corr[i,j] = corr_ij
+            corr[i,j] = corr_ij  # corr matrix is symmetric
             corr[j,i] = corr_ij
 
     return corr
@@ -290,7 +459,7 @@ def hpix2caps(hpind, nside=256, mindec_bass=32.375,
     decals = (~mzls) & (~north) & (dec > mindec_decals)
     return decaln, decals, mzls
 
-def histogram(el, cel, bins=None):
+def histogram(el, cel, bins=None, return_wt=False):
     '''
         bin the C_ell measurements
         
@@ -314,13 +483,16 @@ def histogram(el, cel, bins=None):
     clwt = binned_statistic(el, a2lp1*cel, **kw)[0] # want the first value only
     wt = binned_statistic(el, a2lp1, **kw)[0]
     #print(clwt, wt)
-    return bins_mid, clwt/wt, wt
+    if return_wt:
+        return bins_mid, clwt/wt, wt
+    else:
+        return bins_mid, clwt/wt
 
 def modecounting_err(el, cel, bins=None, fsky=1.0):
     '''
         get the mode counting error estimate
     '''
-    bins_mid, cl_wt, wt = histogram(el, cel, bins=bins)
+    bins_mid, cl_wt, wt = histogram(el, cel, bins=bins, return_wt=True)
 
     return bins_mid, (cl_wt/wt)/(np.sqrt(0.5*fsky*wt))
 
@@ -333,10 +505,10 @@ def histogram_jac(cljks, bins=None):
     el = np.arange(cljks[0].size)
     cbljks = []
     for i in range(njacks):
-        elb, clb,_ = histogram(el, cljks[i], bins=bins)
+        elb, clb = histogram(el, cljks[i], bins=bins)
         cbljks.append(clb)
 
-    elb, clm,_ = histogram(el, cljks[-1], bins=bins)
+    elb, clm = histogram(el, cljks[-1], bins=bins)
     clvar = np.zeros(clm.size)
     for i in range(njacks):
         clvar += (clm - cbljks[i])*(clm - cbljks[i])

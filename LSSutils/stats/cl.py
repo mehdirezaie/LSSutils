@@ -9,15 +9,21 @@ from LSSutils.utils import make_jackknifes, overdensity
 __all__ = ['AnaFast', 'get_cl']
 
 @CurrentMPIComm.enable
-def get_cl(ngal, nran, mask, select_fun=None,
-           systematics=None, njack=20, lmax=None, comm=None):
+def get_cl(ngal, nran, mask, selection_fn=None,
+           systematics=None, njack=20, lmax=None, 
+           cache_jackknifes=False, do_jack_sys=False, comm=None):
     # initialize AnaFast
     af_kw = {'njack':njack, 'lmax':lmax}
-    af = AnaFast()
+    if do_jack_sys:
+        af_kws = {'njack':njack, 'lmax':lmax}
+    else:
+        af_kws = {'njack':0, 'lmax':lmax}
+        
+    af = AnaFast(cache_jackknifes=cache_jackknifes)
 
     if comm.rank==0:
         weight = nran / nran[mask].mean()
-        delta = overdensity(ngal, nran, mask, select_fun=select_fun)
+        delta = overdensity(ngal, nran, mask, selection_fn=selection_fn)
     else:
         delta = None
         weight = None
@@ -50,9 +56,9 @@ def get_cl(ngal, nran, mask, select_fun=None,
                 print('.', end='')
             systematic_i = overdensity(systematics[:, i],
                                         weight, mask, is_sys=True)
-            cl_ss_list.append(af(systematic_i, weight, mask, **af_kw))
+            cl_ss_list.append(af(systematic_i, weight, mask, **af_kws))
             cl_sg_list.append(af(delta, weight, mask,
-                        map2=systematic_i, weight2=weight, mask2=mask, **af_kw))
+                        map2=systematic_i, weight2=weight, mask2=mask, **af_kws))
 
         comm.Barrier()
         cl_ss_list = comm.gather(cl_ss_list, root=0)
@@ -85,7 +91,9 @@ def get_shotnoise(ngal, weight, mask, estimator='nbar'):
         return 1./nbar
     elif estimator=='signbar':
         return np.std(ngal[mask])/nbar
-    
+    else:
+        raise ValueError(f'{estimator} either nbar or signbar')
+        
 class AnaFast:
     '''
 
@@ -119,8 +127,9 @@ class AnaFast:
     plt.show()
 
     '''
-    def __init__(self):
-        pass
+    def __init__(self, cache_jackknifes=False):
+        self.cache_jackknifes = cache_jackknifes
+
 
     def __call__(self, map1, weight1, mask1,
                  map2=None, weight2=None, mask2=None,
@@ -172,8 +181,14 @@ class AnaFast:
         if mask2 is not None:
             mask_common &= mask2
 
-        jackknifes = make_jackknifes(mask_common, weight1, njack=njack,
-                                     visualize=visualize, subsample=subsample)
+        if not hasattr(self, 'jackknifes'):
+            jackknifes = make_jackknifes(mask_common, weight1, njack=njack,
+                                         visualize=visualize, subsample=subsample)
+            if self.cache_jackknifes:
+                self.jackknifes = jackknifes
+        else:
+            assert np.allclose(self.jackknifes[-1], mask_common), 'mask has changed'
+            jackknifes = self.jackknifes
 
         #--- compute the mean
         cl_jackknifes = {}
