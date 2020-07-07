@@ -11,7 +11,10 @@ import os
 import sys
 import numpy as np
 import healpy as hp
+
 from sklearn.cluster import KMeans
+from scipy.stats import (binned_statistic, spearmanr, pearsonr)
+
 
 
 
@@ -25,7 +28,6 @@ import pandas as pd
 import scipy.special as scs
 from scipy import integrate
 from scipy.constants import c as clight
-from scipy.stats import (binned_statistic, spearmanr, pearsonr)
 
 
 from sklearn.model_selection import KFold
@@ -358,18 +360,39 @@ def corrmatrix(matrix, estimator='pearsonr'):
     return corr
 
 
-def dr8density(df, n2r=False, persqdeg=True, nside=256):
-    ''' DR8 ELG Density, Colorbox selection
+def dr8density(df, n2r=False, perpix=True):
+    """ Funtion reads DR8 ELG Density, Colorbox selection
 
         credit: Pauline Zarrouk
-    '''
+        
+        parameters
+        ----------
+        df : array_like
+            dataframe with ELG column densities
+        
+        n2r : boolean
+            convert from nest to ring ordering
+            
+        perpix : boolean
+            convert the density to per pixel unit
+            
+            
+        returns
+        -------
+        density : array_like
+            density of ELGs
+        
+    """
+
     density = np.zeros(df.size)
     for colorcut in ['ELG200G228', 'ELG228G231',\
                  'ELG231G233', 'ELG233G234',\
                  'ELG234G236']: # 'ELG200G236'
         density += df[colorcut]
 
-    if not persqdeg:
+    nside = hp.get_nside(density)
+    
+    if perpix:
         # it's already per sq deg
         density *= df['FRACAREA']*hp.nside2pixarea(nside, degrees=True)
 
@@ -379,13 +402,37 @@ def dr8density(df, n2r=False, persqdeg=True, nside=256):
     return density
 
 def steradian2sqdeg(steradians):
-    ''' Steradians to sq. deg
-    '''
+    """ 
+        Steradians to sq. deg
+        
+        parameters
+        ----------
+        steradians : float
+            area in steradians
+        
+        returns
+        -------
+        area : float
+            area in steradians
+    """
     return steradians*(180/np.pi)**2
 
-def shiftra(x):
-    ''' (c) Julian Bautista Hack to shift RA for plotting '''
-    return x-360*(x>300)
+def shiftra(ra):
+    """ 
+    (c) Julian Bautista Hack to shift RA for plotting
+    
+    parameters
+    ----------
+    ra : array_like
+        right ascention in degrees
+        
+    returns
+    -------
+    ra' : array_like
+        shifted right ascention in degrees
+        
+    """
+    return ra-360*(ra>300)
 
 
 def flux_to_mag(flux, band, ebv=None):
@@ -409,55 +456,147 @@ def flux_to_mag(flux, band, ebv=None):
 
 
 def radec2hpix(nside, ra, dec):
-    ''' RA,DEC to HEALPix index in ring
-    '''
+    """ 
+    Function transforms RA,DEC to HEALPix index in ring ordering
+    
+    parameters
+    ----------
+    nside : int
+    
+    ra : array_like
+        right ascention in deg
+    
+    dec : array_like
+        declination in deg
+    
+    
+    returns
+    -------
+    hpix : array_like
+        HEALPix indices
+    
+    """
     hpix = hp.ang2pix(nside, np.radians(90 - dec), np.radians(ra))
     return hpix
 
 def hpix2radec(nside, hpix):
-    ''' HEALPix index (ring) to RA,DEC
-    '''
+    """
+    Function transforms HEALPix index (ring) to RA, DEC
+    
+    parameters 
+    ----------
+    nside : int
+        
+    hpix : array_like
+        HEALPix indices
+    
+    returns
+    -------
+    ra : array_like
+        right ascention in deg
+        
+    dec : array_like
+        declination in deg
+        
+    """
     theta, phi = hp.pixelfunc.pix2ang(nside, hpix)
     return np.degrees(phi), 90-np.degrees(theta)
 
-def mask2caps(mask, **hpix2caps_kwargs):
-    ''' Split a binary mask (array) into DECaLS North, South, and BASS/MzLS
+def hpix2regions(hpix, 
+                 nside=256, 
+                 min_dec_mzls=32.375,
+                 min_dec_decals=-30.0):
+    """
+    Function splits HEALPix indices to DECaLS North, South, and BASS/MzLS
 
-    '''
+    parameters
+    ----------
+    hpix : array_like
+    
+    nside : int
+    
+    min_dec_mzls : float
+    
+    min_dec_decals : float
+
+
+    returns
+    -------
+    is_decaln : array_like
+    
+    is_decals : array_like
+    
+    is_mzls : array_like
+    
+    
+    examples
+    --------
+    >>> mask = hp.read_map('mask_elg_256.cut.fits') > 0
+    >>> hpix = np.argwhere(mask).flatten()
+    >>> regions = hpix2regions(hpix, 256)
+    >>> for region in regions:
+            ra, dec = hpix2radec(256, hpix[region])
+            plt.scatter(shiftra(ra), dec)
+            
+    >>> plt.show()
+    """
+    theta, phi = hp.pixelfunc.pix2ang(nside, hpix)    
+    dec = 90-np.degrees(theta)
+    r = hp.Rotator(coord=['C', 'G'])
+    theta_g, phi_g = r(theta, phi)
+
+    is_north  = theta_g < np.pi/2
+    is_mzls   = (dec > min_dec_mzls) & is_north
+    is_decaln = (~is_mzls) & is_north
+    is_decals = (~is_mzls) & (~is_north) & (dec > min_dec_decals)
+    
+    return is_decaln, is_decals, is_mzls
+
+def mask2regions(mask,
+                 min_dec_mzls=32.375,
+                 min_dec_decals=-30.0):
+    """    
+    Function splits a binary mask into DECaLS North, South, and BASS/MzLS
+    
+    parameters
+    ----------
+    mask : array_like, boolean
+    
+    hpix2caps_kwargs : dict
+        optional arguments for `hpix2caps'
+         
+         
+    see also
+    --------
+    'hpix2regions'
+
+
+    examples
+    --------
+    >>> mask = hp.read_map('mask_elg_256.cut.fits') > 0
+    >>> regions = mask2regions(mask)
+    >>> for region in regions:
+            hp.mollview(region)
+
+    """
+    nside = hp.get_nside(mask)
     hpix = np.argwhere(mask).flatten()
-    masks = hpix2caps(hpix, **hpix2caps_kwargs)
-    #print(mask.sum())
-    #ra, dec = hpix2radec(nside, hpix)
-    #for mask_i in masks:
-    #    plt.scatter(utils.shiftra(ra[mask_i]), dec[mask_i], 5, marker='.')
+    regions = hpix2regions(hpix, nside, 
+                           min_dec_mzls=min_dec_mzls, 
+                           min_dec_decals=min_dec_decals)
 
     ngc = np.zeros_like(mask)
-    ngc[hpix[masks[0]]] = True
+    ngc[hpix[regions[0]]] = True
 
     sgc = np.zeros_like(mask)
-    sgc[hpix[masks[1]]] = True
+    sgc[hpix[regions[1]]] = True
 
     bmzls = np.zeros_like(mask)
-    bmzls[hpix[masks[2]]] = True
+    bmzls[hpix[regions[2]]] = True
 
     return ngc, sgc, bmzls
 
-def hpix2caps(hpind, nside=256, mindec_bass=32.375,
-                mindec_decals=-30., **kwargs):
-    ''' Split a list of HEALPix indices to DECaLS North, South, and BASS/MzLS
-
-    '''
-    ra, dec = hpix2radec(nside, hpind)
-    theta   = np.pi/2 - np.radians(dec)
-    phi     = np.radians(ra)
-    r       = hp.Rotator(coord=['C', 'G'])
-    theta_g, phi_g = r(theta, phi)
-
-    north  = theta_g < np.pi/2
-    mzls   = (dec > mindec_bass) & north
-    decaln = (~mzls) & north
-    decals = (~mzls) & (~north) & (dec > mindec_decals)
-    return decaln, decals, mzls
+## UP TO HERE
 
 def histogram(el, cel, bins=None, return_wt=False):
     '''
@@ -864,7 +1003,7 @@ def combine(hpix, fracgood, label, features, DTYPE, IDS):
     # uses concatenate(A,ID) to combine different attributes
     size = np.sum([len(hpix[i]) for i in IDS])
     zeros = np.zeros(size, dtype=DTYPE)
-    zeros['hpind']     = concatenate(hpix, IDS)
+    zeros['hpix']     = concatenate(hpix, IDS)
     zeros['fracgood'] = concatenate(fracgood, IDS)
     zeros['features'] = concatenate(features, IDS)
     zeros['label']    = concatenate(label, IDS)
@@ -876,7 +1015,7 @@ def split2KfoldsSpatially(data, k=5, shuffle=True, random_seed=123):
         split data into k contiguous regions
         for training, validation and testing
     '''
-    P, W, L, F = split_jackknife(data['hpind'],data['fracgood'],
+    P, W, L, F = split_jackknife(data['hpix'],data['fracgood'],
                                 data['label'], data['features'],
                                  njack=k)
     DTYPE = data.dtype
