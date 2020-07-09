@@ -3,7 +3,7 @@ import healpy as hp
 import numpy as np
 
 from LSSutils import CurrentMPIComm
-from LSSutils.utils import make_jackknifes, overdensity
+#from LSSutils.utils import make_jackknifes, overdensity
 
 
 __all__ = ['AnaFast', 'get_cl']

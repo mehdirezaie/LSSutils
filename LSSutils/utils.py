@@ -36,7 +36,7 @@ from sklearn.neighbors import KDTree
 
 
 __all__ = ['overdensity', 'hpixsum', 'radec2hpix', 'hpix2radec',
-           'radec2r', 'r2radec', 'make_jackknifes']
+           'radec2r', 'r2radec']
 
 
 
