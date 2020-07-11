@@ -16,9 +16,6 @@ from sklearn.cluster import KMeans
 from scipy.stats import (binned_statistic, spearmanr, pearsonr)
 
 
-
-
-
 import numpy.lib.recfunctions as rfn
 
 import fitsio as ft
@@ -302,7 +299,7 @@ class KMeansJackknifes:
 
 
 
-def corrmatrix(matrix, estimator='pearsonr'):
+def corrmat(matrix, estimator='pearsonr'):
     '''
     The corrmatrix function.
 
@@ -328,13 +325,13 @@ def corrmatrix(matrix, estimator='pearsonr'):
     >>> x = np.random.multivariate_normal([1, -1], 
                                   [[1., 0.9], [0.9, 1.]], 
                                   size=1000)                                  
-    >>> corr = corrmatrix(x, estimator='pearsonr')
+    >>> corr = corrmat(x, estimator='pearsonr')
     >>> assert np.allclose(corr, [[1., 0.9], [0.9, 1.]], rtol=1.0e-2)
     >>>
     >>> # example 2
     >>> df = pd.read_hdf('SDSS_WISE_HI_imageprop_nside512.h5', key='templates')
     >>> df.dropna(inplace=True)
-    >>> corr = corrmatrix(df.values)
+    >>> corr = corrmat(df.values)
     >>> plt.imshow(corr)
 
     '''
@@ -360,7 +357,7 @@ def corrmatrix(matrix, estimator='pearsonr'):
     return corr
 
 
-def dr8density(df, n2r=False, perpix=True):
+def read_dr8density(df, n2r=False, perpix=True):
     """ Funtion reads DR8 ELG Density, Colorbox selection
 
         credit: Pauline Zarrouk
@@ -403,17 +400,18 @@ def dr8density(df, n2r=False, perpix=True):
 
 def steradian2sqdeg(steradians):
     """ 
-        Steradians to sq. deg
+    Steradians to sq. deg
+
+    parameters
+    ----------
+    steradians : float
+        area in steradians
+
+    returns
+    -------
+    area : float
+        area in steradians
         
-        parameters
-        ----------
-        steradians : float
-            area in steradians
-        
-        returns
-        -------
-        area : float
-            area in steradians
     """
     return steradians*(180/np.pi)**2
 
@@ -421,10 +419,12 @@ def shiftra(ra):
     """ 
     (c) Julian Bautista Hack to shift RA for plotting
     
+    
     parameters
     ----------
     ra : array_like
         right ascention in degrees
+        
         
     returns
     -------
@@ -436,11 +436,26 @@ def shiftra(ra):
 
 
 def flux_to_mag(flux, band, ebv=None):
-    ''' Converts SDSS fluxes to magnitudes,
+    """ 
+    Converts SDSS fluxes to magnitudes,
     correcting for extinction optionally (EBV)
 
     credit: eBOSS pipeline (Ashley Ross, Julian Bautista et al.)
-    '''
+    
+    parameters
+    ----------
+    flux : array_like
+        SDSS fluxes
+        
+    band : string
+        one of ugriz
+        
+    returns
+    -------
+    mag : array_like
+        magnitudes corrected for the EBV
+    
+    """
     index_b = dict(zip(['u', 'g', 'r', 'i', 'z'], np.arange(5)))
     index_e = dict(zip(['u', 'g', 'r', 'i', 'z'], [4.239,3.303,2.285,1.698,1.263]))
     #-- coefs to convert from flux to magnitudes
@@ -596,63 +611,128 @@ def mask2regions(mask,
 
     return ngc, sgc, bmzls
 
-## UP TO HERE
+def histogram_cell(ell, cell, bins=None, return_weights=False, log=True):
+    """
+    Function computes the histogram of the C_ell weighted by 2\ell+1  
+    
+    C_{ell} = \sum C_{ell} (2\ell+1) / \sum (2\ell+1)
+                            
+              
+    parameters
+    ----------
+    ell : array_like 
+    
+    cell : array_like
+    
+    bins : array_like
+    
+    return_weights : boolean
+    
+    log : boolean
+        logarithmic binning if bins not provided
 
-def histogram(el, cel, bins=None, return_wt=False):
-    '''
-        bin the C_ell measurements
-        
-        
-        args:
-            el
-            cel
-            bins
-            
-        returns:
-            el mid
-            cel mid
-            wt weights
-        
-    '''
-    if bins is None:
-        bins = np.logspace(0, np.log10(el.max()+1), 10)
-    kw  = dict(bins=bins, statistic='sum')
-    bins_mid  = 0.5*(bins[1:]+bins[:-1])
-    a2lp1 = 2*el + 1
-    clwt = binned_statistic(el, a2lp1*cel, **kw)[0] # want the first value only
-    wt = binned_statistic(el, a2lp1, **kw)[0]
-    #print(clwt, wt)
-    if return_wt:
-        return bins_mid, clwt/wt, wt
+    returns
+    -------    
+    ell_bin : array_like
+    
+    cell_bin : array_like
+    
+    weights_bin : array_like    
+        (optional)
+    
+    """
+    
+    # set the bins, ell_min = 0 (or 1 in log)
+    if bins is None:                
+        if log:
+            bins = np.logspace(0, np.log10(el.max()+1), 10)
+        else:
+            bins = np.linspace(0, el.max()+1, 10)
+                    
+    kwargs  = dict(bins=bins, statistic='sum')    
+    bins_mid = 0.5*(bins[1:]+bins[:-1])
+    weights = 2*el + 1
+    
+    cell_bin = binned_statistic(ell, weights*cell, **kwargs)[0] # first output is needed
+    weights_bin = binned_statistic(ell, weights, **kwargs)[0]
+    
+    if return_weights:
+        return bins_mid, cell_bin/weights_bin, weights_bin    
     else:
-        return bins_mid, clwt/wt
+        return bins_mid, cell_bin/weights_bin
 
-def modecounting_err(el, cel, bins=None, fsky=1.0):
-    '''
+
+def estimate_cell_err(cell, method='nmodes', bins=None, fsky=1.0, **kwargs):  
+    """
+    Function estimates the error on C_ell
+    
+    
+    parameters
+    ----------
+    cell : array_like, or dict of array_like
+    
+    method : str
+        nmodes : error based on mode counting
+        
+        jackknife : error based on Jackknife sub-sampling
+        
+    bins : array_like
+    
+    fsky : float
+        fraction of sky covered
+        
+    kwargs : dict
+        optional arguments for histogram_cell
+    
+    """
+    if method=='nmodes':     
+        assert isinstance(cell, np.array)
+        ell_bin, cell_bin_err = __get_nmodes_cell_err(cell, bins=bins, fsky=fsky, **kwargs)                
+        
+    elif method=='jackknife':
+        assert isinstance(cell, dict)
+        ell_bin, cell_bin_err = __get_jackknife_cell_err(cell, bins=bins, **kwargs)        
+        
+    else:
+        raise ValueError(f'{method} is not implemented.')
+        
+    return ell_bin, cell_bin_err
+        
+        
+def __get_nmodes_cell_err(cell, bins=None, fsky=1.0, **kwargs):
+    """
         get the mode counting error estimate
-    '''
-    bins_mid, cl_wt, wt = histogram(el, cel, bins=bins, return_wt=True)
-
+        
+    """
+    ell = np.arange(cell.size)    
+    bins_mid, cl_wt, wt = histogram_cell(ell, cell, bins=bins, return_weights=True, **kwargs)    
     return bins_mid, (cl_wt/wt)/(np.sqrt(0.5*fsky*wt))
 
-def histogram_jac(cljks, bins=None):
-    '''
-        Bin jackknife C_ell measurements and get the error estimate
-    '''
+
+def __get_jackknife_cell_err(cljks, bins=None, **kwargs):
+    """
+        compute jackknife C_ell measurements and get the error estimate
+        
+    """    
+    ell = np.arange(cljks[0].size)
+    elb, clm = histogram_cell(ell, cljks[-1], bins=bins, **kwargs)
+    clvar = np.zeros(clm.size)
+    
     njacks = len(cljks) - 1 # -1 for the global measurement
 
-    el = np.arange(cljks[0].size)
+    
     cbljks = []
     for i in range(njacks):
-        elb, clb = histogram(el, cljks[i], bins=bins)
+        clb = histogram_cell(ell, cljks[i], bins=bins, **kwargs)[1] # only need cell_bin
         cbljks.append(clb)
-
-    elb, clm = histogram(el, cljks[-1], bins=bins)
-    clvar = np.zeros(clm.size)
+    
     for i in range(njacks):
         clvar += (clm - cbljks[i])*(clm - cbljks[i])
-    clvar *= (njacks-1)/njacks
+    clvar *= (njacks-1.)/njacks
+    
     return elb, np.sqrt(clvar)
+
+
 
 def hpixmean(nside, ra, dec, value, statistic='mean'):
     '''
