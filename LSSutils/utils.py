@@ -611,7 +611,67 @@ def mask2regions(mask,
 
     return ngc, sgc, bmzls
 
-def histogram_cell(ell, cell, bins=None, return_weights=False, log=True):
+def histogram_cell(cell, return_err=False, method='nmodes', bins=None, fsky=1.0, **kwargs):  
+    """
+    Function bins C_ell and estimates the error
+    
+    
+    parameters
+    ----------
+    cell : array_like, or dict of array_like
+    
+    return_err : boolean
+    
+    method : str
+        nmodes : error based on mode counting
+        
+        jackknife : error based on Jackknife sub-sampling
+        
+    bins : array_like
+    
+    fsky : float
+        fraction of sky covered
+        
+    kwargs : dict
+        optional arguments for `__histogram_cell`
+        
+        
+        
+    returns
+    -------
+    ell_bin : array_like
+    
+    cell_bin : array_like
+    
+    cell_bin_err : array_like    
+    
+    """
+    if return_err:
+        
+        if method=='nmodes':     
+            assert isinstance(cell, np.array)
+            ell_bin, cell_bin, cell_bin_err = __get_nmodes_cell_err(cell, bins=bins, fsky=fsky, **kwargs)                
+
+        elif method=='jackknife':
+            assert isinstance(cell, dict)
+            ell_bin, cell_bin, cell_bin_err = __get_jackknife_cell_err(cell, bins=bins, **kwargs)        
+
+        else:
+            raise ValueError(f'{method} is not implemented, choices are nmodes and jackknifes.')
+
+        return ell_bin, cell_bin, cell_bin_err
+
+    else:
+        
+        assert isinstance(cell, np.array)
+        
+        ell = np.arange(cell.size)
+        ell_bin, cell_bin = __histogram_cell(ell, cell, bins=bins, **kwargs)
+
+        return ell_bin, cell_bin
+    
+    
+def __histogram_cell(ell, cell, bins=None, return_weights=False, log=True):
     """
     Function computes the histogram of the C_ell weighted by 2\ell+1  
     
@@ -661,78 +721,84 @@ def histogram_cell(ell, cell, bins=None, return_weights=False, log=True):
     else:
         return bins_mid, cell_bin/weights_bin
 
-
-def estimate_cell_err(cell, method='nmodes', bins=None, fsky=1.0, **kwargs):  
-    """
-    Function estimates the error on C_ell
-    
-    
-    parameters
-    ----------
-    cell : array_like, or dict of array_like
-    
-    method : str
-        nmodes : error based on mode counting
-        
-        jackknife : error based on Jackknife sub-sampling
-        
-    bins : array_like
-    
-    fsky : float
-        fraction of sky covered
-        
-    kwargs : dict
-        optional arguments for histogram_cell
-    
-    """
-    if method=='nmodes':     
-        assert isinstance(cell, np.array)
-        ell_bin, cell_bin_err = __get_nmodes_cell_err(cell, bins=bins, fsky=fsky, **kwargs)                
-        
-    elif method=='jackknife':
-        assert isinstance(cell, dict)
-        ell_bin, cell_bin_err = __get_jackknife_cell_err(cell, bins=bins, **kwargs)        
-        
-    else:
-        raise ValueError(f'{method} is not implemented.')
-        
-    return ell_bin, cell_bin_err
-        
         
 def __get_nmodes_cell_err(cell, bins=None, fsky=1.0, **kwargs):
     """
-        get the mode counting error estimate
+    Function computes the mode counting error estimate
+    
+    parameters
+    ----------
+    cell : array_like
+    
+    bins : array_like
+    
+    fsky : float
+    
+    kwargs : dict
+        optional arguments for 'histogram_cell'
+        
+        
+    returns
+    -------
+    ell_bin : array_like
+    
+    cell_bin : array_like
+    
+    cell_bin_err : array_like    
         
     """
+    
     ell = np.arange(cell.size)    
-    bins_mid, cl_wt, wt = histogram_cell(ell, cell, bins=bins, return_weights=True, **kwargs)    
-    return bins_mid, (cl_wt/wt)/(np.sqrt(0.5*fsky*wt))
+    ell_bin, cell_bin, weight_bin = __histogram_cell(ell, cell, bins=bins, return_weights=True, **kwargs)  
+    cell_bin_err = (cell_bin/weight_bin)/(np.sqrt(0.5*fsky*weight_bin))
+    
+    return ell_bin, cell_bin, cell_bin_err
 
 
 def __get_jackknife_cell_err(cljks, bins=None, **kwargs):
     """
-        compute jackknife C_ell measurements and get the error estimate
+    Function computes jackknife C_ell measurements and get the error estimate
         
+    parameters
+    ----------
+    cljks : dict of array_like
+    
+    bins : array_like
+    
+    kwargs : dict
+        optional arguments for `histogram_cell`
+        
+    
+    returns
+    -------
+    ell_bin : array_like
+    
+    cell_bin : array_like    
+    
+    cell_bin_err : array_like
+    
+    
     """    
+    njacks = len(cljks) - 1 # -1 for the global measurement    
     ell = np.arange(cljks[0].size)
-    elb, clm = histogram_cell(ell, cljks[-1], bins=bins, **kwargs)
-    clvar = np.zeros(clm.size)
     
-    njacks = len(cljks) - 1 # -1 for the global measurement
-
+    ell_bin, cell_bin = __histogram_cell(ell, cljks[-1], bins=bins, **kwargs)
     
-    cbljks = []
-    for i in range(njacks):
-        clb = histogram_cell(ell, cljks[i], bins=bins, **kwargs)[1] # only need cell_bin
-        cbljks.append(clb)
+    cell_var = np.zeros(cell_bin.size)
     
     for i in range(njacks):
-        clvar += (clm - cbljks[i])*(clm - cbljks[i])
-    clvar *= (njacks-1.)/njacks
+        
+        cell_bin_i = __histogram_cell(ell, cljks[i], bins=bins, **kwargs)[1] # only need cell_bin
+        delta_cell = cell_bin - cell_bin_i
+        
+        cell_var += delta_cell*delta_cell 
+        
+    cell_var *= (njacks-1.)/njacks
+    cell_bin_err = np.sqrt(cell_var)
     
-    return elb, np.sqrt(clvar)
+    return ell_bin, cell_bin, cell_bin_err
 
-
+## UP TO HERE
 
 def hpixmean(nside, ra, dec, value, statistic='mean'):
     '''
