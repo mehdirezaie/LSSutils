@@ -7,7 +7,7 @@ import fitsio as ft
 import numpy as np
 import healpy as hp
 
-from LSSutils.utils import radec2hpix, hpixsum, shiftra, overdensity
+from LSSutils.utils import radec2hpix, hpixsum, shiftra, make_overdensity
 from astropy.table import Table
 import logging
 
