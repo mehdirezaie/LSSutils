@@ -3,7 +3,7 @@ import healpy as hp
 import numpy as np
 
 from LSSutils import CurrentMPIComm
-#from LSSutils.utils import make_jackknifes, overdensity
+from LSSutils.utils import make_overdensity
 
 
 __all__ = ['AnaFast', 'get_cl']
@@ -23,7 +23,7 @@ def get_cl(ngal, nran, mask, selection_fn=None,
 
     if comm.rank==0:
         weight = nran / nran[mask].mean()
-        delta = overdensity(ngal, nran, mask, selection_fn=selection_fn)
+        delta = make_overdensity(ngal, nran, mask, selection_fn=selection_fn)
     else:
         delta = None
         weight = None
@@ -54,7 +54,7 @@ def get_cl(ngal, nran, mask, selection_fn=None,
         for i in range(start, end):
             if comm.rank==0:
                 print('.', end='')
-            systematic_i = overdensity(systematics[:, i],
+            systematic_i = make_overdensity(systematics[:, i],
                                         weight, mask, is_sys=True)
             cl_ss_list.append(af(systematic_i, weight, mask, **af_kws))
             cl_sg_list.append(af(delta, weight, mask,

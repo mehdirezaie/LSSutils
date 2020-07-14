@@ -9,40 +9,21 @@
 """
 import os
 import sys
+import logging
 import numpy as np
 import healpy as hp
+import fitsio as ft
+import pandas as pd
 
+from astropy.table import Table
 from sklearn.cluster import KMeans
+from sklearn.model_selection import KFold
 from scipy.stats import (binned_statistic, spearmanr, pearsonr)
 
 
-import numpy.lib.recfunctions as rfn
-
-import fitsio as ft
-
-import pandas as pd
-
-import scipy.special as scs
-from scipy import integrate
-from scipy.constants import c as clight
-
-
-from sklearn.model_selection import KFold
-from sklearn.neighbors import KDTree
-
-import warnings
-from astropy.table import Table
-import logging
-
-#logging.basicConfig(level=logging.INFO)
-
-
-
-
-__all__ = ['make_overdensity', 'hpixsum', 'radec2hpix', 'hpix2radec',
-          'KMeansJackknifes', 'histogram_cell']
-
-
+__all__ = ['make_overdensity', 'hpixsum', 
+           'radec2hpix', 'hpix2radec',
+           'KMeansJackknifes', 'histogram_cell']
 
 class SphericalKMeans(KMeans):
     """
@@ -652,7 +633,7 @@ def histogram_cell(cell, return_err=False, method='nmodes', bins=None, fsky=1.0,
     if return_err:
         
         if method=='nmodes':     
-            assert isinstance(cell, np.array)
+            assert isinstance(cell, np.ndarray)
             ell_bin, cell_bin, cell_bin_err = __get_nmodes_cell_err(cell, bins=bins, fsky=fsky, **kwargs)                
 
         elif method=='jackknife':
@@ -666,7 +647,7 @@ def histogram_cell(cell, return_err=False, method='nmodes', bins=None, fsky=1.0,
 
     else:
         
-        assert isinstance(cell, np.array)
+        assert isinstance(cell, np.ndarray)
         
         ell = np.arange(cell.size)
         ell_bin, cell_bin = __histogram_cell(ell, cell, bins=bins, **kwargs)
@@ -708,13 +689,13 @@ def __histogram_cell(ell, cell, bins=None, return_weights=False, log=True):
     # set the bins, ell_min = 0 (or 1 in log)
     if bins is None:                
         if log:
-            bins = np.logspace(0, np.log10(el.max()+1), 10)
+            bins = np.logspace(0, np.log10(ell.max()+1), 10)
         else:
-            bins = np.linspace(0, el.max()+1, 10)
+            bins = np.linspace(0, ell.max()+1, 10)
                     
     kwargs  = dict(bins=bins, statistic='sum')    
     bins_mid = 0.5*(bins[1:]+bins[:-1])
-    weights = 2*el + 1
+    weights = 2*ell + 1
     
     cell_weights_bin = binned_statistic(ell, weights*cell, **kwargs)[0] # first output is needed
     weights_bin = binned_statistic(ell, weights, **kwargs)[0]
@@ -1056,7 +1037,7 @@ def make_clustering_catalog(mock):
     mock_clust = Table(fields, names=names)
     return mock_clust
 
-def reassignment(randoms, data, seed=42):
+def __reassign(randoms, data, seed=42):
     """
     This function re-assigns the attributes from data to randoms
     
@@ -1106,32 +1087,90 @@ def reassignment(randoms, data, seed=42):
 
     return rand_clust[good]
 
-# ---- up to here
-
-class EbossCatalog:
+class EbossCat:
+    """
+    Reads SDSS-IV eBOSS catalogs
     
-    logger = logging.getLogger('EbossCatalog')
+    
+    attributes
+    ----------
+    kind : str
+        kind of the catalog, galaxy or randoms
+    columns : list of str
+        names of the columns in the catalog
+    
+    
+    methods
+    -------
+    tohp(nside, zmin, zmax, raw=0)
+        projects objects to HEALPix with nside and ring ordering
+        
+    
+    see also
+    --------
+    ???
+    """    
+    
+    logger = logging.getLogger('EbossCat')
     
     columns = ['RA', 'DEC', 'Z', 
                'WEIGHT_FKP', 'WEIGHT_SYSTOT', 'WEIGHT_CP',
                'WEIGHT_NOZ', 'NZ', 'QSO_ID', 'IMATCH',
-               'COMP_BOSS', 'sector_SSR']    
-    comp_min = 0.5
+               'COMP_BOSS', 'sector_SSR']  
     
-    def __init__(self, filename, kind='galaxy', **clean_kwargs):
-        self.kind  = kind
-        self.read(filename)
-        self.clean(**clean_kwargs)
+    __comp_min = 0.5
+    
+    def __init__(self, filename, kind='data', **clean_kwargs):
+        """ 
+        Initialize the EbossCat object 
         
-    def read(self, filename):
+        
+        parameters
+        ----------
+        filename : str
+        
+        kind : str
+        
+        clean_kwargs : dict
+            zmin : float
+                minimum redshift (=0.8)
+            zmax : float
+                maximum redshift (=2.2)
+        
+        """
+        assert kind in ['data', 'randoms'], "kind must be either 'data' or 'randoms'"
+        self.kind  = kind
+        self.__read(filename)
+        self.__clean(**clean_kwargs)
+        
+    def __read(self, filename):
+        """ 
+        Read the catalog 
+        
+        
+        parameters
+        ----------
+        filename : str
+        
+        """
         if filename.endswith('.fits'):
             self.data  = Table.read(filename)
         else:
             raise NotImplementedError(f'file {filename} not implemented')
+            
+        self.data_is_clean = False
     
-    def clean(self, zmin=0.8, zmax=2.2):
-        ''' `Full` to `Clustering` Catalog
-        '''           
+    def __clean(self, zmin=0.8, zmax=2.2):
+        """ 
+        Clean data and randoms catalogs, change the `Full` to `Clustering` catalog
+        
+        parameters
+        ----------
+        zmin : float
+        
+        zmax : float
+        
+        """           
         columns = []
         for i, column in enumerate(self.columns):
             if column not in self.data.columns:
@@ -1142,52 +1181,88 @@ class EbossCatalog:
         self.columns = columns
         self.data  = self.data[self.columns]        
         
-        #-- apply cuts on galaxy or randoms
+        self.logger.info(f'{zmin} < z < {zmax}')        
         good = (self.data['Z'] > zmin) & (self.data['Z'] < zmax)
-        self.logger.info(f'{zmin} < z < {zmax}')
-        for column in ['COMP_BOSS', 'sector_SSR']:
-            if column in self.data.columns:                
-                good &= self.data[column] > self.comp_min
-                self.logger.info(f'{column} > {self.comp_min}')
+        
+        for column in ['COMP_BOSS', 'sector_SSR']:            
+            if column in self.data.columns:                                
+                self.logger.info(f'{column} > {self.__comp_min}')
+                good &= (self.data[column] > self.__comp_min)
                 
-        if self.kind=='galaxy':
+        if self.kind=='data':            
             if 'IMATCH' in self.data.columns:
-                good &= (self.data['IMATCH']==1) | (self.data['IMATCH']==2)
-                self.logger.info(f'IMATCH = 1 or 2 for {self.kind}')
-                                
+                self.logger.info(f'IMATCH = 1 or 2 for {self.kind}')                
+                is_eboss = (self.data['IMATCH']==1)
+                is_legacy = (self.data['IMATCH']==2)                 
+                good &=  is_eboss | is_legacy
+                                                
         self.logger.info(f'{good.sum()} ({100*good.mean():3.1f}%) {self.kind} pass the cuts')
         self.data = self.data[good]
+        self.data_is_clean = True
         
-    def prepare_weights(self, raw=0):        
+    def __prepare_weights(self, raw=0):    
+        """
+        prepare the weights
+        
+        parameters
+        ----------
+        raw : int
+            0: raw number of objects
+            1: data weighted by FKPxCPxNOZ
+               randoms weighted by FKPxCOMP_BOSS
+            2: data/randoms weighted by FKPxCPxNOZxSYSTOT
+        
+        """
         self.logger.info(f'raw: {raw}')        
         
-        if raw==1:                        
-            if self.kind == 'galaxy':
-                self.data['WEIGHT'] = self.data['WEIGHT_FKP']
+        if raw==0:
+            self.data['WEIGHT'] = 1.0
+            
+        elif raw==1:             
+            if self.kind == 'data':
+                self.data['WEIGHT'] = self.data['WEIGHT_FKP']*1.
                 self.data['WEIGHT'] *= self.data['WEIGHT_CP']
-                self.data['WEIGHT'] *= self.data['WEIGHT_NOZ']
-                
-            elif self.kind == 'random':                
-                self.data['WEIGHT'] = self.data['WEIGHT_FKP']
-                self.data['WEIGHT'] *= self.data['COMP_BOSS']
-                
+                self.data['WEIGHT'] *= self.data['WEIGHT_NOZ']                
+            elif self.kind == 'randoms':                
+                self.data['WEIGHT'] = self.data['WEIGHT_FKP']*1.
+                self.data['WEIGHT'] *= self.data['COMP_BOSS']                
             else:
                 raise ValueError(f'{self.kind} not defined')
                 
         elif raw==2:
-            # data and randoms both are weighted by CP x FKP x NOZ x SYSTOT
-            self.data['WEIGHT'] = self.data['WEIGHT_FKP']
+            self.data['WEIGHT'] = self.data['WEIGHT_FKP']*1.
             self.data['WEIGHT'] *= self.data['WEIGHT_CP']            
             self.data['WEIGHT'] *= self.data['WEIGHT_NOZ']
             self.data['WEIGHT'] *= self.data['WEIGHT_SYSTOT']
-        elif raw==0:
-            self.data['WEIGHT'] = 1.0
+            
         else:
             raise ValueError(f'{raw} should be 0, 1, or 2!')
             
-    def tohp(self, nside, zmin, zmax, raw=0): 
-        self.prepare_weights(raw=raw)
-        assert 'WEIGHT' in self.data.columns, "run `self.prepare_weights'"
+            
+    def to_hp(self, nside, zmin, zmax, raw=0):
+        """
+        Project to HEALPix
+        
+        parameters
+        ----------
+        nside : int
+        
+        zmin : float
+        
+        zmax : float
+        
+        raw : int
+        
+        
+        returns
+        -------
+        nobjs : array_like
+            the number of objects in HEALPix
+        
+        """
+        assert self.data_is_clean, "`data` is not clean"
+        self.__prepare_weights(raw=raw)
+        
         self.logger.info(f'Projecting {self.kind}  to HEALPix with {nside}')
         good = (self.data['Z'] > zmin) & (self.data['Z'] < zmax)
         self.logger.info((f'{good.sum()} ({100*good.mean():3.1f}%)'
@@ -1197,9 +1272,42 @@ class EbossCatalog:
                        self.data['RA'][good], 
                        self.data['DEC'][good], 
                        weights=self.data['WEIGHT'][good])
+
+    def swap(self, zcuts, slices, colname='WEIGHT_SYSTOT', clip=False):
+        self.orgcol = self.data[colname].copy()
+        for slice_i in slices:
+            assert slice_i in zcuts.keys(), '%s not available'%slice_i
+            #
+
+            my_zcut   = zcuts[slice_i][0]
+            my_mask   = (self.data['Z'] >= my_zcut[0])\
+                      & (self.data['Z'] <= my_zcut[1])
+            
+            mapper    = zcuts[slice_i][1]
+            self.wmap_data = mapper(self.data['RA'][my_mask], self.data['DEC'][my_mask])
+            
+            self.logger.info(f'slice: {slice_i}, wsysmin: {self.wmap_data.min():.2f}, wsysmax: {self.wmap_data.max():.2f}')
+            self.data[colname][my_mask] = self.wmap_data            
+            self.logger.info('number of objs w zcut {} : {}'.format(my_zcut, my_mask.sum()))
+                                
+    def to_fits(self, filename):
+        assert self.data_is_clean, "`data` is not clean"
+        
+        if os.path.isfile(filename):
+            raise RuntimeError('%s exists'%filename)
+            
+        self.data.write(filename, overwrite=True)    
     
+    def reassign(self, source, seed=42):
+        """ Reassign z-related attributes from 'source' to 'data'
+        """
+        assert self.kind=='randoms', "reassignment only performed for 'data'"
+        self.data = __reassign(self.data, source, seed=seed)
+        
     def __getitem__(self, index):
         return self.data[index]
+    
+    
 
 class HEALPixDataset:
     logger = logging.getLogger('HEALPixDataset')
@@ -1219,15 +1327,15 @@ class HEALPixDataset:
         assert nside == self.nside, f'template has NSIDE={self.nside}'
                
         if label=='nnbar':
-            return self._prep_nnbar(nside, zmin, zmax, frac_min, nran_exp)
+            return self.__prep_nnbar(nside, zmin, zmax, frac_min, nran_exp)
         elif label=='ngal':
-            return self._prep_ngal(nside, zmin, zmax, frac_min, nran_exp)
+            return self.__prep_ngal(nside, zmin, zmax, frac_min, nran_exp)
         elif label=='ngalw':
-            return self._prep_ngalw(nside, zmin, zmax, frac_min, nran_exp)
+            return self.__prep_ngalw(nside, zmin, zmax, frac_min, nran_exp)
         else:
             raise ValueError(f'{label} must be nnbar, ngal, or ngalw')
     
-    def _prep_nnbar(self, nside, zmin, zmax, frac_min, nran_exp):
+    def __prep_nnbar(self, nside, zmin, zmax, frac_min, nran_exp):
         
         ngal = self.data.tohp(nside, zmin, zmax, raw=1)        
         nran = self.randoms.tohp(nside, zmin, zmax, raw=1)
@@ -1246,7 +1354,7 @@ class HEALPixDataset:
         return self._to_numpy(nnbar[mask], self.features[mask, :],
                              frac[mask], np.argwhere(mask).flatten())        
         
-    def _prep_ngalw(self, nside, zmin, zmax, frac_min, nran_exp):
+    def __prep_ngalw(self, nside, zmin, zmax, frac_min, nran_exp):
         
         ngal = self.data.tohp(nside, zmin, zmax, raw=1)        
         nran = self.randoms.tohp(nside, zmin, zmax, raw=1)
@@ -1262,7 +1370,7 @@ class HEALPixDataset:
         return self._to_numpy(ngal[mask], self.features[mask, :],
                              frac[mask], np.argwhere(mask).flatten())
 
-    def _prep_ngal(self, nside, zmin, zmax, frac_min, nran_exp):
+    def __prep_ngal(self, nside, zmin, zmax, frac_min, nran_exp):
         
         ngal = self.data.tohp(nside, zmin, zmax, raw=0)
         ngalw = self.data.tohp(nside, zmin, zmax, raw=1)        
@@ -1289,18 +1397,18 @@ class HEALPixDataset:
         return self._to_numpy(ngal[mask], self.features[mask, :],
                              fracw[mask], np.argwhere(mask).flatten())    
     
-    def _to_numpy(self, t, features, frac, hpind):
+    def _to_numpy(self, t, features, frac, hpix):
         
         dtype = [('features', ('f8', features.shape[1])), 
                  ('label', 'f8'),
                  ('fracgood', 'f8'),
-                 ('hpind', 'i8')]    
+                 ('hpix', 'i8')]    
         
         dataset = np.zeros(t.size, dtype=dtype)
         dataset['label'] = t
         dataset['fracgood'] = frac
         dataset['features'] = features
-        dataset['hpind'] = hpind
+        dataset['hpix'] = hpix
         
         return dataset    
 
@@ -1366,9 +1474,6 @@ class SysWeight(object):
         assert np.all(wsys > 0.0),f'{(wsys <= 0.0).sum()} weights <= 0.0!' 
         
         return 1./wsys # Systematic weight = 1 / Selection mask
-
-###    
-
 
 
 def extract_keys_dr8(mapi):
@@ -1534,18 +1639,18 @@ def hd5_2_fits(myfit, cols, fitname=None, hpmask=None, hpfrac=None, fitnamekfold
         if output_i is not None:
             if os.path.isfile(output_i):raise RuntimeError('%s exists'%output_i)
     #
-    hpind    = myfit.index.values
+    hpix    = myfit.index.values
     label    = (myfit.ngal / (myfit.nran * (myfit.ngal.sum()/myfit.nran.sum()))).values
     fracgood = (myfit.nran / myfit.nran.mean()).values
     features = myfit[cols].values
 
     outdata = np.zeros(features.shape[0], 
                        dtype=[('label', 'f8'),
-                              ('hpind', 'i8'), 
+                              ('hpix', 'i8'), 
                               ('features',('f8', features.shape[1])),
                               ('fracgood','f8')])
     outdata['label']    = label
-    outdata['hpind']    = hpind
+    outdata['hpix']    = hpix
     outdata['features'] = features
     outdata['fracgood'] = fracgood    
 
@@ -1557,14 +1662,14 @@ def hd5_2_fits(myfit, cols, fitname=None, hpmask=None, hpfrac=None, fitnamekfold
 
     if hpmask is not None:
         mask = np.zeros(12*res*res, '?')
-        mask[hpind] = True
+        mask[hpix] = True
         hp.write_map(hpmask, mask, overwrite=True, fits_IDL=False)
         if logger is not None:
             logger.info('wrote %s'%hpmask)
 
     if hpfrac is not None:
         frac = np.zeros(12*res*res)
-        frac[hpind] = fracgood
+        frac[hpix] = fracgood
         hp.write_map(hpfrac, frac, overwrite=True, fits_IDL=False)
         if logger is not None:
             logger.info('wrote %s'%hpfrac)  
@@ -2193,6 +2298,11 @@ class EbossCatalogOld:
 #         ouname = address+fname
 #         np.save(ouname, data)
 
+# --- cosmology
+#import numpy.lib.recfunctions as rfn
+#from scipy.constants import c as clight
+#import scipy.special as scs
+#from scipy import integrate
 
 # def D(z, omega0):
 #     """
