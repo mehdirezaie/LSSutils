@@ -3,17 +3,19 @@ import healpy as hp
 import numpy as np
 
 from LSSutils import CurrentMPIComm
-from LSSutils.utils import make_overdensity
+from LSSutils.utils import make_overdensity, KMeansJackknifes
 
 
 __all__ = ['AnaFast', 'get_cl']
 
 @CurrentMPIComm.enable
 def get_cl(ngal, nran, mask, selection_fn=None,
-           systematics=None, njack=20, lmax=None, 
-           cache_jackknifes=False, do_jack_sys=False, comm=None):
+           systematics=None, njack=20, nran_bar=None, lmax=None, 
+           cache_jackknifes=True, do_jack_sys=False, comm=None):
+    
     # initialize AnaFast
     af_kw = {'njack':njack, 'lmax':lmax}
+    
     if do_jack_sys:
         af_kws = {'njack':njack, 'lmax':lmax}
     else:
@@ -21,8 +23,9 @@ def get_cl(ngal, nran, mask, selection_fn=None,
         
     af = AnaFast(cache_jackknifes=cache_jackknifes)
 
-    if comm.rank==0:
-        weight = nran / nran[mask].mean()
+    if comm.rank==0:        
+        nran_exp = nran_bar if nran_bar is not None else nran[mask].mean()
+        weight = nran / nran_exp
         delta = make_overdensity(ngal, nran, mask, selection_fn=selection_fn)
     else:
         delta = None
@@ -38,7 +41,7 @@ def get_cl(ngal, nran, mask, selection_fn=None,
 
     if systematics is not None:
         if comm.rank==0:
-            print('C_s,g')
+            print('C_s,g', end=' ')
             print(f'{systematics.shape}')
 
         # split across processes
@@ -85,7 +88,8 @@ def get_shotnoise(ngal, weight, mask, estimator='nbar'):
     '''
         ngal is the weighted number of galaxies
     '''
-    area = hp.nside2pixarea(256, degrees=True)*weight[mask].sum()*3.0462e-4
+    nside = hp.get_nside(ngal)
+    area = hp.nside2pixarea(nside, degrees=True)*weight[mask].sum()*3.0462e-4
     nbar = ngal[mask].sum()/area
     if estimator=='nbar':
         return 1./nbar
@@ -181,20 +185,23 @@ class AnaFast:
         if mask2 is not None:
             mask_common &= mask2
 
-        if not hasattr(self, 'jackknifes'):
-            jackknifes = make_jackknifes(mask_common, weight1, njack=njack,
-                                         visualize=visualize, subsample=subsample)
+        if not hasattr(self, 'jk_masks'):
+            jk = KMeansJackknifes(mask_common, weight1)
+            jk.build_masks(njack)
+            jk_masks = jk.masks
+            
             if self.cache_jackknifes:
-                self.jackknifes = jackknifes
+                self.jk_masks = jk_masks
         else:
-            assert np.allclose(self.jackknifes[-1], mask_common), 'mask has changed'
-            jackknifes = self.jackknifes
+            assert np.allclose(self.jk_masks[-1], mask_common), 'mask has changed'
+            jk_masks = self.jk_masks
+            
 
         #--- compute the mean
         cl_jackknifes = {}
-        for j, jackknife in jackknifes.items():
-            cl_jackknifes[j] = self.run(map1, weight1, jackknife,
-                                       map2=map2, weight2=weight2, mask2=jackknife,
+        for j, jk_mask in jk_masks.items():
+            cl_jackknifes[j] = self.run(map1, weight1, jk_mask,
+                                       map2=map2, weight2=weight2, mask2=jk_mask,
                                        lmax=lmax)
 
         #--- compute the dispersion

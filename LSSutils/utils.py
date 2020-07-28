@@ -20,10 +20,35 @@ from sklearn.cluster import KMeans
 from sklearn.model_selection import KFold
 from scipy.stats import (binned_statistic, spearmanr, pearsonr)
 
+__all__ = ['']
 
-__all__ = ['make_overdensity', 'hpixsum', 
-           'radec2hpix', 'hpix2radec',
-           'KMeansJackknifes', 'histogram_cell']
+
+# columns
+maps_eboss_v7p2 = [
+    'star_density', 'ebv', 'loghi',
+    'sky_g', 'sky_r', 'sky_i', 'sky_z',
+    'depth_g_minus_ebv','depth_r_minus_ebv', 
+    'depth_i_minus_ebv', 'depth_z_minus_ebv', 
+    'psf_g', 'psf_r', 'psf_i', 'psf_z',
+     'run', 'airmass'
+]
+
+
+
+# z range
+z_bins = {'main':(0.8, 2.2),
+         'highz':(2.2, 3.5),
+         'low':(0.8, 1.5),
+         'mid':(1.5, 2.2),
+         'z1':(0.8, 1.3),
+         'z2':(1.3, 1.7),
+         'z3':(1.7, 2.2)}
+
+
+
+
+
+
 
 class SphericalKMeans(KMeans):
     """
@@ -232,7 +257,7 @@ class KMeansJackknifes:
         self.weight = weight[mask]
         self.radec = hpix2radec(self.nside, self.hpix)
 
-    def build_masks(self, njack, seed=42, kmeans_kw={'n_init':1}):
+    def build_masks(self, njack, seed=42, kmeans_kw={'n_init':1, 'n_jobs':1}):
         """ 
         function creates Jackknife masks
         
@@ -275,9 +300,10 @@ class KMeansJackknifes:
                        self.radec[1][mask_i],
                        s=1, marker='o',
                        alpha=0.2, 
-                       color=plt.cm.jet(i/njack)) 
+                       color=plt.cm.rainbow(i/njack),
+                      rasterized=True) 
         ax.set(xlabel='RA [deg]', ylabel='DEC [deg]')        
-        return ax
+        return fig, ax
 
     
     def __getitem__(self, item):
@@ -943,10 +969,12 @@ def make_sysmaps(ran, path_lenz, path_gaia, nside=256):
     nstar = NStarSDSS(nside_out=nside, name=path_gaia)
     hpmaps['loghi'] = lenz.loghi
     hpmaps['star_density'] = nstar.nstar
-    hpmaps['depth_g_minus_ebv'] = flux_to_mag(hpmaps['depth_g'], 'g', ebv=hpmaps['ebv'])
+    for band in 'rgiz':
+        hpmaps[f'depth_{band}_minus_ebv'] = flux_to_mag(hpmaps[f'depth_{band}'], band, ebv=hpmaps['ebv'])
     hpmaps['w1_med'] = np.ones(12*nside*nside)
     hpmaps['w1_covmed'] = np.ones(12*nside*nside)
     return pd.DataFrame(hpmaps)
+
 
 def split2kfolds(data, k=5, shuffle=True, seed=42):
     """
@@ -971,7 +999,7 @@ def split2kfolds(data, k=5, shuffle=True, seed=42):
         k partitions of training, validation, and test sets
     
     """
-    np.random.seed(random_seed)
+    np.random.seed(seed)
     kfold = KFold(k, shuffle=shuffle, random_state=seed)
     index = np.arange(data.size)
     
@@ -990,18 +1018,22 @@ def split2kfolds(data, k=5, shuffle=True, seed=42):
         
     return kfold_data
 
+
 def IvarToDepth(ivar):
     """ change IVAR to DEPTH """
     depth = nanomaggiesToMag(5./np.sqrt(ivar))
     return depth
 
+
 def Magtonanomaggies(m):
     """ Magnitude to nano maggies """
     return 10.**(-m/2.5+9.)
 
+
 def nanomaggiesToMag(nm):
     """ nano maggies to magnitude """
     return -2.5 * (np.log10(nm) - 9.)
+
 
 def read_partialmap(filename, nside=256):    
     """ read partial systematic map """
@@ -1016,15 +1048,16 @@ def read_partialmap(filename, nside=256):
     output[data['pixel']] = signal
     return output
 
-def make_clustering_catalog(mock):
+
+def make_clustering_catalog(mock, comp_min=0.5):
     """
     make clustering catalogs for SDSS-IV eBOSS
     
     (c) Julien Bautista 
     """
     w = ((mock['IMATCH']==1) | (mock['IMATCH']==2))
-    w &= (mock['COMP_BOSS'] > 0.5)
-    w &= (mock['sector_SSR'] > 0.5)
+    w &= (mock['COMP_BOSS'] > comp_min)
+    w &= (mock['sector_SSR'] > comp_min)
 
     names = ['RA', 'DEC', 'Z', 'WEIGHT_FKP', 'WEIGHT_SYSTOT', 'WEIGHT_CP']
     names += ['WEIGHT_NOZ', 'NZ', 'QSO_ID']
@@ -1037,7 +1070,8 @@ def make_clustering_catalog(mock):
     mock_clust = Table(fields, names=names)
     return mock_clust
 
-def __reassign(randoms, data, seed=42):
+
+def __reassign(randoms, data, seed=42, comp_min=0.5):
     """
     This function re-assigns the attributes from data to randoms
     
@@ -1080,12 +1114,12 @@ def __reassign(randoms, data, seed=42):
     for f in fields:
         rand_clust[f] = data[f][indices]
 
-    #-- As in real data:
-    rand_clust['WEIGHT_SYSTOT'] *= rand_clust['COMP_BOSS']
 
-    good = (rand_clust['COMP_BOSS'] > 0.5) & (rand_clust['sector_SSR'] > 0.5) 
+    rand_clust['WEIGHT_SYSTOT'] *= rand_clust['COMP_BOSS']
+    good = (rand_clust['COMP_BOSS']>comp_min) & (rand_clust['sector_SSR']>comp_min) 
 
     return rand_clust[good]
+
 
 class EbossCat:
     """
@@ -1337,8 +1371,8 @@ class HEALPixDataset:
     
     def __prep_nnbar(self, nside, zmin, zmax, frac_min, nran_exp):
         
-        ngal = self.data.tohp(nside, zmin, zmax, raw=1)        
-        nran = self.randoms.tohp(nside, zmin, zmax, raw=1)
+        ngal = self.data.to_hp(nside, zmin, zmax, raw=1)        
+        nran = self.randoms.to_hp(nside, zmin, zmax, raw=1)
         if nran_exp is None:
             nran_exp = np.mean(nran[nran>0])
             self.logger.info(f'using {nran_exp} as nran_exp')            
@@ -1349,15 +1383,15 @@ class HEALPixDataset:
         mask = mask_random & self.mask                
         self.logger.info(f'{mask.sum()} pixels ({mask.mean()*100:.1f}%) have imaging')
         
-        nnbar = overdensity(ngal, nran, mask, nnbar=True) 
+        nnbar = make_overdensity(ngal, nran, mask, nnbar=True) 
         
         return self._to_numpy(nnbar[mask], self.features[mask, :],
                              frac[mask], np.argwhere(mask).flatten())        
         
     def __prep_ngalw(self, nside, zmin, zmax, frac_min, nran_exp):
         
-        ngal = self.data.tohp(nside, zmin, zmax, raw=1)        
-        nran = self.randoms.tohp(nside, zmin, zmax, raw=1)
+        ngal = self.data.to_hp(nside, zmin, zmax, raw=1)        
+        nran = self.randoms.to_hp(nside, zmin, zmax, raw=1)
         if nran_exp is None:
             nran_exp = np.mean(nran[nran>0])
             self.logger.info(f'using {nran_exp} as nran_exp')            
@@ -1372,14 +1406,14 @@ class HEALPixDataset:
 
     def __prep_ngal(self, nside, zmin, zmax, frac_min, nran_exp):
         
-        ngal = self.data.tohp(nside, zmin, zmax, raw=0)
-        ngalw = self.data.tohp(nside, zmin, zmax, raw=1)        
+        ngal = self.data.to_hp(nside, zmin, zmax, raw=0)
+        ngalw = self.data.to_hp(nside, zmin, zmax, raw=1)        
         
         wratio = np.zeros_like(ngal)
         good = ngal > 0.0
         wratio[good] = ngalw[good]/ngal[good]        
         
-        nran = self.randoms.tohp(nside, zmin, zmax, raw=1)
+        nran = self.randoms.to_hp(nside, zmin, zmax, raw=1)
         if nran_exp is None:
             nran_exp = np.mean(nran[nran>0])
             self.logger.info(f'using {nran_exp} as nran_exp')            
@@ -1475,6 +1509,13 @@ class SysWeight(object):
         
         return 1./wsys # Systematic weight = 1 / Selection mask
 
+    
+    
+    
+
+
+    
+    
 
 def extract_keys_dr8(mapi):
     band = mapi.split('/')[-1].split('_')[4]
