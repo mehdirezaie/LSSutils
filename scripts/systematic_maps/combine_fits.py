@@ -4,8 +4,8 @@
 '''
 
 import sys
-sys.path.append('/Users/rezaie/github/LSSutils')
-from LSSutils.catalogs.combinefits import Readfits
+sys.path.append('/Users/rezaie/github/lssutils')
+from lssutils.catalogs.combinefits import Readfits
 #from IPython.display import Image
 
 from argparse import ArgumentParser

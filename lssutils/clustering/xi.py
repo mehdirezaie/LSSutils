@@ -26,7 +26,7 @@ import healpy as hp
 
 import ddthetahp
 import sys
-sys.path.append('/Users/mehdi/github/LSSutils')
+sys.path.append('/Users/mehdi/github/lssutils')
 
 from counter import paircount
 from time    import time

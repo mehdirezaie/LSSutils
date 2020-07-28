@@ -4,8 +4,8 @@
 '''
 
 import sys
-sys.path.append('/home/mehdi/github/LSSutils')
-from LSSutils.nn.nn_tf_old import Netregression
+sys.path.append('/home/mehdi/github/lssutils')
+from lssutils.nn.nn_tf_old import Netregression
 import numpy as np
 from   time import time
 

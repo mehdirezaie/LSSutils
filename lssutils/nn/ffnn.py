@@ -194,7 +194,7 @@ class FFNN(object):
 
     def make_plots(self):
         import matplotlib.pyplot as plt
-        import LSSutils.nn.nnutils as utils
+        import lssutils.nn.nnutils as utils
         # plots
         utils.plot_history([self.result['history']]) # plot MSE and MAE
         plt.show()
@@ -250,8 +250,8 @@ def run_nn():
     import numpy as np
     import matplotlib.pyplot as plt
     import sys
-    sys.path.append('/Users/mehdi/github/LSSutils')
-    from LSSutils.utils import split2Kfolds 
+    sys.path.append('/Users/mehdi/github/lssutils')
+    from lssutils.utils import split2Kfolds 
 
 
 
@@ -340,8 +340,8 @@ def test():
     import numpy as np
     import matplotlib.pyplot as plt
     import sys
-    sys.path.append('/Users/mehdi/github/LSSutils')
-    from LSSutils.utils import split2Kfolds 
+    sys.path.append('/Users/mehdi/github/lssutils')
+    from lssutils.utils import split2Kfolds 
 
     logger.info('Data created')
     # make table [label, features, fracgood, hpind]

@@ -1,5 +1,5 @@
 import numpy as np
-from LSSutils.utils import corrmat
+from lssutils.utils import corrmat
 
 def main():
     x = np.random.multivariate_normal([1, -1], 

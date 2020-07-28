@@ -2,7 +2,7 @@
 
 """
 import numpy as np
-from LSSutils.utils import SphericalKMeans
+from lssutils.utils import SphericalKMeans
 
 def generate_data():
     

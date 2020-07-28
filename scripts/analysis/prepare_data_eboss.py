@@ -7,8 +7,8 @@ import pandas as pd
 import fitsio as ft
 import healpy as hp
 
-from LSSutils import setup_logging
-from LSSutils.utils import (EbossCat, HEALPixDataset, 
+from lssutils import setup_logging
+from lssutils.utils import (EbossCat, HEALPixDataset, 
                             maps_eboss_v7p2, z_bins)
 
 __label__ = 'ngal'

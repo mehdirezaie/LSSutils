@@ -71,9 +71,9 @@ def plot_nz(fig_path):
 def mollweide3maps(fig_path):
     
     import healpy as hp
-    from LSSutils.utils import EbossCat
+    from lssutils.utils import EbossCat
     import pandas as pd
-    import LSSutils.dataviz as dv
+    import lssutils.dataviz as dv
     
     ''' READ THE FULL CATALOGS
     '''
@@ -168,7 +168,7 @@ def mollweide3maps(fig_path):
 
 def radec_zbins(fig_path):
     import healpy as hp
-    from LSSutils.utils import EbossCat, hpix2radec, shiftra
+    from lssutils.utils import EbossCat, hpix2radec, shiftra
     
     nran_bar = 65.6 # exp # of randoms per pixel
     
@@ -243,7 +243,7 @@ def radec_zbins(fig_path):
 
 def kmean_jackknife(fig_path):
 
-    from LSSutils.utils import EbossCat, KMeansJackknifes
+    from lssutils.utils import EbossCat, KMeansJackknifes
     path = '/home/mehdi/data/eboss/data/v7_2/'
 
     nran_bar = 65.6 # for nside=512
@@ -353,7 +353,7 @@ def train_val_losses_allvsknown(fig_path, nchains=1, npartitions=1, alpha=1):
 
 def mollweide_templates(fig_path):
     import pandas as pd
-    from LSSutils.dataviz import mollview
+    from lssutils.dataviz import mollview
 
     templates = pd.read_hdf('/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside512.h5', 'templates')
 

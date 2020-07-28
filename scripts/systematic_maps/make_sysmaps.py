@@ -15,8 +15,8 @@ for id in dr3 dr3_utah_ngc dr5-eboss dr5-eboss2; do python make_sysmaps.py --sur
 '''
 
 import sys
-sys.path.append('/Users/rezaie/github/LSSutils')
-import LSSutils.extrn.quicksip.qsdriver as qsdriver
+sys.path.append('/Users/rezaie/github/lssutils')
+import lssutils.extrn.quicksip.qsdriver as qsdriver
 from argparse import ArgumentParser
 
 ap = ArgumentParser(description='systematic maps generating routine')

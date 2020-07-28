@@ -10,9 +10,9 @@ import numpy as np
 import sys
 
 home=os.getenv('HOME')
-sys.path.append(home + '/github/LSSutils')
+sys.path.append(home + '/github/lssutils')
 
-from LSSutils.nn.nn_tf_old import Netregression
+from lssutils.nn.nn_tf_old import Netregression
 
 
 from time import time

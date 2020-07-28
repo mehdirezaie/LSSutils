@@ -2,7 +2,7 @@
 import sys
 import fitsio as ft
 
-from LSSutils.utils import make_sysmaps
+from lssutils.utils import make_sysmaps
 
 
 nside = int(sys.argv[1])

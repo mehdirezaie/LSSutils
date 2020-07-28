@@ -373,7 +373,7 @@ def get_selected_maps(files=None, tl='eBOSS QSO V6',
                       verbose=False, labels=None, ax=None,
                       hold=False, saveto=None, colorbar=False, fig=None):
     '''
-    from LSSutils.catalogs.datarelease import cols_dr8 as labels
+    from lssutils.catalogs.datarelease import cols_dr8 as labels
     fig, ax = plt.subplots(ncols=3, nrows=2, figsize=(18, 12), sharey=True)
     ax = ax.flatten()
 
@@ -628,7 +628,7 @@ def ablation_plot(filename,
 def ablation_plot_all(files, labels=None, title=None, saveto=None, hold=False):    
     '''
     
-    from LSSutils.catalogs.datarelease import cols_dr8 as labels
+    from lssutils.catalogs.datarelease import cols_dr8 as labels
     i = 0
     for cap in [ 'elg', 'lrg']: # ngc.all
         for key in ['decaln', 'decals', 'bmzls']:
@@ -767,7 +767,7 @@ def plot_cell(filen, clsysname, labels, bins=None,
         
 def plot_cross_xi(config):
     '''
-        from LSSutils.catalogs.datarelease import cols_eboss_v6_qso_simp as xticks
+        from lssutils.catalogs.datarelease import cols_eboss_v6_qso_simp as xticks
         config = {
             'crossxi':{
                  'files_names':['/home/mehdi/data/eboss/v6/results_ngc.all/clustering/xi_NGC_v6_z0.8.npy',

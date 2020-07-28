@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 
-from LSSutils import CurrentMPIComm
+from lssutils import CurrentMPIComm
 
 
 

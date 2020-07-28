@@ -1,7 +1,7 @@
 import sys
-sys.path.append('/Users/mehdi/github/LSSutils')
-from LSSutils.lab import *
-from LSSutils import setup_logging
+sys.path.append('/Users/mehdi/github/lssutils')
+from lssutils.lab import *
+from lssutils import setup_logging
 
 setup_logging("info")
 

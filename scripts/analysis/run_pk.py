@@ -1,6 +1,6 @@
 
-from LSSutils.lab  import CurrentMPIComm,  run_ConvolvedFFTPower
-from LSSutils import setup_logging
+from lssutils.lab  import CurrentMPIComm,  run_ConvolvedFFTPower
+from lssutils import setup_logging
 
 setup_logging("info") # turn on logging to screen
 comm = CurrentMPIComm.get()

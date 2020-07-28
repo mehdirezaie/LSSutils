@@ -1,18 +1,12 @@
-
-
 #---- environment variables and activation
-
 . "/home/mehdi/miniconda3/etc/profile.d/conda.sh"
 
 export PYTHONPATH=${HOME}/github/LSSutils:${HOME}/github/sysnetdev
-
 conda activate sysnet
-
 
 #---- path to the codes
 prep=/home/mehdi/github/LSSutils/scripts/analysis/prepare_data_eboss.py
 nnfit=/home/mehdi/github/sysnetdev/scripts/app.py
-
 
 #---- path to the data
 nside=512
@@ -25,20 +19,15 @@ nn_structure=(4 20)
 axes_all=({0..16})
 axes_known=(1 5 7 13) # ebv, depth-g, psf-i sky-i
 nepoch=50
-nchains=10
+nchains=15
 version="v7_2"
 release="1.0"
 caps="NGC SGC"
-#slices="main highz low mid z1 z2 z3"
-slices="main" # currently only main works well with 512
+slices="main highz low mid z1 z2 z3"
 maps="all known"
 table_name="ngal_eboss"
-
-
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
 eboss_dir="/home/mehdi/data/eboss/data/${version}/"
-
-
 
 do_prep=false
 find_lr=false
@@ -46,11 +35,7 @@ find_st=false
 find_ne=true
 do_nnfit=false
 
-
-
-
 #---- run
-
 if [ "${do_prep}" = true ] # ~ 1 min
 then
     for cap in ${caps}
@@ -77,7 +62,6 @@ then
             input_path=${input_dir}${table_name}_${slice}_${nside}.fits
             du -h ${input_path}
 
-
             for map in ${maps}
             do
                 if [ ${map} = "all" ]
@@ -97,7 +81,7 @@ then
     done
 fi
 
-lr=0.005
+lr=0.01
 
 if [ "${find_st}" = true ]
 then
@@ -156,7 +140,7 @@ then
         output_path=${input_dir}nn_pnnl_${map}/hp/
         echo ${output_path}
         python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} \
-        -lr ${lr} -ne ${nepoch} -bs 1024 --nn_structure 4 100
+        -lr ${lr} -ne 300
     done
 fi
 

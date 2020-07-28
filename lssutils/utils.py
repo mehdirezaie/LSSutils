@@ -942,7 +942,7 @@ def make_sysmaps(ran, path_lenz, path_gaia, nside=256):
     
     
     """
-    from LSSutils.extrn.GalacticForegrounds.hpmaps import NStarSDSS, logHI
+    from lssutils.extrn.GalacticForegrounds.hpmaps import NStarSDSS, logHI
     
     maps = {'sky_g':ran['skyflux'][:,1],
             'sky_r':ran['skyflux'][:,2],
@@ -1573,7 +1573,7 @@ class Readfits(object):
         self.metadata = pd.DataFrame(metadata)
         
     def _add_foreground(self):
-        from LSSutils.extrn.GalacticForegrounds import hpmaps
+        from lssutils.extrn.GalacticForegrounds import hpmaps
         # 
         Gaia    = hpmaps.gaia_dr2(nside=self.nside)
         self.metadata['nstar'] = Gaia.gaia
@@ -1674,7 +1674,7 @@ class DR8templates:
 def hd5_2_fits(myfit, cols, fitname=None, hpmask=None, hpfrac=None, fitnamekfold=None, res=256, k=5, 
               logger=None):
         
-    from LSSutils.utils import split2Kfolds
+    from lssutils.utils import split2Kfolds
     
     for output_i in [fitname, hpmask, hpfrac, fitnamekfold]:
         if output_i is not None:

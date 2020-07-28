@@ -1,6 +1,6 @@
 '''
     This is part of a bigger project,
-    LSSutils (utilities to analyze Large Scale Structure)
+    lssutils (utilities to analyze Large Scale Structure)
     The goal is to repackage the Neural Network based mitigation software
     https://github.com/mehdirezaie/SYSNet
 
@@ -744,13 +744,13 @@ def plot_history(history_list, labels=None, yscale='linear', xscale='linear'):
 def test_sin():
     '''
         This test relies on split2Kfolds from
-        https://github.com/mehdirezaie/LSSutils/blob/master/LSSutils/utils.py
+        https://github.com/mehdirezaie/lssutils/blob/master/lssutils/utils.py
         Numpy, Matplotlib
     '''
     #import sys
     #sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     # append the path to PYTHONPATH environment variable
-    from LSSutils.utils import split2Kfolds
+    from lssutils.utils import split2Kfolds
 
     import matplotlib
     matplotlib.use('Agg')
