@@ -30,11 +30,7 @@ def run_ConvolvedFFTPower(galaxy_path,
                           dk=0.002,
                           comm=None,
                           return_pk=False):
-    
-    if comm.rank == 0:
-        output_dir = os.path.dirname(os.path.abspath(output_path))
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)            
+              
         
     if cosmo is None:
         # the fiducial BOSS DR12 cosmology 
@@ -46,8 +42,8 @@ def run_ConvolvedFFTPower(galaxy_path,
     
     # select based on redshift and comp_BOSS
     kwargs = dict(compmin=compmin, zmin=zmin, zmax=zmax)
-    data = data.cut(**kwargs)
-    random = random.cut(**kwargs)
+    data = data.trim_redshift_range(**kwargs)
+    random = random.trim_redshift_range(**kwargs)
     
     # sky to xyz
     data.sky_to_xyz(cosmo)
@@ -56,12 +52,13 @@ def run_ConvolvedFFTPower(galaxy_path,
     # prepare weights
     data.apply_weight(use_systot=use_systot)
     random.apply_weight(use_systot=True)  # always weight randoms by systot
-    
+    print(len(data), len(random))    
     #
     # combine the data and randoms into a single catalog
+    mesh_kwargs = {'interlaced': True,'window': 'tsc'}
     fkp = nb.FKPCatalog(data, random, nbar='NZ', BoxSize=boxsize)
-    mesh = fkp.to_mesh(Nmesh=nmesh, fkp_weight='WEIGHT_FKP', window='tsc')    
-    r = nb.ConvolvedFFTPower(mesh, poles=[0, 2, 4], dk=dk, kmin=0.0)
+    mesh = fkp.to_mesh(Nmesh=nmesh, fkp_weight='WEIGHT_FKP', **mesh_kwargs)    
+    r = nb.ConvolvedFFTPower(mesh, poles=[0, 2], dk=dk, kmin=0.0)
     
     comm.Barrier()    
     if comm.rank == 0:        
@@ -69,6 +66,11 @@ def run_ConvolvedFFTPower(galaxy_path,
                           'Omega0_b', 'Omega0_lambda']:
             r.attrs[parameter] = getattr(cosmo, parameter)
     
+    if comm.rank == 0:
+        output_dir = os.path.dirname(os.path.abspath(output_path))
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)  
+            
     r.save(output_path) 
     
     if return_pk:
@@ -103,7 +105,7 @@ class FitsCatalog(FITSCatalog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def cut(self, compmin=0.5, zmin=None, zmax=None):
+    def trim_redshift_range(self, compmin=0.5, zmin=None, zmax=None):
         '''
             - z cut
             - comp_BOSS cut
@@ -114,8 +116,7 @@ class FitsCatalog(FITSCatalog):
         if zmax is None:
             zmax = self['Z'].max()+1.0e-7
         
-        
-        valid = (self['Z'] >= zmin) & (self['Z'] <= zmax)
+        valid = (self['Z'] > zmin) & (self['Z'] < zmax)
         
         if 'IMATCH' in self.columns: # eBOSS or Legacy
             valid &= (self['IMATCH']==1) | (self['IMATCH']==2)
@@ -123,7 +124,6 @@ class FitsCatalog(FITSCatalog):
             valid &= self['COMP_BOSS'] > compmin
         if 'sector_SSR' in self.columns:
             valid &= self['sector_SSR'] > compmin
-        
         return self[valid]
         
     def sky_to_xyz(self, cosmo):

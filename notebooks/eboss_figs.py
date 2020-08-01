@@ -286,19 +286,19 @@ def train_val_losses_256vs512(fig_path, nchains=1, npartitions=1, alpha=1):
         for k in range(npartitions):
 
             base_train_loss = metrics['stats'].item()[k]['base_train_loss']
-            base_val_loss = metrics['stats'].item()[k]['base_val_loss']
+            base_val_loss = metrics['stats'].item()[k]['base_valid_loss']
 
             for i in range(nchains):
 
                 ax.plot(np.array(taining_loss[k][i])-base_train_loss, color=c[j], ls='-', lw=1, alpha=alpha)
                 ax.plot(np.array(valid_loss[k][i])-base_val_loss, color=c[j], ls='--', lw=2, alpha=alpha)
 
-        ax.text(0.75, 0.15+j*0.28, f'NSIDE={nside}', color=c[j], transform=ax.transAxes)
+        ax.text(0.75, 0.25+j*0.4, f'NSIDE={nside}', color=c[j], transform=ax.transAxes)
 
         j += 1
 
 
-    ax.set_ylim(-0.12, 0.12)
+    ax.set_ylim(-0.5, .1)
     ax.axhline(0, ls=':', color='grey')
     ax.set(xlabel='Epoch', ylabel=r'$\Delta$PNLL [NN-baseline]')
     ax.legend(['Training', 'Validation'])
@@ -309,15 +309,16 @@ def train_val_losses_256vs512(fig_path, nchains=1, npartitions=1, alpha=1):
 
 
 
-def train_val_losses_allvsknown(fig_path, nchains=1, npartitions=1, alpha=1):
+def train_val_losses_allvsknown(fig_path, nchains=1, npartitions=1, alpha=1,
+                               sample='main', nside='256'):
     fig, ax = plt.subplots()
 
 
     j = 0
     c = ['k', 'crimson']
 
-    nside='256'
-    sample='main'
+    
+    
     for maps in ['all', 'known']:
 
         path = '/home/mehdi/data/eboss/data/v7_2/1.0/'
@@ -330,7 +331,7 @@ def train_val_losses_allvsknown(fig_path, nchains=1, npartitions=1, alpha=1):
         for k in range(npartitions):
 
             base_train_loss = metrics['stats'].item()[k]['base_train_loss']
-            base_val_loss = metrics['stats'].item()[k]['base_val_loss']
+            base_val_loss = metrics['stats'].item()[k]['base_valid_loss']
 
             for i in range(nchains):
 
@@ -342,7 +343,7 @@ def train_val_losses_allvsknown(fig_path, nchains=1, npartitions=1, alpha=1):
         j += 1
 
 
-    ax.set_ylim(-0.12, 0.12)
+    ax.set_ylim(-0.5, .1)
     ax.axhline(0, ls=':', color='grey')
     ax.set(xlabel='Epoch', ylabel=r'$\Delta$PNLL [NN-baseline]')
     ax.legend(['Training', 'Validation'], loc=1)
@@ -388,4 +389,32 @@ def mollweide_templates(fig_path):
         axi.text(0.4, 0.35, names[i], transform=axi.transAxes)    
         
     fig.savefig(fig_path, bbox_inches='tight')
+    return fig, ax
+
+
+
+def stdwnn_epoch(fig_path):
+    import fitsio as ft
+    
+    root_path = '/home/mehdi/data/eboss/data/v7_2/1.0/NGC'
+    ns = '256'
+    s ='main'    
+    c = ['k', 'crimson']    
+    mk = ['w', 'crimson']
+    
+    fig, ax = plt.subplots()
+    ax.tick_params(direction='in', which='both', top=True, right=True)    
+    for j, mp in enumerate(['all', 'known']):
+        
+        wnn = ft.read(f'{path}/{ns}/{s}/nn_pnnl_{mp}/nn-weights.fits') # (Npix, Nchains)
+        
+        for i in range(1, wnn['weight'].shape[1]+1):
+            wnn_mean = wnn['weight'][:, :i].mean(axis=1)
+            ax.scatter(i, np.std(wnn_mean), color=c[j], marker='o', fc=mk[j])
+            
+        ax.text(0.8, 0.7-j*0.08, f'{mp}', color=c[j], transform=ax.transAxes)
+
+    ax.set(xlabel='Nchains', ylabel=r'std(Nqso$_{\rm NN}$)')    
+    fig.savefig(fig_path, bbox_inches='tight')
+    
     return fig, ax

@@ -20,8 +20,6 @@ from sklearn.cluster import KMeans
 from sklearn.model_selection import KFold
 from scipy.stats import (binned_statistic, spearmanr, pearsonr)
 
-__all__ = ['']
-
 
 # columns
 maps_eboss_v7p2 = [
@@ -1071,7 +1069,7 @@ def make_clustering_catalog(mock, comp_min=0.5):
     return mock_clust
 
 
-def __reassign(randoms, data, seed=42, comp_min=0.5):
+def reassign(randoms, data, seed=42, comp_min=0.5):
     """
     This function re-assigns the attributes from data to randoms
     
@@ -1307,22 +1305,39 @@ class EbossCat:
                        self.data['DEC'][good], 
                        weights=self.data['WEIGHT'][good])
 
-    def swap(self, zcuts, slices, colname='WEIGHT_SYSTOT', clip=False):
-        self.orgcol = self.data[colname].copy()
-        for slice_i in slices:
-            assert slice_i in zcuts.keys(), '%s not available'%slice_i
-            #
+    def swap(self, mappers, column='WEIGHT_SYSTOT'):
+        """ 
+        Swap 'column' using mappers
+        
+        
+        parameters
+        ----------
+        mappers : dict
+        
+        column : str
+        
+        
+        """
+        # precompute three weights
+        w_tot = self.data['WEIGHT_CP']*1
+        w_tot *= self.data['WEIGHT_NOZ']
+        w_tot *= self.data['WEIGHT_FKP'] 
+        
+        
+        for sample, mapper in mappers.items():
 
-            my_zcut   = zcuts[slice_i][0]
-            my_mask   = (self.data['Z'] >= my_zcut[0])\
-                      & (self.data['Z'] <= my_zcut[1])
+            zmin, zmax = mapper[0]
             
-            mapper    = zcuts[slice_i][1]
-            self.wmap_data = mapper(self.data['RA'][my_mask], self.data['DEC'][my_mask])
+            good = (self.data['Z'] > zmin) & (self.data['Z'] < zmax)
             
-            self.logger.info(f'slice: {slice_i}, wsysmin: {self.wmap_data.min():.2f}, wsysmax: {self.wmap_data.max():.2f}')
-            self.data[colname][my_mask] = self.wmap_data            
-            self.logger.info('number of objs w zcut {} : {}'.format(my_zcut, my_mask.sum()))
+            w_sys = mapper[1](self.data['RA'][good], self.data['DEC'][good])  
+            
+            norm_factor = w_tot[good].sum() / (w_tot[good]*w_sys).sum() # normalize w_sys
+            w_sys = norm_factor*w_sys            
+            self.data[column][good] = w_sys
+            
+            self.logger.info(f'number of {sample} objects passed {zmin}<z<{zmax} : {good.sum()}')
+            self.logger.info(f'w_sys: [{w_sys.min():.2f}, {w_sys.max():.2f}]')
                                 
     def to_fits(self, filename):
         assert self.data_is_clean, "`data` is not clean"
@@ -1330,16 +1345,30 @@ class EbossCat:
         if os.path.isfile(filename):
             raise RuntimeError('%s exists'%filename)
             
+        dirname = os.path.dirname(filename)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+            
         self.data.write(filename, overwrite=True)    
     
-    def reassign(self, source, seed=42):
+    def reassign_zattrs(self, source, seed=42):
         """ Reassign z-related attributes from 'source' to 'data'
         """
         assert self.kind=='randoms', "reassignment only performed for 'data'"
-        self.data = __reassign(self.data, source, seed=seed)
+        self.data = reassign(self.data, source, seed=seed)
         
     def __getitem__(self, index):
         return self.data[index]
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __repr__(self):
+        msg = f"catalog : {self.kind}\n"
+        msg += f'# of objects : {len(self.data)}\n'
+        msg += f"z : {self.data['Z'].min(), self.data['Z'].max()}\n"
+        msg += f"columns : {self.columns}"
+        return msg
     
     
 
@@ -1445,7 +1474,7 @@ class HEALPixDataset:
         dataset['hpix'] = hpix
         
         return dataset    
-
+        
 
 class SysWeight(object):
     '''
@@ -1510,7 +1539,15 @@ class SysWeight(object):
         return 1./wsys # Systematic weight = 1 / Selection mask
 
     
+class NNWeight(SysWeight):
     
+    def __init__(self, filename, nside, fix=True, clip=False):
+        
+        wnn = ft.read(filename)        
+        wnn_hp = np.zeros(12*nside*nside)
+        wnn_hp[wnn['hpix']] = wnn['weight'].mean(axis=1)
+        
+        super(NNWeight, self).__init__(wnn_hp, ismap=True, fix=fix, clip=clip)    
     
 
 

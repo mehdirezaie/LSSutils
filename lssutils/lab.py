@@ -4,7 +4,7 @@
 
 #from lssutils.stats.nnbar import *
 #from lssutils.stats.pcc import *
-#from lssutils.stats.pk import *
+from lssutils.stats.pk import run_ConvolvedFFTPower
 from lssutils.stats.cl import (get_cl)
 from lssutils.utils import (KMeansJackknifes, hpixsum, EbossCat)
 # from lssutils.nn.regression import *
