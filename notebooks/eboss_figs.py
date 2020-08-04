@@ -267,7 +267,8 @@ def kmean_jackknife(fig_path):
     return fig, ax
 
 
-def train_val_losses_256vs512(fig_path, nchains=1, npartitions=1, alpha=1):
+def train_val_losses_256vs512(fig_path, nchains=1, npartitions=1, alpha=1,
+                             cap='NGC', maps='all', sample='main'):
     
     fig, ax = plt.subplots()
 
@@ -276,8 +277,8 @@ def train_val_losses_256vs512(fig_path, nchains=1, npartitions=1, alpha=1):
 
     for nside in ['256', '512']:
 
-        metrics = np.load('/home/mehdi/data/eboss/data/v7_2/1.0/NGC/'\
-                          +nside+'/main/nn_pnnl_all/metrics.npz', allow_pickle=True)
+        metrics = np.load(f'/home/mehdi/data/eboss/data/v7_2/1.0/{cap}/'\
+                          +nside+f'/{sample}/nn_pnnl_{maps}/metrics.npz', allow_pickle=True)
 
         taining_loss = metrics['losses'].item()['train']
         valid_loss = metrics['losses'].item()['valid']
@@ -310,7 +311,7 @@ def train_val_losses_256vs512(fig_path, nchains=1, npartitions=1, alpha=1):
 
 
 def train_val_losses_allvsknown(fig_path, nchains=1, npartitions=1, alpha=1,
-                               sample='main', nside='256'):
+                               sample='main', nside='256', cap='NGC'):
     fig, ax = plt.subplots()
 
 
@@ -322,7 +323,7 @@ def train_val_losses_allvsknown(fig_path, nchains=1, npartitions=1, alpha=1,
     for maps in ['all', 'known']:
 
         path = '/home/mehdi/data/eboss/data/v7_2/1.0/'
-        metrics = np.load(f'{path}NGC/{nside}/{sample}/nn_pnnl_{maps}/metrics.npz', allow_pickle=True)
+        metrics = np.load(f'{path}{cap}/{nside}/{sample}/nn_pnnl_{maps}/metrics.npz', allow_pickle=True)
 
         taining_loss = metrics['losses'].item()['train']
         valid_loss = metrics['losses'].item()['valid']
@@ -375,7 +376,7 @@ def mollweide_templates(fig_path):
     for i,name in enumerate(names):
 
         good = np.isfinite(templates[name])
-        vmin, vmax = np.percentile(templates[name][good], [10, 90])
+        vmin, vmax = np.percentile(templates[name][good], [5, 95])
 
         mapi = templates[name].copy().values
         mapi[~good] = np.inf
@@ -383,30 +384,29 @@ def mollweide_templates(fig_path):
         mollview(mapi, vmin=vmin, vmax=vmax,
                 cmap=plt.cm.viridis, figax=[fig, ax[i]], unit='', galaxy=False)
 
-    for i, axi in enumerate(ax):
-        axi.set(xticks=[], yticks=[])
-        axi.axis('off')
-        axi.text(0.4, 0.35, names[i], transform=axi.transAxes)    
+
+        ax[i].set(xticks=[], yticks=[])
+        ax[i].axis('off')
+        ax[i].text(0.4, 0.35, names[i], transform=ax[i].transAxes)    
         
     fig.savefig(fig_path, bbox_inches='tight')
     return fig, ax
 
 
 
-def stdwnn_epoch(fig_path):
+def stdwnn_epoch(fig_path, cap='NGC', ns='256', s='main'):
     import fitsio as ft
     
-    root_path = '/home/mehdi/data/eboss/data/v7_2/1.0/NGC'
-    ns = '256'
-    s ='main'    
+    root_path = f'/home/mehdi/data/eboss/data/v7_2/1.0/{cap}'
     c = ['k', 'crimson']    
     mk = ['w', 'crimson']
     
     fig, ax = plt.subplots()
-    ax.tick_params(direction='in', which='both', top=True, right=True)    
+    ax.tick_params(direction='in', which='both', top=True, right=True)   
+    
     for j, mp in enumerate(['all', 'known']):
         
-        wnn = ft.read(f'{path}/{ns}/{s}/nn_pnnl_{mp}/nn-weights.fits') # (Npix, Nchains)
+        wnn = ft.read(f'{root_path}/{ns}/{s}/nn_pnnl_{mp}/nn-weights.fits') # (Npix, Nchains)
         
         for i in range(1, wnn['weight'].shape[1]+1):
             wnn_mean = wnn['weight'][:, :i].mean(axis=1)
@@ -414,7 +414,7 @@ def stdwnn_epoch(fig_path):
             
         ax.text(0.8, 0.7-j*0.08, f'{mp}', color=c[j], transform=ax.transAxes)
 
-    ax.set(xlabel='Nchains', ylabel=r'std(Nqso$_{\rm NN}$)')    
+    ax.set(xlabel='Nchains', ylabel=r'std(Nqso$_{\rm NN}$)', xticks=np.arange(1, 21))    
     fig.savefig(fig_path, bbox_inches='tight')
     
     return fig, ax
