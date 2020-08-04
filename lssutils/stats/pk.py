@@ -37,8 +37,8 @@ def run_ConvolvedFFTPower(galaxy_path,
         # see Alam et al. https://arxiv.org/abs/1607.03155        
         cosmo = Cosmology(h=0.676).match(Omega0_m=0.31)
 
-    data = FitsCatalog(galaxy_path)
-    random = FitsCatalog(random_path)
+    data = FITSCat(galaxy_path)
+    random = FITSCat(random_path)
     
     # select based on redshift and comp_BOSS
     kwargs = dict(compmin=compmin, zmin=zmin, zmax=zmax)
@@ -52,12 +52,12 @@ def run_ConvolvedFFTPower(galaxy_path,
     # prepare weights
     data.apply_weight(use_systot=use_systot)
     random.apply_weight(use_systot=True)  # always weight randoms by systot
-    print(len(data), len(random))    
-    #
+    
     # combine the data and randoms into a single catalog
     mesh_kwargs = {'interlaced': True,'window': 'tsc'}
     fkp = nb.FKPCatalog(data, random, nbar='NZ', BoxSize=boxsize)
     mesh = fkp.to_mesh(Nmesh=nmesh, fkp_weight='WEIGHT_FKP', **mesh_kwargs)    
+    
     r = nb.ConvolvedFFTPower(mesh, poles=[0, 2], dk=dk, kmin=0.0)
     
     comm.Barrier()    
@@ -100,7 +100,7 @@ def run_ConvolvedFFTPower(galaxy_path,
 
 
 
-class FitsCatalog(FITSCatalog):
+class FITSCat(FITSCatalog):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

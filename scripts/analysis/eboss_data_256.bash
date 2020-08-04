@@ -47,6 +47,12 @@ function lrsetter() {
     elif [ $1 = "highz" ]
     then
         lr=0.005
+    elif [ $1 = "low" ]
+    then
+        lr=0.04
+    elif [ $1 = "mid" ]
+    then
+        lr=0.04        
     fi
     echo $lr
 }
@@ -100,9 +106,9 @@ fi
 if [ "${find_st}" = true ]
 then
     #---- neural net modeling
-    for cap in ${caps}
+    for cap in NGC #${caps}
     do
-        for slice in ${slices}
+        for slice in low #${slices}
         do
             lr=$(lrsetter ${slice})
        
@@ -163,9 +169,9 @@ fi
 if [ "${do_nnfit}" = true ]
 then
     #---- neural net modeling
-    for cap in NGC #${caps}
+    for cap in SGC #${caps}
     do
-        for slice in highz #highz #${slices}
+        for slice in low #main highz low mid #${slices}
         do
             lr=$(lrsetter ${slice})
    
@@ -174,7 +180,7 @@ then
             du -h ${input_path}
 
 
-            for map in ${maps}
+            for map in known #${maps}
             do
                 if [ ${map} = "all" ]
                 then
@@ -213,15 +219,8 @@ fi
 if [ "${do_pk}" = true ]
 then
     for cap in ${caps}
-    do
-        # default
-        input_dir=${eboss_dir}
-        output_dir=${eboss_dir}${release}/measurements/spectra/
-        
-        dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-        ran=${dat/.dat./.ran.}
-        
-        for zrange in highz # main done
+    do        
+        for zrange in main highz # main done
         do
             if [ ${zrange} = main ]
             then
@@ -230,7 +229,14 @@ then
             then
                 zlim='2.2 3.5'
             fi
+            
+            # default
+            input_dir=${eboss_dir}
+            output_dir=${eboss_dir}${release}/measurements/spectra/
 
+            dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
+            ran=${dat/.dat./.ran.}
+            
             out=${output_dir}spectra_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.json
             du -h $dat $ran
             echo ${out} ${zlim}
