@@ -241,9 +241,9 @@ class AnaFast:
 
     def prepare_hpmap(self, map1, weight1, mask1):
 
-        weight1_norm = np.mean(weight1[mask1])
+        #weight1_norm = np.mean(weight1[mask1])
 
-        hp_map1 = hp.ma(map1 * weight1 / weight1_norm)
+        hp_map1 = hp.ma(map1 * weight1) # / weight1_norm # MR: weight must be properly scaled
         hp_map1.mask = np.logical_not(mask1)
         hp_map1 = hp_map1.filled()
 

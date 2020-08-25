@@ -44,7 +44,23 @@ z_bins = {'main':(0.8, 2.2),
 
 
 
-
+def split_NtoM(N, M, rank):
+    """
+    split N to M pieces
+    
+    see https://stackoverflow.com/a/26554699/9746916
+    """
+    chunk = N // M
+    remainder = N % M
+    
+    if rank < remainder:
+        start = rank * (chunk + 1)
+        stop = start + chunk
+    else:
+        start = rank * chunk + remainder
+        stop = start + (chunk -1)
+    
+    return start, stop
 
 
 
@@ -1332,8 +1348,14 @@ class EbossCat:
             
             w_sys = mapper[1](self.data['RA'][good], self.data['DEC'][good])  
             
+            # normalize and clip extremes
             norm_factor = w_tot[good].sum() / (w_tot[good]*w_sys).sum() # normalize w_sys
-            w_sys = norm_factor*w_sys            
+            w_sys = norm_factor*w_sys    
+            
+            extremes = (w_sys < 0.5) | (w_sys > 2.0)
+            self.logger.info(f'number of extreme w_sys (0.5< or > 2.0): {extremes.sum()}')
+            w_sys = w_sys.clip(0.5, 2.0)
+
             self.data[column][good] = w_sys
             
             self.logger.info(f'number of {sample} objects passed {zmin}<z<{zmax} : {good.sum()}')
