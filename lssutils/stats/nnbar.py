@@ -1,9 +1,39 @@
+import os
 import numpy as np
 import logging
 
 from lssutils import CurrentMPIComm
+from lssutils.utils import split_NtoM
 
+@CurrentMPIComm.enable
+def get_meandensity(ngal, nran, mask, systematics,
+                    selection_fn=None,
+                    njack=20, nbins=8, 
+                    columns=None,
+                    comm=None):
+    
+    if columns is None:
+        columns = ['sys-%d'%i for i in range(systematics.shape[1])]
+        
 
+    start, stop = split_NtoM(systematics.shape[1], comm.size, comm.rank)
+            
+
+    nnbar_list= []
+    for i in range(start, stop+1):
+        nnbar_i = MeanDensity(ngal, nran, mask, systematics[:,i],
+                              nbins=nbins, selection=selection_fn)
+
+        nnbar_i.run(njack=njack)
+        nnbar_i.output['sys'] = columns[i] # add the name of the map
+        nnbar_list.append(nnbar_i.output)
+
+    comm.Barrier()
+    nnbar_list = comm.gather(nnbar_list, root=0)
+    
+    if comm.rank==0:
+        nnbar_list = [nnbar_j for nnbar_i in nnbar_list for nnbar_j in nnbar_i if len(nnbar_i)!=0]            
+        return nnbar_list
 
 
 class MeanDensity(object):
@@ -170,6 +200,12 @@ class MeanDensity(object):
         output['attr'] = attrs
         self.output = output
 
-    def save(self, path4output):
-        print('writing the output in {}'.format(path4output))
-        np.savez(path4output, **self.output)
+    def save(self, path_output):
+        
+        dir_output = os.path.dirname(path_output)
+        if not os.path.exists(dir_output):
+            self.logger.info(f'creating {dir_output}')
+            os.makedirs(dir_output)
+            
+        self.logger.info(f'writing the output in {path_output}')
+        np.savez(path_output, **self.output)
