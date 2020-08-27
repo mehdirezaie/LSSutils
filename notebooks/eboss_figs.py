@@ -882,11 +882,11 @@ def chi2_from_nbar(fig_path):
 
     for k, cap in enumerate(['NGC', 'SGC']):
         print(cap)
-        line1 = ''
-        line2 = ''
-        line3 = ''
-        values = ''
         for j, zbin in enumerate(['main', 'highz']):        
+            line1 = ''
+            line2 = ''
+            line3 = ''
+            values = ''            
             #print(zbin, end=' & ')
             line1 += f'{zbin} '
 
@@ -908,11 +908,16 @@ def chi2_from_nbar(fig_path):
 
                     chi2t = sum(nnbars_chi2[f'{cap}_{zbin}_{maps}_{nside}'])
                     values += f' {chi2t:.1f} &'
+                
+                if nside == '512':
+                    line3 += ' &'
+                    values += ' &'
+            
 
-        print('\n-----\n')            
-        print(line1)
-        print(line2)
-        print(line3)
-        print(values)    
+            print('\n-----\n')            
+            print(line1)
+            print(line2)
+            print(line3)
+            print(values)    
         
     return fig, ax

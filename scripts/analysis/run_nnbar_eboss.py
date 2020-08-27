@@ -3,6 +3,7 @@ import os
 
 from lssutils import setup_logging, CurrentMPIComm
 from lssutils.lab import get_meandensity, maps_eboss_v7p2, EbossCat
+from lssutils.utils import npix2nside
 
 import pandas as pd
 import numpy as np
@@ -31,7 +32,7 @@ def main(args, columns=maps_eboss_v7p2, comm=None):
         if nside is not None:
             assert sysm.shape[0] == 12*nside*nside, 'templates do not match with nside'
         else:
-            nside = int(np.sqrt(sysm.shape[0]/12))
+            nside = npix2nside(sysm.shape[0])
         
         # project to HEALPix
         if use_systot:

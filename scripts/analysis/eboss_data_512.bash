@@ -10,6 +10,7 @@ nnfit=/home/mehdi/github/sysnetdev/scripts/app.py
 swap=/home/mehdi/github/LSSutils/scripts/analysis/swap_data_eboss.py
 pk=/home/mehdi/github/LSSutils/scripts/analysis/run_pk.py
 nnbar=/home/mehdi/github/LSSutils/scripts/analysis/run_nnbar_eboss.py
+cl=/home/mehdi/github/LSSutils/scripts/analysis/run_cell_eboss.py
 
 #---- path to the data
 nside=512
@@ -39,7 +40,8 @@ find_ne=false
 do_nnfit=false
 do_swap=false
 do_pk=false
-do_nnbar=true
+do_nnbar=false
+do_cl=true
 
 #---- functions
 function get_lr() {
@@ -319,6 +321,55 @@ then
                     du -h $dat $ran
                     echo ${out}
                     mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} \
+                    --use_systot --zlim ${zlim}
+                done
+            done
+        done
+    done
+fi
+
+if [ "${do_cl}" = true ]
+then
+    for cap in ${caps}
+    do
+        for zrange in main highz
+        do
+            zlim=$(get_zlim ${zrange})
+           
+            # default
+            input_dir=${eboss_dir}
+            output_dir=${eboss_dir}${release}/measurements/cl/
+
+            dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
+            ran=${dat/.dat./.ran.}
+            
+            out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_2_${zrange}.npy
+            du -h $dat $ran
+            echo ${out} ${zlim}
+            mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
+                      --zlim ${zlim}
+            
+            
+            out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.npy
+            du -h $dat $ran
+            echo ${out} ${zlim}
+            mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
+                    --use_systot --zlim ${zlim}
+
+            
+            for map in ${maps}
+            do
+                input_dir=${eboss_dir}${release}/catalogs/
+                output_dir=${eboss_dir}${release}/measurements/cl/
+
+                for sample in mainhighz
+                do
+                    dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
+                    ran=${dat/.dat./.ran.}
+                    out=${output_dir}cl_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
+                    du -h $dat $ran
+                    echo ${out}
+                    mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
                     --use_systot --zlim ${zlim}
                 done
             done

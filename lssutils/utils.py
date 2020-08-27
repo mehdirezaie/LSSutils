@@ -42,7 +42,20 @@ z_bins = {'main':(0.8, 2.2),
          'z2':(1.3, 1.7),
          'z3':(1.7, 2.2)}
 
+def nside2npix(nside):
+    return 12 * nside * nside
 
+def npix2nside(npix):
+    """ Determine nside from npix """
+    return int(np.sqrt(npix / 12.0))
+
+def nside2pixarea(nside, degrees=False):
+    """ Determine pix area given nside """
+    pixarea = 4 * np.pi / nside2npix(nside)
+    if degrees:
+        pixarea = np.rad2deg(np.rad2deg(pixarea))
+    
+    return pixarea
 
 def split_NtoM(N, M, rank):
     """
