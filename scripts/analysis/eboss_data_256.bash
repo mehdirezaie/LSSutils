@@ -31,6 +31,7 @@ slices="main highz low mid z1 z2 z3"
 maps="all known"
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
+templates2="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside512.h5"
 eboss_dir="/home/mehdi/data/eboss/data/${version}/"
 
 do_prep=false
@@ -40,7 +41,7 @@ find_ne=false
 do_nnfit=false
 do_swap=false
 do_pk=false
-do_nnbar=false
+do_nnbar=true
 do_cl=true
 
 #---- functions
@@ -320,7 +321,7 @@ then
                     out=${output_dir}nnbar_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} \
+                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} \
                     --use_systot --zlim ${zlim}
                 done
             done
@@ -369,7 +370,7 @@ then
                     out=${output_dir}cl_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
+                    mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} \
                     --use_systot --zlim ${zlim}
                 done
             done
