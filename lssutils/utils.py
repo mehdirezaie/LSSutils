@@ -1473,8 +1473,8 @@ class HEALPixDataset:
         ngal = self.data.to_hp(nside, zmin, zmax, raw=0)
         ngalw = self.data.to_hp(nside, zmin, zmax, raw=1)        
         
-        wratio = np.zeros_like(ngal)
-        good = ngal > 0.0
+        wratio = np.ones_like(ngal)
+        good = (ngal > 0.0) & (ngalw > 0.0)
         wratio[good] = ngalw[good]/ngal[good]        
         
         nran = self.randoms.to_hp(nside, zmin, zmax, raw=1)
@@ -1488,7 +1488,8 @@ class HEALPixDataset:
         mask = mask_random & self.mask        
         self.logger.info(f'{mask.sum()} pixels ({mask.mean()*100:.1f}%) have imaging')
         
-        wratio[mask & (~good)] = 1.0 # have randoms but no data
+        #wratio[mask & (~good)] = 1.0 # have randoms but no data
+        
         fracw = np.zeros_like(frac)
         fracw[mask] = frac[mask] / wratio[mask]
         
