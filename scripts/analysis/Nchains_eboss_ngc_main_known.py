@@ -115,5 +115,5 @@ for idx in range(0, wnn['weight'].shape[1]):
 # In[13]:
 
 
-np.savez(f'{cats_dir}1.0/measurements/angular/cell_ngc_main_known_512_nchains.npz',
+np.savez(f'{cats_dir}1.0/measurements/cl/cl_ngc_main_known_512_nchains.npz',
         **{'cl_avg':cl_avg, 'cl_indv':cl_ind, 'cl_def':cl_def, 'cl_old':cl_old})
