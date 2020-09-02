@@ -454,8 +454,8 @@ def pcc_wnn_nchains(fig_path, cap='NGC', ns='256', s='main'):
 def cell_ngc_main_nchain1(fig_path):
     from lssutils.lab import histogram_cell
     
-    path = '/home/mehdi/data/eboss/data/v7_2/1.0/old_aug5/measurements/angular/'
-    d = np.load(f'{path}cell_ngc_main_known_512_nchains.npz', allow_pickle=True)
+    path = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/cl/'
+    d = np.load(f'{path}cl_ngc_main_known_512_nchains.npz', allow_pickle=True)
     
     cl_avg = d['cl_avg'].item()
     cl_def = d['cl_def'].item()
@@ -464,6 +464,7 @@ def cell_ngc_main_nchain1(fig_path):
     i = -1
     fig, ax = plt.subplots()
     num = len(cl_avg.keys())-2
+    print(num)
     for idx in cl_avg:
 
         if idx == -1:
@@ -497,7 +498,7 @@ def cell_ngc_main_nchain1(fig_path):
 
     ax.legend()
     lines = ax.get_lines()
-    legend1 = plt.legend(lines[:-3], ["N=%d"%d for d in range(1,16)], bbox_to_anchor=(1., 1.), fontsize=8)
+    legend1 = plt.legend(lines[:-3], ["N=%d"%d for d in range(1,21)], bbox_to_anchor=(1., 1.02), fontsize=7.8)
     legend2 = plt.legend(lines[-3:], ["No Weight", "Systot", "NN (Rezaie+2020)"], loc=1)
     ax.add_artist(legend1)
     ax.add_artist(legend2)
@@ -517,8 +518,8 @@ def cell_ngc_main_nchain1(fig_path):
 def cell_ngc_main_nchain2(fig_path):
     from lssutils.lab import histogram_cell
 
-    path = '/home/mehdi/data/eboss/data/v7_2/1.0/old_aug5/measurements/angular/'
-    d = np.load(f'{path}cell_ngc_main_known_512_nchains.npz',
+    path = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/cl/'
+    d = np.load(f'{path}cl_ngc_main_known_512_nchains.npz',
                allow_pickle=True)
     
     cl_ind = d['cl_indv'].item()
@@ -544,8 +545,8 @@ def cell_ngc_main_nchain2(fig_path):
 
     ax.plot(elb, np.mean(clbs, axis=0), color='b', label='avg. of Cls', zorder=1)
 
-    elb, clb = histogram_cell(cl_avg[15]['cl_gg']['cl'])
-    ax.plot(elb, clb, color='crimson', ls='-', marker='.', label="avg. of Wsys' (N=15)", zorder=1)
+    elb, clb = histogram_cell(cl_avg[19]['cl_gg']['cl'])
+    ax.plot(elb, clb, color='crimson', ls='-', marker='.', label="avg. of Wsys' (N=20)", zorder=1)
 
     elb, clb = histogram_cell(cl_avg[-1]['cl_gg']['cl'])
     ax.plot(elb, clb, color='k', ls='-', marker='.', label="No Weight", zorder=-1)
