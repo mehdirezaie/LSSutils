@@ -1,6 +1,6 @@
-#PBS -N ezmock_nnfit
-#PBS -l nodes=1:ppn=2:gpus=1
-#PBS -l walltime=18:00:00
+#PBS -N ezmock_runpk
+#PBS -l nodes=1:ppn=2
+#PBS -l walltime=00:05:00
 #PBS -j oe
 #PBS -A PHS0336 
 
@@ -70,9 +70,9 @@ do_prep=false
 find_lr=false  # 3 min
 find_st=false  # 3 min
 find_ne=false  # 30 min
-do_nnfit=true  # 16 h
+do_nnfit=false  # 16 h
 do_swap=false
-do_pk=false
+do_pk=true
 do_nnbar=false
 do_cl=false
 
@@ -274,7 +274,6 @@ then
     done
 fi
 
-
 if [ "${do_pk}" = true ]
 then
     for cap in ${caps}
@@ -293,9 +292,9 @@ then
             du -h $dat $ran
             echo ${out} ${zlim}
             
-            #mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --use_systot \
-            #--zlim ${zlim}
-            
+            mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --use_systot \
+            --zlim ${zlim}
+            continue
             for map in ${maps}
             do
                 # EZmock_eBOSS_QSO_NGC_known_mainhighz_512_v7_0_0001.dat.fits 
