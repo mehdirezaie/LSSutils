@@ -14,7 +14,7 @@ if comm.rank ==0:
     ap.add_argument('-r', '--random_path', required=True)
     ap.add_argument('-o', '--output_path', required=True)
     ap.add_argument('-n', '--nmesh', type=int, default=512)
-    ap.add_argument('--dk', type=float, default=0.005)
+    ap.add_argument('--dk', type=float, default=0.001903995548) # 4pi/boxsize
     ap.add_argument('-b', '--boxsize', type=float, default=6600)
     ap.add_argument('-z', '--zlim', nargs='*', type=float, default=[0.8, 2.2])    
     ap.add_argument('--use_systot', action='store_true')
