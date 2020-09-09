@@ -241,20 +241,6 @@ then
         for zrange in main highz
         do
             zlim=$(get_zlim ${zrange})
-           
-            # default
-            #input_dir=${eboss_dir}
-            #output_dir=${eboss_dir}${release}/measurements/spectra/
-
-            #dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-            #ran=${dat/.dat./.ran.}
-            
-            #out=${output_dir}spectra_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.json
-            #du -h $dat $ran
-            #echo ${out} ${zlim}
-            
-            #mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --use_systot \
-            #--zlim ${zlim}
             
             for map in ${maps}
             do
@@ -284,30 +270,6 @@ then
         do
             zlim=$(get_zlim ${zrange})
            
-            ## default
-            #input_dir=${eboss_dir}
-            #output_dir=${eboss_dir}${release}/measurements/nnbar/
-
-            #dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-            #ran=${dat/.dat./.ran.}
-            #
-            #out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_2_${zrange}.npy
-            #du -h $dat $ran
-            #echo ${out} ${zlim}
-            #
-
-            #mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} \
-            #          --zlim ${zlim}
-            #
-            #
-            #out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.npy
-            #du -h $dat $ran
-            #echo ${out} ${zlim}
-            #
-
-            #mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} \
-            #        --use_systot --zlim ${zlim}
-
             
             for map in ${maps}
             do
@@ -337,26 +299,6 @@ then
         do
             zlim=$(get_zlim ${zrange})
            
-            ## default
-            #input_dir=${eboss_dir}
-            #output_dir=${eboss_dir}${release}/measurements/cl/
-
-            #dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-            #ran=${dat/.dat./.ran.}
-            #
-            #out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_2_${zrange}.npy
-            #du -h $dat $ran
-            #echo ${out} ${zlim}
-            #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-            #          --zlim ${zlim}
-            #
-            #
-            #out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.npy
-            #du -h $dat $ran
-            #echo ${out} ${zlim}
-            #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-            #        --use_systot --zlim ${zlim}
-
             
             for map in ${maps}
             do

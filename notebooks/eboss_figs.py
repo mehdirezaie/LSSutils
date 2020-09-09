@@ -573,7 +573,7 @@ def p0_512vs256_knownvsall_ngcvssgc(fig_path):
     import nbodykit.lab as nb
     def read_pk(filename):
         pk = nb.ConvolvedFFTPower.load(filename)
-        return (pk.poles['k'], pk.poles['power_0']-pk.attrs['shotnoise'])
+        return (pk.poles['k'], pk.poles['power_0'].real-pk.attrs['shotnoise'])
 
     pks = {}
 
@@ -677,7 +677,7 @@ def p2_512vs256_knownvsall_ngcvssgc(fig_path):
     import nbodykit.lab as nb
     def read_pk(filename):
         pk = nb.ConvolvedFFTPower.load(filename)
-        return (pk.poles['k'], pk.poles['power_2'])
+        return (pk.poles['k'], pk.poles['power_2'].real)
 
     pks = {}
 
@@ -776,6 +776,64 @@ def p2_512vs256_knownvsall_ngcvssgc(fig_path):
     fig.savefig(fig_path, bbox_inches='tight')    
     return fig, ax
 
+
+def p0_demo(fig_path):
+    
+    from matplotlib.gridspec import GridSpec
+    import nbodykit.lab as nb
+
+    def read_pk(filename):
+        d = nb.ConvolvedFFTPower.load(filename)
+        return (d.poles['k'], d.poles['power_0'].real - d.attrs['shotnoise'])
+
+
+    def add_pk(x, y, ax1, ax2, **kw):
+        ax1.plot(x, y, **kw)
+        ax2.plot(x, y, **kw, zorder=-1, )
+
+
+    path = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/spectra'
+    pks = {}
+    pks['systot'] = read_pk(f'{path}/spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')
+    pks['noweight'] = read_pk(f'{path}/spectra_NGC_noweight_mainhighz_512_v7_2_main.json')
+    pks['nn'] = read_pk(f'{path}/spectra_NGC_known_mainhighz_512_v7_2_main.json')    
+
+    fig = plt.figure(figsize=(8, 5))
+    plt.subplots_adjust(wspace=0.0)
+    gs  = GridSpec(1, 2, width_ratios=[1, 1], figure=fig)
+    ax1 = plt.subplot(gs[0])
+    ax2 = plt.subplot(gs[1])
+
+
+    #--- cosmetics
+    ax1.tick_params(direction='in', axis='both', which='both', left=True, right=False)
+    ax2.tick_params(direction='in', axis='both', which='both', left=False, right=True)
+    ax1.spines['right'].set_visible(False)
+    ax2.spines['left'].set_visible(False)
+
+
+    xmin, xbreak, xmax = (0.001, 0.02, 0.25)
+    ylim = (1.0e3, 3.0e6)
+    ax1.set(xlim=(xmin, xbreak), ylim=ylim, yscale='log', xscale='log')
+    ax2.set(xlim=(xbreak, xmax), ylim=ylim, yscale='log')#, xscale='log')
+    ax2.set_yticks([])
+    ax2.set_yticklabels([])
+    ax2.set_xticks([0.02, 0.05, 0.1, 0.15, 0.2, 0.25])
+
+    ax1.axvline(xbreak, ls=':', color='grey', alpha=0.2)
+
+    ax2.set_xlabel(r'k [h/Mpc]')
+    ax1.set_ylabel(r'P$_{0}$(k) [Mpc/h]$^{3}$')
+    ax2.xaxis.set_label_coords(0., -0.1) # https://stackoverflow.com/a/25018490/9746916
+
+    #--- plots
+    add_pk(*pks['noweight'], ax1, ax2, marker='.', color='#000000', label='Before treatment')
+    add_pk(*pks['systot'], ax1, ax2, marker='o', mfc='w', ls='--', color='#4b88e3', label='Standard treatment')
+    add_pk(*pks['nn'], ax1, ax2, marker='s', mfc='w', color='#d98404', label='Neural Network treatment')
+
+    ax2.legend(frameon=False, title=r'eBOSS DR16 QSO NGC ($0.8<z<2.2$)')
+
+    fig.savefig(fig_path, dpi=300, bbox_inches='tight')    
 
 def __read_nnbar(nnbar_filename):
     d = np.load(nnbar_filename, allow_pickle=True)

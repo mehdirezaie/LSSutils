@@ -31,6 +31,7 @@ slices="main highz low mid z1 z2 z3"
 maps="all known"
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
+templates2="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside256.h5"
 eboss_dir="/home/mehdi/data/eboss/data/${version}/"
 
 do_prep=false
@@ -39,8 +40,8 @@ find_st=false
 find_ne=false
 do_nnfit=false
 do_swap=false
-do_pk=true
-do_nnbar=false
+do_pk=false
+do_nnbar=true
 do_cl=false
 
 #---- functions
@@ -242,18 +243,24 @@ then
             zlim=$(get_zlim ${zrange})
            
             # default
-            #input_dir=${eboss_dir}
-            #output_dir=${eboss_dir}${release}/measurements/spectra/
+            input_dir=${eboss_dir}
+            output_dir=${eboss_dir}${release}/measurements/spectra/
 
-            #dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-            #ran=${dat/.dat./.ran.}
+            dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
+            ran=${dat/.dat./.ran.}
             
-            #out=${output_dir}spectra_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.json
-            #du -h $dat $ran
-            #echo ${out} ${zlim}
+            out=${output_dir}spectra_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.json
+            du -h $dat $ran
+            echo ${out} ${zlim}
             
-            #mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --use_systot \
-            #--zlim ${zlim}
+            mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --use_systot \
+            --zlim ${zlim}
+
+
+            out=${output_dir}spectra_${cap}_noweight_mainhighz_512_v7_2_${zrange}.json
+            du -h $dat $ran
+            echo ${out} ${zlim}
+            mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --zlim ${zlim}
             
             for map in ${maps}
             do
@@ -295,7 +302,7 @@ then
             echo ${out} ${zlim}
             
 
-            mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} \
+            mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} \
                       --zlim ${zlim}
             
             
@@ -304,7 +311,7 @@ then
             echo ${out} ${zlim}
             
 
-            mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} \
+            mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} \
                     --use_systot --zlim ${zlim}
 
             
@@ -320,7 +327,7 @@ then
                     out=${output_dir}nnbar_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} \
+                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} \
                     --use_systot --zlim ${zlim}
                 done
             done
