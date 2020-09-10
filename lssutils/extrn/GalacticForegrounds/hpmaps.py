@@ -18,7 +18,7 @@ class NStarSDSS:
         (c) Ashley Ross
     '''
     
-    def __init__(self, name='/B/Shared/mehdi/templates/allstars17.519.9Healpixall256.dat', nside_out=256):
+    def __init__(self, name='/home/mehdi/data/templates/allstars17.519.9Healpixall256.dat', nside_out=256):
         self.unit = '# stars'        
         self.nstar = np.loadtxt(name)
         self.nstar = hp.reorder(self.nstar, n2r=True)
@@ -34,7 +34,7 @@ class sfd98(object):
         self.nside    = nside
         self.ordering = 'ring'
         self.unit     = 'EBV [SFD 98]'
-        self.name     = '/Volumes/TimeMachine/data/healSFD_256_fullsky.fits'
+        self.name     = '/home/mehdi/data/templates/healSFD_256_fullsky.fits'
         self.ebv      = hp.read_map(self.name, verbose=False)
 
         if nside!=256:
@@ -45,7 +45,7 @@ class gaia_dr2(object):
     """
       Read the Gaia DR2 star density catalog (c) Anand Raichoor
     """
-    def __init__(self, name='/Volumes/TimeMachine/data/gaia/Gaia.dr2.bGT10.12g17.hp256.fits', nside_out=256):
+    def __init__(self, name='/home/mehdi/data/templates/Gaia.dr2.bGT10.12g17.hp256.fits', nside_out=256):
 
         self.ordering = 'ring'
         self.unit     = 'Gaia DR2'
@@ -75,7 +75,7 @@ def G_to_C(mapi, res_in=1024, res_out=256):
 
 class logHI(object):
     ''' Reads Lenz et. al. HI column density '''
-    def __init__(self, nside=256, name='/Volumes/TimeMachine/data/NHI_HPX.fits'):
+    def __init__(self, nside=256, name='/home/mehdi/data/templates/NHI_HPX.fits'):
 
         self.nside    = nside
         nside_in      = 1024

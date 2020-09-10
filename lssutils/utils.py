@@ -1618,11 +1618,11 @@ class Readfits(object):
         self.extract_keys = extract_keys
         self.nside        = res_out
         
-    def run(self, add_foreground=False):
-        #
+    def run(self, add_foreground=False, mkwytemp=None):
+        
         self._run()
         if add_foreground:
-            self._add_foreground()
+            self._add_foreground(mkwytemp)
         #
         # replace inf with nan
         self.metadata.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -1645,7 +1645,7 @@ class Readfits(object):
             
         self.metadata = pd.DataFrame(metadata)
         
-    def _add_foreground(self):
+    def _add_foreground(self, mkwytemp=None):
         from lssutils.extrn.GalacticForegrounds import hpmaps
         # 
         Gaia    = hpmaps.gaia_dr2(nside=self.nside)
