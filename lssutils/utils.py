@@ -1678,7 +1678,9 @@ class Readfits(object):
         ax=ax.flatten()
         for i,name in enumerate(self.metadata.columns):
             plt.sca(ax[i])
-            hp.mollview(self.metadata[name], hold=True, title=name, rot=-89)
+            good = np.isfinite(self.metadata[name])
+            vmin, vmax = np.percentile(self.metadata[name][good], [2.5, 97.5])
+            hp.mollview(self.metadata[name], hold=True, title=name, rot=-89, min=vmin, max=vmax)
             
         plt.savefig(path2fig, bbox_inches='tight')
         
