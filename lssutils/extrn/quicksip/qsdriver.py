@@ -97,6 +97,10 @@ class mysample(object):
             inputdir     =  '/Volumes/TimeMachine/data/DR8/ccds/'
             self.ccds    =  inputdir + 'ccds-annotated-'+self.DR+'.fits'
             self.catalog = self.survey+'_'+self.DR            
+        elif (self.DR in ['90prime-cut', 'decam-dr9-cut', 'mosaic-dr9-cut', 'dr9-combined']):
+            inputdir     =  '/home/mehdi/data/templates/ccds/dr9/'
+            self.ccds    =  inputdir + 'ccds-annotated-'+self.DR+'.fits'
+            self.catalog = self.survey+'_'+self.DR            
         else:
             raise RuntimeError("Data Realease seems wrong") 
 
@@ -150,7 +154,7 @@ def generate_maps(sample):
     elif(sample.DR == 'DR4'):
         inds = np.where((tbdata['filter'] == band) & (tbdata['photometric'] == True) & (tbdata['bitmask'] == 0)) 
     elif (sample.DR in ['DR5', 'DR7', 'dr3', 'dr3_utah_ngc', 'dr3_utah_sgc', 'dr5-eboss', 'dr5-eboss2', 'eboss_combined',\
-                        '90prime-new', 'decam-dr8', 'mosaic-dr8', 'dr8_combined']):
+                        '90prime-new', 'decam-dr8', 'mosaic-dr8', 'dr8_combined', 'dr9-combined']):
         inds = np.where(tbdata['filter'] == band)
     else:
         sys.exit('something is wrong')
@@ -190,14 +194,14 @@ def generate_maps(sample):
                                 ('hits',  '', 'total'),
                                 ('hits',  '', 'fracdet'),
                                 ('fwhm',  '', 'mean'),
-                                #('fwhm', '', 'min'),
-                                #('fwhm', '', 'max'),
+                                ('fwhm', '', 'min'),
+                                ('fwhm', '', 'max'),
                                 ('airmass',   '', 'mean'),   # no airmass in DR 7, so COMMENT it out
                                 ('exptime',   '', 'total'),
                                 ('ccdskymag', '', 'mean'),
-                                ('mjd_obs',   '', 'min')
-                                #('mjd_obs', '', 'mean')
-                                #('mjd_obs', '', 'max')
+                                ('mjd_obs',   '', 'min'),
+                                ('mjd_obs', '', 'mean'),
+                                ('mjd_obs', '', 'max')
                               ]
 
  

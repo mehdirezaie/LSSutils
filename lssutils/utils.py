@@ -21,6 +21,8 @@ from sklearn.model_selection import KFold
 from scipy.stats import (binned_statistic, spearmanr, pearsonr)
 
 
+ud_grade = hp.ud_grade
+
 # columns
 maps_eboss_v7p2 = [
     'star_density', 'ebv', 'loghi',
@@ -1646,6 +1648,7 @@ class Readfits(object):
         self.metadata = pd.DataFrame(metadata)
         
     def _add_foreground(self, mkwytemp=None):
+        # FIXME: 'mkwytemp' will point to the templates 
         from lssutils.extrn.GalacticForegrounds import hpmaps
         # 
         Gaia    = hpmaps.gaia_dr2(nside=self.nside)

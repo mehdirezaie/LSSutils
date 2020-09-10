@@ -3,13 +3,65 @@ import os
 
 from lssutils import setup_logging, CurrentMPIComm
 from lssutils.lab import get_cl, maps_eboss_v7p2, EbossCat
-from lssutils.utils import nside2pixarea, npix2nside
+from lssutils.utils import nside2pixarea, npix2nside, ud_grade
 
 import pandas as pd
 import numpy as np
 
+def angular_power(args, columns=maps_eboss_v7p2):
+    zmin, zmax = args.zlim
+    nside = args.nside
+    use_systot = args.use_systot
+
+
+    data_path = args.data_path
+    randoms_path = args.randoms_path
+    templates_path = args.templates_path
+    output_path = args.output_path
+
+    # read data, randoms, and templates
+    data = EbossCat(data_path, kind='data', zmin=zmin, zmax=zmax)
+    randoms = EbossCat(randoms_path, kind='randoms', zmin=zmin, zmax=zmax)
+
+    templates = pd.read_hdf(templates_path, key='templates')
+    sysm = templates[columns].values
+    if nside is None:
+        nside = npix2nside(sysm.shape[0])        
+
+    # project to HEALPix
+    if use_systot:
+        ngal = data.to_hp(nside, zmin, zmax, raw=2)
+        nran = randoms.to_hp(nside, zmin, zmax, raw=2)
+    else:
+        ngal = data.to_hp(nside, zmin, zmax, raw=1)
+        nran = randoms.to_hp(nside, zmin, zmax, raw=1)
+
+    # construct the mask    
+    mask_nran = nran > 0
+    mask_ngal = np.isfinite(ngal)
+    mask_sysm = (~np.isfinite(sysm)).sum(axis=1) < 1
+    
+    if npix2nside(sysm.shape[0]) != nside:
+        mask_sysm = ud_grade(mask_sysm, nside_out=nside)
+
+    mask = mask_sysm & mask_nran & mask_ngal  
+
+    nran_bar = nside2pixarea(nside, degrees=True)*5000.
+    cls_list = get_cl(ngal, nran, mask, systematics=None, njack=20, nran_bar=nran_bar) # no systematics
+    
+    output_dir = os.path.dirname(output_path)
+    if not os.path.exists(output_dir):
+        print(f'creating {output_dir}')
+        os.makedirs(output_dir)
+
+    np.save(output_path, cls_list)
+
+
+    
+    
+
 @CurrentMPIComm.enable
-def main(args, columns=maps_eboss_v7p2, comm=None):
+def angular_power_wcross(args, columns=maps_eboss_v7p2, comm=None):
     
     if comm.rank == 0:        
         # --- only rank 0
@@ -92,6 +144,7 @@ if __name__ == '__main__':
         ap.add_argument('-z', '--zlim', nargs='*', type=float, default=[0.8, 2.2]) 
         ap.add_argument('-n', '--nside', type=int, default=None)
         ap.add_argument('--use_systot', action='store_true')
+        ap.add_argument('--auto_only', action='store_true')
         ns = ap.parse_args()
 
         for (key, value) in ns.__dict__.items():
@@ -99,8 +152,13 @@ if __name__ == '__main__':
     else:
         ns = None
         print(f'hey from {comm.rank}')
-        
-    main(ns)
+    
+    ns = comm.bcast(ns, root=0)
+    
+    if ns.auto_only:
+        angular_power(ns)
+    else:
+        angular_power_wcross(ns)
             
             
         
