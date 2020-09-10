@@ -3,7 +3,7 @@
     and write them onto a hdf file
 '''
 
-from lssutils.catalogs.combinefits import Readfits
+from lssutils.utils import Readfits
 
 from argparse import ArgumentParser
 ap = ArgumentParser(description='systematic maps combining routine')

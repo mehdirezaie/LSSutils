@@ -41,8 +41,8 @@ find_ne=false
 do_nnfit=false
 do_swap=false
 do_pk=false
-do_nnbar=true
-do_cl=false
+do_nnbar=false
+do_cl=true
 
 #---- functions
 function get_lr() {

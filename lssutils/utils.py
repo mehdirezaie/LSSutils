@@ -693,7 +693,7 @@ def histogram_cell(cell, return_err=False, method='nmodes', bins=None, fsky=1.0,
 
         elif method=='jackknife':
             assert isinstance(cell, dict)
-            ell_bin, cell_bin, cell_bin_err = __get_jackknife_cell_err(cell, bins=bins, **kwargs)        
+            ell_bin, cell_bin, cell_bin_err = __get_jackknife_cell_err(cell['cl_jackknifes'], bins=bins, **kwargs)        
 
         else:
             raise ValueError(f'{method} is not implemented, choices are nmodes and jackknifes.')
@@ -1587,10 +1587,11 @@ class NNWeight(SysWeight):
         
         super(NNWeight, self).__init__(wnn_hp, ismap=True, fix=fix, clip=clip)    
     
-
-
-    
-    
+def extract_keys_dr9(mapi):
+    band = mapi.split('/')[-1].split('_')[3]
+    sysn = mapi.split('/')[-1].split('_')[6]
+    oper = mapi.split('/')[-1].split('_')[-1].split('.')[0]
+    return '_'.join((sysn, band, oper)) 
 
 def extract_keys_dr8(mapi):
     band = mapi.split('/')[-1].split('_')[4]
@@ -1612,13 +1613,13 @@ def jointemplates():
 
 class Readfits(object):
     #
-    def __init__(self, paths, extract_keys=extract_keys_dr8, res_out=256):
+    def __init__(self, paths, extract_keys=extract_keys_dr9, res_out=256):
         files = paths
         print('total number of files : %d'%len(files))
         print('file-0 : %s %s'%(files[0], extract_keys(files[0])))
         self.files        = files
         self.extract_keys = extract_keys
-        self.nside        = res_out
+        self.nside_out = res_out
         
     def run(self, add_foreground=False, mkwytemp=None):
         
@@ -1643,7 +1644,7 @@ class Readfits(object):
             if 'ivar' in name_i:name_i = name_i.replace('ivar', 'depth')
             if name_i in metadata.keys():
                 raise RuntimeError('%s already in metadata'%name_i)
-            metadata[name_i] = read_partialmap(file_i, self.nside)            
+            metadata[name_i] = read_partialmap(file_i, self.nside_out)            
             
         self.metadata = pd.DataFrame(metadata)
         
@@ -1651,13 +1652,13 @@ class Readfits(object):
         # FIXME: 'mkwytemp' will point to the templates 
         from lssutils.extrn.GalacticForegrounds import hpmaps
         # 
-        Gaia    = hpmaps.gaia_dr2(nside=self.nside)
+        Gaia    = hpmaps.gaia_dr2(nside_out=self.nside_out)
         self.metadata['nstar'] = Gaia.gaia
         
-        EBV     = hpmaps.sfd98(nside=self.nside)
+        EBV     = hpmaps.sfd98(nside_out=self.nside_out)
         self.metadata['ebv']   = EBV.ebv
         
-        logNHI  = hpmaps.logHI(nside=self.nside)
+        logNHI  = hpmaps.logHI(nside_out=self.nside_out)
         self.metadata['loghi'] = logNHI.loghi            
         
     def make_plot(self, path2fig):

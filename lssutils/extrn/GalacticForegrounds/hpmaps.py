@@ -30,15 +30,15 @@ class NStarSDSS:
 
 class sfd98(object):
     """ Read E(B-V) from SFD 1998 """
-    def __init__(self, nside=256):
-        self.nside    = nside
+    def __init__(self, nside_out=256):
+        self.nside_out    = nside_out
         self.ordering = 'ring'
         self.unit     = 'EBV [SFD 98]'
         self.name     = '/home/mehdi/data/templates/healSFD_256_fullsky.fits'
         self.ebv      = hp.read_map(self.name, verbose=False)
 
-        if nside!=256:
-            self.ebv = hp.ud_grade(self.ebv, nside_out=nside)
+        if nside_out!=256:
+            self.ebv = hp.ud_grade(self.ebv, nside_out=nside_out)
             warnings.warn('upgrading/downgrading EBV')
 
 class gaia_dr2(object):
@@ -75,21 +75,21 @@ def G_to_C(mapi, res_in=1024, res_out=256):
 
 class logHI(object):
     ''' Reads Lenz et. al. HI column density '''
-    def __init__(self, nside=256, name='/home/mehdi/data/templates/NHI_HPX.fits'):
+    def __init__(self, nside_out=256, name='/home/mehdi/data/templates/NHI_HPX.fits'):
 
-        self.nside    = nside
+        self.nside_out    = nside_out
         nside_in      = 1024
         self.ordering = 'ring'
         self.unit     = 'Lenz et. al. HI'
         self.name     = name
 
-        if nside!= nside_in:warnings.warn('upgrading/downgrading HI column density')
+        if nside_out!= nside_in:warnings.warn('upgrading/downgrading HI column density')
         nhi           = ft.FITS(self.name, lower=True)
         nhi           = nhi[1].read()['nhi'] # only nhi column
 
-        nhi_c         = G_to_C(nhi, res_in=nside_in, res_out=nside)
+        nhi_c         = G_to_C(nhi, res_in=nside_in, res_out=nside_out)
         nhi_neg_hpix  = np.argwhere(nhi_c <= 0.0).flatten()
-        neighbors     = hp.get_all_neighbours(nside, nhi_neg_hpix)
+        neighbors     = hp.get_all_neighbours(nside_out, nhi_neg_hpix)
 
         nhi_c[nhi_neg_hpix] = np.mean(nhi_c[neighbors], axis=0)
 
