@@ -353,15 +353,19 @@ then
             out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_2_${zrange}.npy
             du -h $dat $ran
             echo ${out} ${zlim}
-            mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                      --zlim ${zlim}
+            #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
+            #          --zlim ${zlim}
+            python ${cl} -d $dat -r $ran -o $out -t ${templates} \
+                     --zlim ${zlim} --auto_only --nside 1024
             
             
             out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.npy
             du -h $dat $ran
             echo ${out} ${zlim}
-            mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                    --use_systot --zlim ${zlim}
+            #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
+            #        --use_systot --zlim ${zlim}
+            python ${cl} -d $dat -r $ran -o $out -t ${templates} \
+                   --use_systot --zlim ${zlim} --auto_only --nside 1024
 
             
             for map in ${maps}
@@ -376,8 +380,11 @@ then
                     out=${output_dir}cl_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                    --use_systot --zlim ${zlim}
+                    #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
+                    #--use_systot --zlim ${zlim}
+                    python ${cl} -d $dat -r $ran -o $out -t ${templates} \
+                    --use_systot --zlim ${zlim} --auto_only --nside 1024
+                    
                 done
             done
         done
