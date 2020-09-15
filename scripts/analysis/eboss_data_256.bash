@@ -40,9 +40,9 @@ find_st=false
 find_ne=false
 do_nnfit=false
 do_swap=false
-do_pk=true
+do_pk=false
 do_nnbar=false
-do_cl=false
+do_cl=true
 
 #---- functions
 function get_lr() {
@@ -312,8 +312,11 @@ then
                     out=${output_dir}cl_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} \
-                    --use_systot --zlim ${zlim}
+                    #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} \
+                    #--use_systot --zlim ${zlim}
+                    python ${cl} -d $dat -r $ran -o $out -t ${templates} \
+                    --use_systot --zlim ${zlim} --auto_only --nside 1024
+ 
                 done
             done
         done
