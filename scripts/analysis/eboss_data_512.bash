@@ -26,9 +26,9 @@ nepoch=150
 nchains=20
 version="v7_2"
 release="1.0"
-caps="NGC SGC"
-slices="main highz low mid z1 z2 z3"
-maps="all known"
+caps="SGC"  # options are "NGC SGC"
+slices="mid" # options are "main highz low mid z1 z2 z3"
+maps="known" # options are "all known"
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
 templates2="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside256.h5"
@@ -38,11 +38,11 @@ do_prep=false
 find_lr=false
 find_st=false
 find_ne=false
-do_nnfit=false
+do_nnfit=true
 do_swap=false
 do_pk=false
 do_nnbar=false
-do_cl=true
+do_cl=false
 
 #---- functions
 function get_lr() {
@@ -54,10 +54,10 @@ function get_lr() {
         lr=0.05
     elif [ $1 = "low" ]
     then
-        lr=0.04
+        lr=0.01
     elif [ $1 = "mid" ]
     then
-        lr=0.04        
+        lr=0.01        
     fi
     echo $lr
 }
@@ -187,9 +187,9 @@ fi
 if [ "${do_nnfit}" = true ]
 then
     #---- neural net modeling
-    for cap in SGC #${caps}
+    for cap in ${caps}
     do
-        for slice in low #main highz low mid #${slices}
+        for slice in ${slices}
         do
             lr=$(get_lr ${slice})
 
@@ -198,7 +198,7 @@ then
             du -h ${input_path}
 
 
-            for map in known #${maps}
+            for map in ${maps}
             do
                 if [ ${map} = "all" ]
                 then
