@@ -1,6 +1,12 @@
 
-input_fn = sys.argv[1]
-output_fn = sys.argv[2]
+import sys
+
+try:
+	input_fn = sys.argv[1]
+	output_fn = sys.argv[2]
+except:
+	print('run with [script name].py input output')
+	exit('exit')
 
 with open(input_fn, 'r') as fl:
      lines = fl.readlines()

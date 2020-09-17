@@ -1,6 +1,6 @@
 #PBS -N ezmock_nbar
 #PBS -l nodes=1:ppn=8
-#PBS -l walltime=00:03:00
+#PBS -l walltime=00:10:00
 #PBS -j oe
 #PBS -A PHS0336 
 
@@ -31,9 +31,16 @@ cd ${HOME}/github/LSSutils/scripts/analysis
 
 #mockid=0022
 #iscont=0
-printf -v mockid "%04d" $PBS_ARRAYID
+#printf -v mockid "%04d" $PBS_ARRAYID
 #iscont=$2 # use -v variable=value instead, see https://www.osc.edu/supercomputing/batch-processing-at-osc/job-submission
-echo ${mockid} $iscont
+
+# NOTE:in case some of jobs array failed
+# have the indices in indices.txt
+# PBS_ARRAYID=5 # uncomment for test
+mockid=$(sed "$PBS_ARRAYID"'q;d' indices.txt)
+printf -v mockid "%04d" ${mockid}
+
+echo ${mockid} ${iscont}
 
 #---- path to the codes
 prep=${HOME}/github/LSSutils/scripts/analysis/prepare_data_eboss.py
