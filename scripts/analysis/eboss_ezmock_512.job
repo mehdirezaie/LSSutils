@@ -1,6 +1,6 @@
-#PBS -N ezmock_runpk
-#PBS -l nodes=1:ppn=2
-#PBS -l walltime=00:05:00
+#PBS -N ezmock_nbar
+#PBS -l nodes=1:ppn=8
+#PBS -l walltime=00:03:00
 #PBS -j oe
 #PBS -A PHS0336 
 
@@ -12,13 +12,11 @@
 # see the balance with 'OSCusage'
 
 
-
 #--- notes
 # aug 27: only main and known
 # run with 'qsub -t 1-9 -v iscont=1 eboss_ezmock_512.job'
 #---- environment variables and activation
 #set -x
-
 
 #module load cuda/10.1.168
 
@@ -31,8 +29,8 @@ source activate sysnet
 
 cd ${HOME}/github/LSSutils/scripts/analysis
 
-#mockid=0001
-#iscont=1
+#mockid=0022
+#iscont=0
 printf -v mockid "%04d" $PBS_ARRAYID
 #iscont=$2 # use -v variable=value instead, see https://www.osc.edu/supercomputing/batch-processing-at-osc/job-submission
 echo ${mockid} $iscont
@@ -72,8 +70,8 @@ find_st=false  # 3 min
 find_ne=false  # 30 min
 do_nnfit=false  # 16 h
 do_swap=false
-do_pk=true
-do_nnbar=false
+do_pk=false
+do_nnbar=true
 do_cl=false
 
 #---- functions
@@ -321,7 +319,7 @@ if [ "${do_nnbar}" = true ]
 then
     for cap in ${caps}
     do
-        for zrange in main highz
+        for zrange in main # highz # mocks do not have high-z
         do
             zlim=$(get_zlim ${zrange})
            
@@ -329,41 +327,37 @@ then
             input_dir=${eboss_dir}
             output_dir=${eboss_dir}${release}/measurements/nnbar/
 
-            dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-            ran=${dat/.dat./.ran.}
-            
-            out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_2_${zrange}.npy
+	    read dat ran < <(get_datran $iscont)
+
+            out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}.npy
             du -h $dat $ran
             echo ${out} ${zlim}
             
+            mpirun -np 8 python ${nnbar} -d $dat -r $ran -t ${templates} -o $out --use_systot --zlim ${zlim}
 
-            mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} \
-                      --zlim ${zlim}
+	    if [ $iscont = 1 ] # wo systot for cont. mocks
+	    then
+	        out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}.npy
+	        echo ${out}
+	        #mpirun -np 8 python ${nnbar} -d $dat -r $ran -t ${templates} -o $out --zlim ${zlim}
+	    fi
             
-            
-            out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.npy
-            du -h $dat $ran
-            echo ${out} ${zlim}
-            
-
-            mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} \
-                    --use_systot --zlim ${zlim}
-
-            
+	    continue # no need to do nnbar for mocks
             for map in ${maps}
             do
-                input_dir=${eboss_dir}${release}/catalogs/
+                # EZmock_eBOSS_QSO_NGC_known_mainhighz_512_v7_0_0001.dat.fits 
+	        input_dir=${eboss_dir}${release}/catalogs/
                 output_dir=${eboss_dir}${release}/measurements/nnbar/
 
                 for sample in mainhighz
                 do
-                    dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
+                    dat=${input_dir}EZmock_eBOSS_QSO_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}.dat.fits
                     ran=${dat/.dat./.ran.}
-                    out=${output_dir}nnbar_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
+                    out=${output_dir}nnbar_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}_${zrange}.npy
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} \
-                    --use_systot --zlim ${zlim}
+                    
+		    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim}
                 done
             done
         done

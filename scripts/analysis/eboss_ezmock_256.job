@@ -26,6 +26,7 @@ source ${HOME}/.bashrc
 export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
 export NUMEXPR_MAX_THREADS=2
 source activate sysnet
+
 which python
 cd ${HOME}/github/LSSutils/scripts/analysis
 
