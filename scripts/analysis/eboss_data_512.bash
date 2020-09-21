@@ -26,9 +26,10 @@ nepoch=150
 nchains=20
 version="v7_2"
 release="1.0"
-caps="SGC"  # options are "NGC SGC"
+caps="NGC SGC"  # options are "NGC SGC"
 slices="mid" # options are "main highz low mid z1 z2 z3"
-maps="all" # options are "all known"
+maps="all known" # options are "all known"
+samples="lowmidhighz" # options are lowmidhighz mainhighz
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
 templates2="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside256.h5"
@@ -39,10 +40,11 @@ find_lr=false
 find_st=false
 find_ne=false
 do_nnfit=false
-do_swap=true
-do_pk=false
+do_swap=false
+do_pk=true
 do_nnbar=false
 do_cl=false
+do_default=false
 
 #---- functions
 function get_lr() {
@@ -148,8 +150,7 @@ then
                 fi
                 output_path=${input_dir}nn_pnnl_${map}/hp/
                 echo ${output_path}
-                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} \
-                      -lr  ${lr} -fs 
+                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr  ${lr} -fs 
             done
         done
     done
@@ -179,8 +180,7 @@ then
         fi
         output_path=${input_dir}nn_pnnl_${map}/hp/
         echo ${output_path}
-        python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} \
-        -lr ${lr} -ne 300
+        python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr ${lr} -ne 300
     done
 fi
 
@@ -211,9 +211,7 @@ then
                 fi
                 output_path=${input_dir}nn_pnnl_${map}
                 echo ${output_path}
-                python $nnfit -i ${input_path} -o ${output_path} \
-                -ax ${axes}  -lr ${lr} --nn_structure ${nn_structure[@]} \
-                -ne $nepoch -nc $nchains -k
+                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes}  -lr ${lr} --nn_structure ${nn_structure[@]} -ne $nepoch -nc $nchains -k
             done
         done
     done
@@ -243,40 +241,41 @@ then
         do
             zlim=$(get_zlim ${zrange})
            
-            # default
-            input_dir=${eboss_dir}
-            output_dir=${eboss_dir}${release}/measurements/spectra/
+            if [ "${do_default}" = true ]
+            then
+                # default
+                input_dir=${eboss_dir}
+                output_dir=${eboss_dir}${release}/measurements/spectra/
 
-            dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-            ran=${dat/.dat./.ran.}
-            
-            out=${output_dir}spectra_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.json
-            du -h $dat $ran
-            echo ${out} ${zlim}
-            
-            mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --use_systot \
-            --zlim ${zlim}
+                dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
+                ran=${dat/.dat./.ran.}
+
+                out=${output_dir}spectra_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.json
+                du -h $dat $ran
+                echo ${out} ${zlim}
+
+                mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --use_systot --zlim ${zlim}
 
 
-            out=${output_dir}spectra_${cap}_noweight_mainhighz_512_v7_2_${zrange}.json
-            du -h $dat $ran
-            echo ${out} ${zlim}
-            mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --zlim ${zlim}
+                out=${output_dir}spectra_${cap}_noweight_mainhighz_512_v7_2_${zrange}.json
+                du -h $dat $ran
+                echo ${out} ${zlim}
+                mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --zlim ${zlim}            
+            fi
             
             for map in ${maps}
             do
                 input_dir=${eboss_dir}${release}/catalogs/
                 output_dir=${eboss_dir}${release}/measurements/spectra/
 
-                for sample in mainhighz
+                for sample in ${samples}
                 do
                     dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
                     ran=${dat/.dat./.ran.}
                     out=${output_dir}spectra_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.json
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${pk} -g $dat -r $ran -o $out \
-                    --use_systot --zlim ${zlim}
+                    mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --use_systot --zlim ${zlim}
                 done
             done
         done
@@ -291,29 +290,30 @@ then
         do
             zlim=$(get_zlim ${zrange})
            
-            # default
-            input_dir=${eboss_dir}
-            output_dir=${eboss_dir}${release}/measurements/nnbar/
+            if [ "${do_default}" = true ]
+            then
+                # default
+                input_dir=${eboss_dir}
+                output_dir=${eboss_dir}${release}/measurements/nnbar/
 
-            dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-            ran=${dat/.dat./.ran.}
-            
-            out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_2_${zrange}.npy
-            du -h $dat $ran
-            echo ${out} ${zlim}
-            
+                dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
+                ran=${dat/.dat./.ran.}
 
-            mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} \
-                      --zlim ${zlim}
-            
-            
-            out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.npy
-            du -h $dat $ran
-            echo ${out} ${zlim}
-            
+                out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_2_${zrange}.npy
+                du -h $dat $ran
+                echo ${out} ${zlim}
 
-            mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} \
-                    --use_systot --zlim ${zlim}
+
+                mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --zlim ${zlim}
+
+
+                out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.npy
+                du -h $dat $ran
+                echo ${out} ${zlim}
+
+
+                mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
+            fi
 
             
             for map in ${maps}
@@ -321,15 +321,14 @@ then
                 input_dir=${eboss_dir}${release}/catalogs/
                 output_dir=${eboss_dir}${release}/measurements/nnbar/
 
-                for sample in mainhighz
+                for sample in ${samples}
                 do
                     dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
                     ran=${dat/.dat./.ran.}
                     out=${output_dir}nnbar_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} \
-                    --use_systot --zlim ${zlim}
+                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
                 done
             done
         done
@@ -344,37 +343,37 @@ then
         do
             zlim=$(get_zlim ${zrange})
            
-            # default
-            input_dir=${eboss_dir}
-            output_dir=${eboss_dir}${release}/measurements/cl/
+            if [ "${do_default}" = true ]
+            then
+                # default
+                input_dir=${eboss_dir}
+                output_dir=${eboss_dir}${release}/measurements/cl/
 
-            dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-            ran=${dat/.dat./.ran.}
-            
-            out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_2_${zrange}.npy
-            du -h $dat $ran
-            echo ${out} ${zlim}
-            #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-            #          --zlim ${zlim}
-            python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                     --zlim ${zlim} --auto_only --nside 1024
-            
-            
-            out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.npy
-            du -h $dat $ran
-            echo ${out} ${zlim}
-            #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-            #        --use_systot --zlim ${zlim}
-            python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                   --use_systot --zlim ${zlim} --auto_only --nside 1024
+                dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
+                ran=${dat/.dat./.ran.}
 
+                out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_2_${zrange}.npy
+                du -h $dat $ran
+                echo ${out} ${zlim}
+                #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
+                #          --zlim ${zlim}
+                python ${cl} -d $dat -r $ran -o $out -t ${templates} --zlim ${zlim} --auto_only --nside 1024
+
+
+                out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.npy
+                du -h $dat $ran
+                echo ${out} ${zlim}
+                #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
+                #        --use_systot --zlim ${zlim}
+                python ${cl} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim} --auto_only --nside 1024
+            fi
             
             for map in ${maps}
             do
                 input_dir=${eboss_dir}${release}/catalogs/
                 output_dir=${eboss_dir}${release}/measurements/cl/
 
-                for sample in mainhighz
+                for sample in ${samples}
                 do
                     dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
                     ran=${dat/.dat./.ran.}
@@ -383,8 +382,7 @@ then
                     echo ${out}
                     #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
                     #--use_systot --zlim ${zlim}
-                    python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                    --use_systot --zlim ${zlim} --auto_only --nside 1024
+                    python ${cl} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim} --auto_only --nside 1024
                     
                 done
             done
