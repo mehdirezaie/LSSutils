@@ -1360,7 +1360,6 @@ class EbossCat:
             zmin, zmax = mapper[0]
             
             good = (self.data['Z'] > zmin) & (self.data['Z'] < zmax)
-            
             w_sys = mapper[1](self.data['RA'][good], self.data['DEC'][good])  
             
             # normalize and clip extremes
@@ -1567,10 +1566,15 @@ class SysWeight(object):
                 wsys[nan_wsys] = np.nanmean(self.wmap[neighbors], axis=0)
 
                 # 
-                NNaNs  = np.isnan(wsys).sum()
+                NaNs =  (np.isnan(wsys) | (wsys <= 0.0))
+                NNaNs = NaNs.sum()
                 self.logger.info(f'# NaNs (after)  : {NNaNs}')
 
-            
+                # set weight to 1 if not available
+                if NNaNs != 0:
+                    self.logger.info(f'set {NNaNs} pixels to 1.0 (neighbors did not help)')
+                    wsys[NaNs] = 1.0
+
             
         assert np.all(wsys > 0.0),f'{(wsys <= 0.0).sum()} weights <= 0.0!' 
         

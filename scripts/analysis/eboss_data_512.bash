@@ -28,7 +28,7 @@ version="v7_2"
 release="1.0"
 caps="SGC"  # options are "NGC SGC"
 slices="mid" # options are "main highz low mid z1 z2 z3"
-maps="known" # options are "all known"
+maps="all" # options are "all known"
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
 templates2="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside256.h5"
@@ -38,8 +38,8 @@ do_prep=false
 find_lr=false
 find_st=false
 find_ne=false
-do_nnfit=true
-do_swap=false
+do_nnfit=false
+do_swap=true
 do_pk=false
 do_nnbar=false
 do_cl=false
@@ -228,7 +228,8 @@ then
     do
         for map in ${maps}
         do
-            python $swap -m ${map} -n ${nside} -s main highz -c ${cap}
+            #python $swap -m ${map} -n ${nside} -s main highz -c ${cap} # 1+1 z
+            python $swap -m ${map} -n ${nside} -s low mid highz -c ${cap}
         done
     done
 fi
