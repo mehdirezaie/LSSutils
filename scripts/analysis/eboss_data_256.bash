@@ -26,9 +26,10 @@ nepoch=150
 nchains=20
 version="v7_2"
 release="1.0"
-caps="NGC SGC"
-slices="main highz low mid z1 z2 z3"
-maps="all known"
+caps="NGC SGC"  # options are "NGC SGC"
+slices="mid" # options are "main highz low mid z1 z2 z3"
+maps="all known" # options are "all known"
+samples="lowmidhighz" # options are lowmidhighz mainhighz
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
 templates2="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside512.h5"
@@ -41,8 +42,9 @@ find_ne=false
 do_nnfit=false
 do_swap=false
 do_pk=false
-do_nnbar=false
-do_cl=true
+do_nnbar=true
+do_cl=false
+do_default=false
 
 #---- functions
 function get_lr() {
@@ -148,8 +150,7 @@ then
                 fi
                 output_path=${input_dir}nn_pnnl_${map}/hp/
                 echo ${output_path}
-                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} \
-                      -lr  ${lr} -fs 
+                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr  ${lr} -fs 
             done
         done
     done
@@ -179,17 +180,16 @@ then
         fi
         output_path=${input_dir}nn_pnnl_${map}/hp/
         echo ${output_path}
-        python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} \
-        -lr ${lr} -ne 300
+        python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr ${lr} -ne 300
     done
 fi
 
 if [ "${do_nnfit}" = true ]
 then
     #---- neural net modeling
-    for cap in SGC #${caps}
+    for cap in ${caps}
     do
-        for slice in low #main highz low mid #${slices}
+        for slice in ${slices}
         do
             lr=$(get_lr ${slice})
 
@@ -198,7 +198,7 @@ then
             du -h ${input_path}
 
 
-            for map in known #${maps}
+            for map in ${maps}
             do
                 if [ ${map} = "all" ]
                 then
@@ -211,9 +211,7 @@ then
                 fi
                 output_path=${input_dir}nn_pnnl_${map}
                 echo ${output_path}
-                python $nnfit -i ${input_path} -o ${output_path} \
-                -ax ${axes}  -lr ${lr} --nn_structure ${nn_structure[@]} \
-                -ne $nepoch -nc $nchains -k
+                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes}  -lr ${lr} --nn_structure ${nn_structure[@]} -ne $nepoch -nc $nchains -k
             done
         done
     done
@@ -228,7 +226,8 @@ then
     do
         for map in ${maps}
         do
-            python $swap -m ${map} -n ${nside} -s main highz -c ${cap}
+            #python $swap -m ${map} -n ${nside} -s main highz -c ${cap} # 1+1 z
+            python $swap -m ${map} -n ${nside} -s low mid highz -c ${cap}
         done
     done
 fi
@@ -247,15 +246,14 @@ then
                 input_dir=${eboss_dir}${release}/catalogs/
                 output_dir=${eboss_dir}${release}/measurements/spectra/
 
-                for sample in mainhighz
+                for sample in ${samples}
                 do
                     dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
                     ran=${dat/.dat./.ran.}
                     out=${output_dir}spectra_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.json
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${pk} -g $dat -r $ran -o $out \
-                    --use_systot --zlim ${zlim}
+                    mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --use_systot --zlim ${zlim}
                 done
             done
         done
@@ -276,15 +274,14 @@ then
                 input_dir=${eboss_dir}${release}/catalogs/
                 output_dir=${eboss_dir}${release}/measurements/nnbar/
 
-                for sample in mainhighz
+                for sample in ${samples}
                 do
                     dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
                     ran=${dat/.dat./.ran.}
                     out=${output_dir}nnbar_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} \
-                    --use_systot --zlim ${zlim}
+                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
                 done
             done
         done
@@ -305,7 +302,7 @@ then
                 input_dir=${eboss_dir}${release}/catalogs/
                 output_dir=${eboss_dir}${release}/measurements/cl/
 
-                for sample in mainhighz
+                for sample in ${samples}
                 do
                     dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
                     ran=${dat/.dat./.ran.}
@@ -314,8 +311,7 @@ then
                     echo ${out}
                     #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} \
                     #--use_systot --zlim ${zlim}
-                    python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                    --use_systot --zlim ${zlim} --auto_only --nside 1024
+                    python ${cl} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim} --auto_only --nside 1024
  
                 done
             done
