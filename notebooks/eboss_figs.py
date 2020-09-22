@@ -854,10 +854,11 @@ def chi2_from_nbar(fig_path):
         for zbin in ['main', 'highz']:
 
             for maps in ['all', 'known']:
-                for nside in ['256', '512']:
+                for nside in ['512']: # '256', 
 
                     name = '_'.join([cap, zbin, maps, nside])
-                    nnbars[name] = __read_nnbar(f'{path_nnbar}nnbar_{cap}_{maps}_mainhighz_{nside}_v7_2_{zbin}.npy')
+                    #nnbars[name] = __read_nnbar(f'{path_nnbar}nnbar_{cap}_{maps}_mainhighz_{nside}_v7_2_{zbin}.npy')
+                    nnbars[name] = __read_nnbar(f'{path_nnbar}nnbar_{cap}_{maps}_lowmidhighz_{nside}_v7_2_{zbin}.npy')
                     print('.', end='')
 
             nnbars[f'{cap}_{zbin}_systot'] = __read_nnbar(f'{path_nnbar}nnbar_{cap}_knownsystot_mainhighz_512_v7_2_{zbin}.npy')
@@ -865,7 +866,7 @@ def chi2_from_nbar(fig_path):
 
 
     chi2_fn = lambda y, ye:(((y-1.0)/ye)**2).sum()
-    sysm_n_all = nnbars['NGC_main_all_256'].keys()
+    sysm_n_all = nnbars['NGC_main_all_512'].keys()
 
 
     nnbars_chi2 = {}
@@ -880,7 +881,7 @@ def chi2_from_nbar(fig_path):
         print('.', end='')
 
 
-    assert len(nnbars['NGC_highz_all_256']['run'][0])==8
+    assert len(nnbars['NGC_highz_all_512']['run'][0])==8
 
 
     fig, ax = plt.subplots(nrows=2, ncols=2, 
@@ -907,7 +908,7 @@ def chi2_from_nbar(fig_path):
         for j, zbin in enumerate(['main', 'highz']):
             ix = 2*k + j
 
-            for i, nside in enumerate(['512', '256']):
+            for i, nside in enumerate(['512']):#, '256']):
                 # 
                 ax[ix].bar(x_+(2*i+1)*dx+shift, nnbars_chi2[f'{cap}_{zbin}_known_{nside}'], width=width, label=f'{nside}-known')
                 ax[ix].bar(x_+(2*i+2)*dx+shift, nnbars_chi2[f'{cap}_{zbin}_all_{nside}'], width=width, label=f'{nside}-all')
@@ -958,7 +959,7 @@ def chi2_from_nbar(fig_path):
             values += f' {chi2t:.1f} &'
             line3 += 'systot &'        
 
-            for i, nside in enumerate(['512', '256']):
+            for i, nside in enumerate(['512']):#, '256']):
                 #print(nside, end=' ')
                 line2 += f'{nside} '
                 for l, maps in enumerate(['known', 'all']):

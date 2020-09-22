@@ -41,7 +41,7 @@ find_st=false
 find_ne=false
 do_nnfit=false
 do_swap=false
-do_pk=true
+do_pk=false
 do_nnbar=false
 do_cl=false
 do_default=false
@@ -312,7 +312,7 @@ then
                 echo ${out} ${zlim}
 
 
-                mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
+                mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim}
             fi
 
             
@@ -328,7 +328,7 @@ then
                     out=${output_dir}nnbar_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
+                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim}
                 done
             done
         done
