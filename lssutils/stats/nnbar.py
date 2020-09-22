@@ -48,7 +48,7 @@ class MeanDensity(object):
     @CurrentMPIComm.enable
     def __init__(self, galmap, ranmap, mask,
                        sysmap, nbins=8, selection=None, binning='equi-area',
-                       percentiles=[0, 100], comm=None):
+                       percentiles=[0, 100], bins=None, comm=None):
         #
         # inputs
         self.comm = comm
@@ -66,9 +66,13 @@ class MeanDensity(object):
         self.sysl = [0 for k in range(3*nbins)]
 
         if binning == 'simple':
-
-            smin, smax = np.percentile(self.sysmap, percentiles)
-            bins = np.linspace(smin, smax, nbins+1)
+                        
+            if bins is None:
+                smin, smax = np.percentile(self.sysmap, percentiles)
+                bins = np.linspace(smin, smax, nbins+1)
+            else:
+                smin, smax = bins.min(), bins.max()
+                assert bins.size == nbins+1
 
             if self.comm.rank==0:
                 self.logger.info(f'{nbins} {binning} bins from {smin} to {smax}')
@@ -76,9 +80,12 @@ class MeanDensity(object):
             inds = np.digitize(self.sysmap, bins)
 
             for i in range(1,bins.size): # what if there is nothing on the last bin? FIXME
-                self.sysl[3*i-3] = self.sysmap[np.where(inds == i)].tolist()
-                self.sysl[3*i-2] = self.galmap[np.where(inds == i)].tolist()
-                self.sysl[3*i-1] = self.ranmap[np.where(inds == i)].tolist()
+                
+                my_ind = np.where(inds == i)
+                
+                self.sysl[3*i-3] = self.sysmap[my_ind].tolist()
+                self.sysl[3*i-2] = self.galmap[my_ind].tolist()
+                self.sysl[3*i-1] = self.ranmap[my_ind].tolist()
 
         elif binning == 'equi-area':
             npts  = self.ranmap.size
