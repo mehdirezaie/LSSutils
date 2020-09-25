@@ -14,6 +14,7 @@ cl=/home/mehdi/github/LSSutils/scripts/analysis/run_cell_eboss.py
 
 #---- path to the data
 nside=256
+nside2=256
 l1=-1.0 # l1 regularization deactivated with <0
 nn_structure=(4 20) 
 # 'star_density', 'ebv', 'loghi', 'sky_g', 'sky_r', 'sky_i', 'sky_z', 
@@ -32,7 +33,7 @@ maps="all known" # options are "all known"
 samples="lowmidhighz" # options are lowmidhighz mainhighz
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
-templates2="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside512.h5"
+templates2="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside${nside2}.h5"
 eboss_dir="/home/mehdi/data/eboss/data/${version}/"
 
 do_prep=false
@@ -262,6 +263,7 @@ fi
 
 if [ "${do_nnbar}" = true ]
 then
+
     for cap in ${caps}
     do
         for zrange in main highz
@@ -278,7 +280,7 @@ then
                 do
                     dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
                     ran=${dat/.dat./.ran.}
-                    out=${output_dir}nnbar_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
+                    out=${output_dir}nnbar_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}_${nside2}.npy
                     du -h $dat $ran
                     echo ${out}
                     mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
