@@ -28,6 +28,7 @@ def run_ConvolvedFFTPower(galaxy_path,
                           boxsize=None,
                           nmesh=512,
                           dk=0.002,
+			  kmax=None,
                           comm=None,
                           return_pk=False):
               
@@ -58,7 +59,7 @@ def run_ConvolvedFFTPower(galaxy_path,
     fkp = nb.FKPCatalog(data, random, nbar='NZ', BoxSize=boxsize)
     mesh = fkp.to_mesh(Nmesh=nmesh, fkp_weight='WEIGHT_FKP', **mesh_kwargs)    
     
-    r = nb.ConvolvedFFTPower(mesh, poles=[0, 2], dk=dk, kmin=0.0)
+    r = nb.ConvolvedFFTPower(mesh, poles=[0, 2], dk=dk, kmin=0.0, kmax=kmax)
     
     comm.Barrier()    
     if comm.rank == 0:        
