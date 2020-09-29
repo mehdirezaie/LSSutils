@@ -24,7 +24,7 @@ def run_ConvolvedFFTPower(galaxy_path,
                           zmin=None, 
                           zmax=None, 
                           compmin=0.5,
-                          cosmo=None,
+                          cosmology=None,
                           boxsize=None,
                           nmesh=512,
                           dk=0.002,
@@ -32,12 +32,31 @@ def run_ConvolvedFFTPower(galaxy_path,
                           kmax=None,
                           comm=None,
                           return_pk=False):
-              
+    
+    if isinstance(nmesh, list):
+        if len(nmesh)==1:
+            nmesh=nmesh[0] 
         
-    if cosmo is None:
+    if isinstance(boxsize, list):
+        if len(boxsize)==1:
+            boxsize=boxsize[0]
+
+        
+        
+    if (cosmology is None) or (cosmology=='boss'):
         # the fiducial BOSS DR12 cosmology 
         # see Alam et al. https://arxiv.org/abs/1607.03155        
         cosmo = Cosmology(h=0.676).match(Omega0_m=0.31)
+        
+    elif cosmology=='ezmock':
+        _h = 0.6777
+        _Ob0 = 0.048206
+        _Ocdm0 = 0.307115 - _Ob0
+        cosmo = Cosmology(h=_h, Omega_b=_Ob0, Omega_cdm=_Ocdm0,
+                                       m_ncdm=None, n_s=0.9611, T_cmb=2.7255).match(sigma8=0.8225)
+    else:
+        raise NotImplementedError(f'{cosmology} is not implemented')
+        
 
     data = FITSCat(galaxy_path)
     random = FITSCat(random_path)
