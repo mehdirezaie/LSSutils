@@ -54,6 +54,10 @@ def run_ConvolvedFFTPower(galaxy_path,
         _Ocdm0 = 0.307115 - _Ob0
         cosmo = Cosmology(h=_h, Omega_b=_Ob0, Omega_cdm=_Ocdm0,
                                        m_ncdm=None, n_s=0.9611, T_cmb=2.7255).match(sigma8=0.8225)
+        
+    elif isinstance(cosmology, Cosmology):
+        cosmo = cosmology
+        
     else:
         raise NotImplementedError(f'{cosmology} is not implemented')
         
