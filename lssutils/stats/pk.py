@@ -28,7 +28,7 @@ def run_ConvolvedFFTPower(galaxy_path,
                           boxsize=None,
                           nmesh=512,
                           dk=0.002,
-			  kmax=None,
+                          kmax=None,
                           comm=None,
                           return_pk=False):
               
