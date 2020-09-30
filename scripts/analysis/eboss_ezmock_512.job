@@ -18,7 +18,7 @@
 #---- environment variables and activation
 #set -x
 
-#module load cuda/10.1.168
+module load cuda/10.1.168
 
 # manually add the path, later we will install the pipeline with `pip`
 source ${HOME}/.bashrc
