@@ -1,5 +1,5 @@
 #PBS -N ezmock_pk
-#PBS -l nodes=1:ppn=8
+#PBS -l nodes=1:ppn=28
 #PBS -l walltime=00:30:00
 #PBS -j oe
 #PBS -A PHS0336 
@@ -24,7 +24,7 @@
 source ${HOME}/.bashrc
 
 export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
-export NUMEXPR_MAX_THREADS=2
+#export NUMEXPR_MAX_THREADS=2
 source activate sysnet
 
 cd ${HOME}/github/LSSutils/scripts/analysis
@@ -116,8 +116,8 @@ then
             du -h $dat $ran
             echo ${out} ${zlim}
             
-            mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --use_systot --zlim ${zlim} \
-                                      -n 1024 --dk 0.01 --kmax 0.4 -b 5000. --cosmo ezmock \
+            mpiexec -ppn 8 python ${pk} -g $dat -r $ran -o $out --use_systot --zlim ${zlim} \
+                                      -n 512 --dk 0.01 --kmax 0.4 -b 5000. --cosmo ezmock \
                                       -p 0 2 4
 	    if [ $iscont = 1 ]
 	    then

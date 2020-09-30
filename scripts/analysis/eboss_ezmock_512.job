@@ -1,5 +1,5 @@
 #PBS -N ezmock_nnfit
-#PBS -l nodes=1:ppn=2:gpus=1
+#PBS -l nodes=1:ppn=4
 #PBS -l walltime=18:00:00
 #PBS -j oe
 #PBS -A PHS0336 
@@ -18,7 +18,7 @@
 #---- environment variables and activation
 #set -x
 
-module load cuda/10.1.168
+#module load cuda/10.1.168
 
 # manually add the path, later we will install the pipeline with `pip`
 source ${HOME}/.bashrc
