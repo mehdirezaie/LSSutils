@@ -784,15 +784,21 @@ def p0_demo(fig_path):
 
     def read_pk(filename):
         d = nb.ConvolvedFFTPower.load(filename)
-        return (d.poles['k'], d.poles['power_0'].real - d.attrs['shotnoise'])
+        p0 = d.poles['power_0'].real - d.attrs['shotnoise']
+        return (d.poles['k'], p0)
 
 
-    def add_pk(x, y, ax1, ax2, **kw):
-        ax1.plot(x, y, **kw)
-        ax2.plot(x, y, **kw, zorder=-1, )
+    def add_pk(x, y, err, ax1, ax2, **kw):
+        ax1.errorbar(x, y, err, capsize=2, **kw)
+        ax2.errorbar(x, y, err, capsize=2, **kw, zorder=-1)
 
 
     path = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/spectra'
+    pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
+
+    pkcov = np.loadtxt(f'{pathm}/spectra_NGC_knownsystot_mainhighz_512_v7_0_1to100_6600_512_main.dat')
+    pk_err = np.sqrt(np.diagonal(pkcov))
+
     pks = {}
     pks['systot'] = read_pk(f'{path}/spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')
     pks['noweight'] = read_pk(f'{path}/spectra_NGC_noweight_mainhighz_512_v7_2_main.json')
@@ -827,12 +833,12 @@ def p0_demo(fig_path):
     ax2.xaxis.set_label_coords(0., -0.1) # https://stackoverflow.com/a/25018490/9746916
 
     #--- plots
-    add_pk(*pks['noweight'], ax1, ax2, marker='.', color='#000000', label='Before treatment')
-    add_pk(*pks['systot'], ax1, ax2, marker='o', mfc='w', ls='--', color='#4b88e3', label='Standard treatment')
-    add_pk(*pks['nn'], ax1, ax2, marker='s', mfc='w', color='#d98404', label='Neural Network treatment')
+    add_pk(*pks['noweight'], pk_err, ax1, ax2, marker='.', color='#000000', label='Before treatment')
+    add_pk(*pks['systot'], pk_err, ax1, ax2, marker='o', mfc='w', ls='--', color='#4b88e3', label='Standard treatment')
+    add_pk(*pks['nn'], pk_err, ax1, ax2, marker='s', mfc='w', color='#d98404', label='Neural Network treatment')
 
     ax2.legend(frameon=False, title=r'eBOSS DR16 QSO NGC ($0.8<z<2.2$)')
-
+    
     fig.savefig(fig_path, dpi=300, bbox_inches='tight')    
 
 def __read_nnbar(nnbar_filename):
