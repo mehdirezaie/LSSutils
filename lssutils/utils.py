@@ -1511,8 +1511,78 @@ class HEALPixDataset:
         dataset['hpix'] = hpix
         
         return dataset    
-        
 
+    
+class DR9Data:
+    
+    features_names = ['STARDENS', 'EBV', 
+                      'PSFDEPTH_G', 'PSFDEPTH_R', 'PSFDEPTH_Z', 
+                      'GALDEPTH_G', 'GALDEPTH_R', 'GALDEPTH_Z', 
+                      'PSFDEPTH_W1', 'PSFDEPTH_W2',
+                      'PSFSIZE_G', 'PSFSIZE_R', 'PSFSIZE_Z']
+
+    caps = {'N':'isnorth',
+            'S':'issouth'}
+    
+    targets = {'elg':'elg_dens',
+              'lrg':'lrg_dens',
+              'qso':'qso_dens'}
+    
+    fracgoods = {'elg':'elg_fracarea',
+                'lrg':'lrg_fracarea',
+                'qso':'qso_fracarea'}
+
+    def __init__(self, filename):
+        dt = ft.read(filename)
+        
+        ix_ = hp.reorder(np.arange(dt.size), n2r=True)
+        self.dt = dt[ix_]  # reorder to Ring
+        
+    def run(self, target, region, frac_min=0.0):
+        
+        ngal = self.dt[self.targets[target]]
+        frac = self.dt[self.fracgoods[target]]           
+        mask = self.dt[self.caps[region]] 
+        
+        nside = hp.get_nside(ngal)
+        pixarea = hp.nside2pixarea(nside, degrees=True)
+        
+        print('org. mask:', mask.sum())
+        mask = mask & (frac > frac_min)
+        print('org. m. & frac > frac_min:', mask.sum())
+        
+        features = []
+        for feature in self.features_names:
+            feature_  = self.dt[feature]
+            mask &= np.isfinite(feature_)
+            features.append(feature_)
+        features = np.array(features).T
+        print('org. m. & frac. min. & inf features', mask.sum())
+
+        
+        hpix = np.argwhere(mask).flatten()
+        target = ngal * frac * pixarea
+        
+        return self._to_numpy(target[mask], features[mask, :], frac[mask], hpix)
+        
+    
+    
+        
+    def _to_numpy(self, t, features, frac, hpix):
+        
+        dtype = [('features', ('f8', features.shape[1])), 
+                 ('label', 'f8'),
+                 ('fracgood', 'f8'),
+                 ('hpix', 'i8')]    
+        
+        dataset = np.zeros(t.size, dtype=dtype)
+        dataset['label'] = t
+        dataset['fracgood'] = frac
+        dataset['features'] = features
+        dataset['hpix'] = hpix
+        
+        return dataset                 
+        
 class SysWeight(object):
     '''
     Reads the systematic weights in healpix
