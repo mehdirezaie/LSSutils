@@ -1,6 +1,6 @@
-#PBS -N ezmock_nbar
-#PBS -l nodes=1:ppn=8
-#PBS -l walltime=00:10:00
+#PBS -N ezmock_nnfit
+#PBS -l nodes=1:ppn=4
+#PBS -l walltime=05:00:00
 #PBS -j oe
 #PBS -A PHS0336 
 
@@ -29,7 +29,7 @@ source activate sysnet
 
 cd ${HOME}/github/LSSutils/scripts/analysis
 
-#mockid=0001
+#mockid=0022
 #iscont=0
 printf -v mockid "%04d" $PBS_ARRAYID
 #iscont=$2 # use -v variable=value instead, see https://www.osc.edu/supercomputing/batch-processing-at-osc/job-submission
@@ -66,19 +66,19 @@ version="v7" # real data was v7_2
 release="1.0"
 caps="NGC" # mocks do not have SGC
 slices="main" # low mid z1 z2 z3" # ezmocks do not have highz
-maps="known"  # known all
+maps="all"  # known all
 table_name="ngal_eboss"
 templates="${HOME}/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
 eboss_dir="${HOME}/data/${version}/"
 
-do_prep=false
+do_prep=true
 find_lr=false  # 3 min
 find_st=false  # 3 min
 find_ne=false  # 30 min
-do_nnfit=false # 16 h
+do_nnfit=true # 16 h
 do_swap=false  # 1 min
 do_pk=false    # 4 min
-do_nnbar=true  # 4 min
+do_nnbar=false  # 4 min
 do_cl=false
 
 #---- functions
@@ -289,8 +289,8 @@ then
            
             for map in ${maps}
             do
-                # EZmock_eBOSS_QSO_NGC_known_mainhighz_512_v7_0_0001.dat.fits 
-	        input_dir=${eboss_dir}${release}/catalogs/
+                # EZmock_eBOSS_QSO_NGC_known_mainhighz_512_v7_0_0001.dat.fits
+                input_dir=${eboss_dir}${release}/catalogs/
                 output_dir=${eboss_dir}${release}/measurements/spectra/
 
                 for sample in mainhighz
@@ -300,7 +300,7 @@ then
                     out=${output_dir}spectra_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}_${zrange}.json
                     du -h $dat $ran
                     echo ${out}
-	            
+
                     mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --use_systot --zlim ${zlim}
                 done
             done
@@ -331,7 +331,7 @@ then
 	    if [ $iscont = 1 ] # wo systot for cont. mocks
 	    then
 	        out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
-		echo ${out}
+                echo ${out}
 	        mpirun -np 8 python ${nnbar} -d $dat -r $ran -t ${templates} -o $out --zlim ${zlim}
 	    fi
             
