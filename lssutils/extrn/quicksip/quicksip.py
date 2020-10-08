@@ -1,6 +1,6 @@
 
 """ 
- quicksip originally written by Borris 
+ quicksip originally written by Boris Lesitedt (https://ixkael.github.io) 
  modified by Ashley Ross and Marc Manera
 """
 
