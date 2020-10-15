@@ -1,6 +1,6 @@
-#PBS -N eznnfit256all
-#PBS -l nodes=1:ppn=4
-#PBS -l walltime=10:00:00
+#PBS -N ezpk256
+#PBS -l nodes=1:ppn=16
+#PBS -l walltime=00:15:00
 #PBS -j oe
 #PBS -A PHS0336 
 
@@ -66,7 +66,7 @@ version="v7" # real data was v7_2
 release="1.0"
 caps="NGC" # mocks do not have SGC
 slices="main" # low mid z1 z2 z3" # ezmocks do not have highz
-maps="all"  # known all
+#maps="all"  # known all
 table_name="ngal_eboss"
 data_dir=/fs/ess/PHS0336
 templates="${data_dir}/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
@@ -77,9 +77,9 @@ do_prep=false
 find_lr=false  # 3 min
 find_st=false  # 3 min
 find_ne=false  # 30 min
-do_nnfit=true # 16 h
-do_swap=false  # 1 min
-do_pk=false    # 4 min
+do_nnfit=false # 16 h
+do_swap=true  # 1 min
+do_pk=true    # 4 min
 do_nnbar=false  # 4 min
 do_cl=false
 
@@ -87,10 +87,10 @@ do_cl=false
 function get_datran(){
     if [ $1 = 0 ]
     then
-        dat=${eboss_dir}catalogs_raw/null/EZmock_eBOSS_QSO_NGC_v7_noweight_${mockid}.dat.fits
+        dat=${eboss_dir}catalogs_raw/null/EZmock_eBOSS_QSO_${caps}_v7_noweight_${mockid}.dat.fits
         ran=${dat/.dat./.ran.}
     else
-	dat=${eboss_dir}catalogs_raw/contaminated/EZmock_eBOSS_QSO_NGC_v7_${mockid}.dat.fits
+	dat=${eboss_dir}catalogs_raw/contaminated/EZmock_eBOSS_QSO_${caps}_v7_${mockid}.dat.fits
         ran=${dat/.dat./.ran.}
     fi
     echo ${dat} ${ran}
@@ -328,13 +328,13 @@ then
             du -h $dat $ran
             echo ${out} ${zlim}
             
-            mpirun -np 8 python ${nnbar} -d $dat -r $ran -t ${templates} -o $out --use_systot --zlim ${zlim}
+            mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -t ${templates} -o $out --use_systot --zlim ${zlim}
 
 	    if [ $iscont = 1 ] # wo systot for cont. mocks
 	    then
 	        out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
                 echo ${out}
-	        mpirun -np 8 python ${nnbar} -d $dat -r $ran -t ${templates} -o $out --zlim ${zlim}
+	        mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -t ${templates} -o $out --zlim ${zlim}
 	    fi
             
 	    continue # no need to do nnbar for mocks
@@ -352,7 +352,7 @@ then
                     du -h $dat $ran
                     echo ${out}
                     
-		    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim}
+		    mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim}
                 done
             done
         done

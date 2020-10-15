@@ -48,16 +48,16 @@ idmock = ns.idmock
 iscont = ns.iscont
 
 if iscont == 1:
-    path_incats =  '/users/PHS0336/medirz90/data/v7/catalogs_raw/contaminated/'
+    path_incats =  '/fs/ess/PHS0336/data/v7/catalogs_raw/contaminated/'
     incat = f'{path_incats}EZmock_eBOSS_QSO_{cap}_v7_{idmock}.dat.fits'
     inran = incat.replace('.dat.', '.ran.')
 else:
-    path_incats =  '/users/PHS0336/medirz90/data/v7/catalogs_raw/null/'
+    path_incats =  '/fs/ess/PHS0336/data/v7/catalogs_raw/null/'
     incat = f'{path_incats}EZmock_eBOSS_QSO_{cap}_v7_noweight_{idmock}.dat.fits'
     inran = incat.replace('.dat.', '.ran.')
  
 
-path_weights = '/users/PHS0336/medirz90/data/v7/1.0'
+path_weights = '/fs/ess/PHS0336/data/v7/1.0'
 
 samples_joined = ''.join(samples)
 dat_name = os.path.join(path_weights, 'catalogs', f'EZmock_eBOSS_QSO_{cap}_{maps}_{samples_joined}_{nside}_v7_{iscont}_{idmock}.dat.fits')

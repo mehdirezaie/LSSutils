@@ -1,6 +1,6 @@
-#PBS -N eznbar512
+#PBS -N ezpk512
 #PBS -l nodes=1:ppn=16
-#PBS -l walltime=00:10:00
+#PBS -l walltime=00:15:00
 #PBS -j oe
 #PBS -A PHS0336 
 
@@ -64,9 +64,9 @@ nepoch=150
 nchains=20
 version="v7" # real data was v7_2
 release="1.0"
-caps="SGC" # mocks do not have SGC
+caps="NGC" # mocks do not have SGC
 slices="main" # low mid z1 z2 z3" # ezmocks do not have highz
-maps="all"  # known all
+#maps="all"  # known all
 table_name="ngal_eboss"
 data_dir=/fs/ess/PHS0336
 templates="${data_dir}/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
@@ -77,9 +77,9 @@ find_lr=false  # 3 min
 find_st=false  # 3 min
 find_ne=false  # 30 min
 do_nnfit=false # 16 h
-do_swap=false  # 1 min
-do_pk=false    # 4 min
-do_nnbar=true  # 4 min
+do_swap=true  # 1 min
+do_pk=true    # 4 min
+do_nnbar=false  # 4 min
 do_cl=false
 do_default=false
 
