@@ -54,7 +54,13 @@ def run_ConvolvedFFTPower(galaxy_path,
         _Ocdm0 = 0.307115 - _Ob0
         cosmo = Cosmology(h=_h, Omega_b=_Ob0, Omega_cdm=_Ocdm0,
                                        m_ncdm=None, n_s=0.9611, T_cmb=2.7255).match(sigma8=0.8225)
-        
+       
+    elif cosmology=='boss2':
+        h = 0.676
+        redshift = 1.48
+        cos = Cosmology(h=0.676,Omega0_b=0.022/h**2,n_s=0.97).match(Omega0_m=0.31)
+        cosmo = cos.match(sigma8=0.8)
+
     elif isinstance(cosmology, Cosmology):
         cosmo = cosmology
         
