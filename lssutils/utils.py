@@ -20,6 +20,14 @@ from sklearn.cluster import KMeans
 from sklearn.model_selection import KFold
 from scipy.stats import (binned_statistic, spearmanr, pearsonr)
 
+import scipy.special as scs
+from scipy.constants import c as clight
+from scipy import integrate
+
+
+
+
+
 
 ud_grade = hp.ud_grade
 
@@ -44,6 +52,165 @@ z_bins = {'main':(0.8, 2.2),
          'z2':(1.3, 1.7),
          'z3':(1.7, 2.2)}
 
+def D(z, omega0):
+    """
+        Growth Function
+    """
+    a = 1/(1+z)
+    v = scs.cbrt(omega0/(1.-omega0))/a
+    return a*d1(v)
+
+def d1(v):
+    """
+        d1(v) = D(a)/a where D is growth function see. Einsenstein 1997
+    """
+    beta  = np.arccos((v+1.-np.sqrt(3.))/(v+1.+np.sqrt(3.)))
+    sin75 = np.sin(75.*np.pi/180.)
+    sin75 = sin75**2
+    ans   = (5./3.)*(v)*(((3.**0.25)*(np.sqrt(1.+v**3.))*(scs.ellipeinc(beta,sin75)\
+            -(1./(3.+np.sqrt(3.)))*scs.ellipkinc(beta,sin75)))\
+            +((1.-(np.sqrt(3.)+1.)*v*v)/(v+1.+np.sqrt(3.))))
+    return ans
+
+def growthrate(z,omega0):
+    """
+        growth rate f = dln(D(a))/dln(a)
+
+    """
+    a = 1/(1+z)
+    v = scs.cbrt(omega0/(1.-omega0))/a
+    return (omega0/(((1.-omega0)*a**3)+omega0))*((2.5/d1(v))-1.5)
+
+def invadot(a, om_m=0.3, om_L=0.0, h=.696):
+    om_r = 4.165e-5*h**-2 # T0 = 2.72528K
+    answ = 1/np.sqrt(om_r/(a * a) + om_m / a\
+            + om_L*a*a + (1.0-om_r-om_m-om_L))
+    return answ
+
+def invaadot(a, om_m=0.3, om_L=0.0, h=.696):
+    om_r = 4.165e-5*h**-2 # T0 = 2.72528K
+    answ = 1/np.sqrt(om_r/(a * a) + om_m / a\
+            + om_L*a*a + (1.0-om_r-om_m-om_L))
+    return answ/a
+
+class Cosmology(object):
+    '''
+       cosmology
+       # see
+       # http://www.astro.ufl.edu/~guzman/ast7939/projects/project01.html
+       # or
+       # https://arxiv.org/pdf/astro-ph/9905116.pdf
+       # for equations, there is a typo in comoving-volume eqn
+    '''
+    def __init__(self, om_m=1.0, om_L=0.0, h=.696):
+        self.om_m = om_m
+        self.om_L = om_L
+        self.h    = h
+        self.om_r = 4.165e-5*h**-2 # T0 = 2.72528K
+        self.tH  = 9.778/h         # Hubble time : 1/H0 Mpc --> Gyr
+        self.DH  = clight*1.e-5/h       # Hubble distance : c/H0
+
+    def age(self, z=0):
+        '''
+            age of universe at redshift z [default z=0] in Gyr
+        '''
+        az = 1 / (1+z)
+        answ,_ = integrate.quad(invadot, 0, az,
+                               args=(self.om_m, self.om_L, self.h))
+        return answ * self.tH
+
+    def DCMR(self, z):
+        '''
+            comoving distance (line of sight) in Mpc
+        '''
+        az = 1 / (1+z)
+        answ,_ = integrate.quad(invaadot, az, 1,
+                               args=(self.om_m, self.om_L, self.h))
+        return answ * self.DH
+
+    def DA(self, z):
+        '''
+            angular diameter distance in Mpc
+        '''
+        az = 1 / (1+z)
+        r = self.DCMR(z)
+        om_k = (1.0-self.om_r-self.om_m-self.om_L)
+        if om_k != 0.0:DHabsk = self.DH/np.sqrt(np.abs(om_k))
+        if om_k > 0.0:
+            Sr = DHabsk * np.sinh(r/DHabsk)
+        elif om_k < 0.0:
+            Sr = DHabsk * np.sin(r/DHabsk)
+        else:
+            Sr = r
+        return Sr*az
+
+    def DL(self, z):
+        '''
+            luminosity distance in Mpc
+        '''
+        az = 1 / (1+z)
+        da = self.DA(z)
+        return da / (az * az)
+
+    def CMVOL(self, z):
+        '''
+            comoving volume in Mpc^3
+        '''
+        Dm = self.DA(z) * (1+z)
+        om_k = (1.0-self.om_r-self.om_m-self.om_L)
+        if om_k != 0.0:DHabsk = self.DH/np.sqrt(np.abs(om_k))
+        if om_k > 0.0:
+            Vc = DHabsk**2 * np.sqrt(1 + (Dm/DHabsk)**2) * Dm \
+                 - DHabsk**3 * np.sinh(Dm/DHabsk)
+            Vc *= 4*np.pi/2.
+        elif om_k < 0.0:
+            Vc = DHabsk**2 * np.sqrt(1 + (Dm/DHabsk)**2) * Dm \
+                 - DHabsk**3 * np.sin(Dm/DHabsk)
+            Vc *= 4*np.pi/2.
+        else:
+            Vc = Dm**3
+            Vc *= 4*np.pi/3
+        return Vc
+
+def gaulegf(a, b, n):
+    """
+    Gauss Legendre numerical quadrature, x and w computation 
+    integrate from a to b using n evaluations of the function f(x)  
+    usage: from gauleg import gaulegf         
+           x,w = gaulegf( a, b, n)                                
+           area = 0.0                                            
+           for i in range(1,n+1): #  yes, 1..n                   
+             area += w[i]*f(x[i]) 
+    
+    """
+    x = range(n+1) # x[0] unused
+    w = range(n+1) # w[0] unused
+    eps = 3.0E-14
+    m = (n+1)/2
+    xm = 0.5*(b+a)
+    xl = 0.5*(b-a)
+    for i in range(1,m+1):
+    z = np.cos(3.141592654*(i-0.25)/(n+0.5))
+    while True:
+        p1 = 1.0
+        p2 = 0.0
+        for j in range(1,n+1):
+            p3 = p2
+            p2 = p1
+            p1 = ((2.0*j-1.0)*z*p2-(j-1.0)*p3)/j
+
+        pp = n*(z*p1-p2)/(z*z-1.0)
+        z1 = z
+        z = z1 - p1/pp
+        if abs(z-z1) <= eps:
+            break
+
+    x[i] = xm - xl*z
+    x[n+1-i] = xm + xl*z
+    w[i] = 2.0*xl/((1.0-z*z)*pp*pp)
+    w[n+1-i] = w[i]
+    return x, w    
+    
 def nside2npix(nside):
     return 12 * nside * nside
 
@@ -1685,6 +1852,32 @@ def jointemplates():
     combined.columns = colnames
     return combined
 
+
+def uniform_sphere(RAlim, DEClim, size=1):
+    """Draw a uniform sample on a sphere
+    Parameters
+    ----------
+    RAlim : tuple
+        select Right Ascension between RAlim[0] and RAlim[1]
+        units are degrees
+    DEClim : tuple
+        select Declination between DEClim[0] and DEClim[1]
+    size : int (optional)
+        the size of the random arrays to return (default = 1)
+    Returns
+    -------
+    RA, DEC : ndarray
+        the random sample on the sphere within the given limits.
+        arrays have shape equal to size.
+    """
+    zlim = np.sin(np.pi * np.asarray(DEClim) / 180.)
+
+    z = zlim[0] + (zlim[1] - zlim[0]) * np.random.random(size)
+    DEC = (180. / np.pi) * np.arcsin(z)
+    RA = RAlim[0] + (RAlim[1] - RAlim[0]) * np.random.random(size)
+
+    return RA, DEC
+
 class Readfits(object):
     #
     def __init__(self, paths, extract_keys=extract_keys_dr9, res_out=256):
@@ -2493,51 +2686,6 @@ class EbossCatalogOld:
 #         np.save(ouname, data)
 
 # --- cosmology
-#import numpy.lib.recfunctions as rfn
-#from scipy.constants import c as clight
-#import scipy.special as scs
-#from scipy import integrate
-
-# def D(z, omega0):
-#     """
-#         Growth Function
-#     """
-#     a = 1/(1+z)
-#     v = scs.cbrt(omega0/(1.-omega0))/a
-#     return a*d1(v)
-
-# def d1(v):
-#     """
-#         d1(v) = D(a)/a where D is growth function see. Einsenstein 1997
-#     """
-#     beta  = np.arccos((v+1.-np.sqrt(3.))/(v+1.+np.sqrt(3.)))
-#     sin75 = np.sin(75.*np.pi/180.)
-#     sin75 = sin75**2
-#     ans   = (5./3.)*(v)*(((3.**0.25)*(np.sqrt(1.+v**3.))*(scs.ellipeinc(beta,sin75)\
-#             -(1./(3.+np.sqrt(3.)))*scs.ellipkinc(beta,sin75)))\
-#             +((1.-(np.sqrt(3.)+1.)*v*v)/(v+1.+np.sqrt(3.))))
-#     return ans
-
-# def growthrate(z,omega0):
-#     """
-#         growth rate f = dln(D(a))/dln(a)
-
-#     """
-#     a = 1/(1+z)
-#     v = scs.cbrt(omega0/(1.-omega0))/a
-#     return (omega0/(((1.-omega0)*a**3)+omega0))*((2.5/d1(v))-1.5)
-
-# def invadot(a, om_m=0.3, om_L=0.0, h=.696):
-#     om_r = 4.165e-5*h**-2 # T0 = 2.72528K
-#     answ = 1/np.sqrt(om_r/(a * a) + om_m / a\
-#             + om_L*a*a + (1.0-om_r-om_m-om_L))
-#     return answ
-
-# def invaadot(a, om_m=0.3, om_L=0.0, h=.696):
-#     om_r = 4.165e-5*h**-2 # T0 = 2.72528K
-#     answ = 1/np.sqrt(om_r/(a * a) + om_m / a\
-#             + om_L*a*a + (1.0-om_r-om_m-om_L))
-#     return answ/a
 
 
 # class camb_pk(object):
@@ -2591,84 +2739,6 @@ class EbossCatalogOld:
 #     rsd_int *= (l + 0.5)
 #     return rsd_int
 
-# class cosmology(object):
-#     '''
-#        cosmology
-#        # see
-#        # http://www.astro.ufl.edu/~guzman/ast7939/projects/project01.html
-#        # or
-#        # https://arxiv.org/pdf/astro-ph/9905116.pdf
-#        # for equations, there is a typo in comoving-volume eqn
-#     '''
-#     def __init__(self, om_m=1.0, om_L=0.0, h=.696):
-#         self.om_m = om_m
-#         self.om_L = om_L
-#         self.h    = h
-#         self.om_r = 4.165e-5*h**-2 # T0 = 2.72528K
-#         self.tH  = 9.778/h         # Hubble time : 1/H0 Mpc --> Gyr
-#         self.DH  = clight*1.e-5/h       # Hubble distance : c/H0
-
-#     def age(self, z=0):
-#         '''
-#             age of universe at redshift z [default z=0] in Gyr
-#         '''
-#         az = 1 / (1+z)
-#         answ,_ = integrate.quad(invadot, 0, az,
-#                                args=(self.om_m, self.om_L, self.h))
-#         return answ * self.tH
-
-#     def DCMR(self, z):
-#         '''
-#             comoving distance (line of sight) in Mpc
-#         '''
-#         az = 1 / (1+z)
-#         answ,_ = integrate.quad(invaadot, az, 1,
-#                                args=(self.om_m, self.om_L, self.h))
-#         return answ * self.DH
-
-#     def DA(self, z):
-#         '''
-#             angular diameter distance in Mpc
-#         '''
-#         az = 1 / (1+z)
-#         r = self.DCMR(z)
-#         om_k = (1.0-self.om_r-self.om_m-self.om_L)
-#         if om_k != 0.0:DHabsk = self.DH/np.sqrt(np.abs(om_k))
-#         if om_k > 0.0:
-#             Sr = DHabsk * np.sinh(r/DHabsk)
-#         elif om_k < 0.0:
-#             Sr = DHabsk * np.sin(r/DHabsk)
-#         else:
-#             Sr = r
-#         return Sr*az
-
-#     def DL(self, z):
-#         '''
-#             luminosity distance in Mpc
-#         '''
-#         az = 1 / (1+z)
-#         da = self.DA(z)
-#         return da / (az * az)
-
-#     def CMVOL(self, z):
-#         '''
-#             comoving volume in Mpc^3
-#         '''
-#         Dm = self.DA(z) * (1+z)
-#         om_k = (1.0-self.om_r-self.om_m-self.om_L)
-#         if om_k != 0.0:DHabsk = self.DH/np.sqrt(np.abs(om_k))
-#         if om_k > 0.0:
-#             Vc = DHabsk**2 * np.sqrt(1 + (Dm/DHabsk)**2) * Dm \
-#                  - DHabsk**3 * np.sinh(Dm/DHabsk)
-#             Vc *= 4*np.pi/2.
-#         elif om_k < 0.0:
-#             Vc = DHabsk**2 * np.sqrt(1 + (Dm/DHabsk)**2) * Dm \
-#                  - DHabsk**3 * np.sin(Dm/DHabsk)
-#             Vc *= 4*np.pi/2.
-#         else:
-#             Vc = Dm**3
-#             Vc *= 4*np.pi/3
-#         return Vc
 
 # def comvol(bins_edge, fsky=1, omega_c=.3075, hubble_param=.696):
 #     """
