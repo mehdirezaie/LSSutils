@@ -190,20 +190,20 @@ def gaulegf(a, b, n):
     xm = 0.5*(b+a)
     xl = 0.5*(b-a)
     for i in range(1,m+1):
-    z = np.cos(3.141592654*(i-0.25)/(n+0.5))
-    while True:
-        p1 = 1.0
-        p2 = 0.0
-        for j in range(1,n+1):
-            p3 = p2
-            p2 = p1
-            p1 = ((2.0*j-1.0)*z*p2-(j-1.0)*p3)/j
+        z = np.cos(3.141592654*(i-0.25)/(n+0.5))
+        while True:
+            p1 = 1.0
+            p2 = 0.0
+            for j in range(1,n+1):
+                p3 = p2
+                p2 = p1
+                p1 = ((2.0*j-1.0)*z*p2-(j-1.0)*p3)/j
 
-        pp = n*(z*p1-p2)/(z*z-1.0)
-        z1 = z
-        z = z1 - p1/pp
-        if abs(z-z1) <= eps:
-            break
+            pp = n*(z*p1-p2)/(z*z-1.0)
+            z1 = z
+            z = z1 - p1/pp
+            if abs(z-z1) <= eps:
+                break
 
     x[i] = xm - xl*z
     x[n+1-i] = xm + xl*z

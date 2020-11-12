@@ -7,10 +7,10 @@ from lssutils import setup_logging
 setup_logging('info')
 
 
-def nnw_path(path, cap, nside, sample, maps):
-    return os.path.join(path, f'{cap}/{nside}/{sample}/nn_pnnl_{maps}/nn-weights.fits')
+def nnw_path(path, cap, nside, sample, maps, method):
+    return os.path.join(path, f'{cap}/{nside}/{sample}/{method}_{maps}/nn-weights.fits')
 
-def prepare_mappers(path, cap, nside, samples, maps, z_bins):
+def prepare_mappers(path, cap, nside, samples, maps, z_bins, method):
     """ prepare mappers for NN weights """
     mappers = {}
     
@@ -19,7 +19,7 @@ def prepare_mappers(path, cap, nside, samples, maps, z_bins):
         if sample not in z_bins:
             continue
             
-        nnw_file = nnw_path(path, cap, nside, sample, maps)
+        nnw_file = nnw_path(path, cap, nside, sample, maps, method)
         if os.path.exists(nnw_file):
             mappers[sample] = (z_bins[sample], ut.NNWeight(nnw_file, nside))
             
@@ -34,8 +34,7 @@ ap.add_argument('--zmax', type=float, default=3.5)
 ap.add_argument('-n', '--nside', type=int,   default=512)
 ap.add_argument('-s', '--samples', type=str, default=['main', 'highz'], nargs='*')
 ap.add_argument('-c', '--cap', type=str,   default='NGC')
-
-
+ap.add_argument('--method', type=str, default='nn_pnnl')
 ns = ap.parse_args() 
 
 cap = ns.cap
@@ -43,6 +42,7 @@ nside = ns.nside
 maps = ns.maps
 cat_kw = dict(zmin=ns.zmin, zmax=ns.zmax)
 samples = ns.samples
+method = ns.method
 
 path_incats =  '/home/mehdi/data/eboss/data/v7_2/'
 path_weights = '/home/mehdi/data/eboss/data/v7_2/1.0/'
@@ -54,13 +54,18 @@ dat_dir = os.path.dirname(dat_name)
 if not os.path.exists(dat_dir):
     os.makedirs(dat_dir)
 
+if os.path.exists(dat_name):
+   raise RuntimeError(f'{dat_name} exists')
+
+if os.path.exists(ran_name):
+   raise RuntimeError(f'{ran_name} exists')
 
 
 
 # read data, randoms, and prepare mappers
 dat = ut.EbossCat(f'{path_incats}eBOSS_QSO_full_{cap}_v7_2.dat.fits', **cat_kw)
 ran = ut.EbossCat(f'{path_incats}eBOSS_QSO_full_{cap}_v7_2.ran.fits', kind='randoms', **cat_kw)
-mappers = prepare_mappers(path_weights, cap, nside, samples, maps, ut.z_bins)
+mappers = prepare_mappers(path_weights, cap, nside, samples, maps, ut.z_bins, method)
 
 # swap weight_systot weights, and reassign z-attrs to randoms
 dat.swap(mappers)

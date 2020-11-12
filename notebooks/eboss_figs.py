@@ -229,7 +229,10 @@ def plot_overdensity(fig_path, sample='main'):
     #     'psf_g', 'psf_r', 'psf_i', 'psf_z',
     #      'run', 'airmass'
     # ]
-
+    
+    def chi2(y, invcov):
+        return np.dot(y, np.dot(invcov, y))  
+    
     def read_nnbar(fn, ix=[1]):
 
         nnbar = np.load(fn, allow_pickle=True)
