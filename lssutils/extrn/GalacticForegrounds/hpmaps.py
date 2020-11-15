@@ -28,7 +28,7 @@ class NStarSDSS:
             self.nstar = hp.ud_grade(self.nstar, nside_out=nside_out, power=-2)
             warnings.warn('upgrading/downgrading SDSS star density')
 
-class sfd98(object):
+class SFD98(object):
     """ Read E(B-V) from SFD 1998 """
     def __init__(self, nside_out=256):
         self.nside_out    = nside_out
@@ -41,16 +41,15 @@ class sfd98(object):
             self.ebv = hp.ud_grade(self.ebv, nside_out=nside_out)
             warnings.warn('upgrading/downgrading EBV')
 
-class gaia_dr2(object):
+class Gaia(object):
     """
       Read the Gaia DR2 star density catalog (c) Anand Raichoor
     """
-    def __init__(self, name='/home/mehdi/data/templates/Gaia.dr2.bGT10.12g17.hp256.fits', nside_out=256):
+    def __init__(self, path='/home/mehdi/data/templates/Gaia.dr2.bGT10.12g17.hp256.fits', nside_out=256):
 
         self.ordering = 'ring'
         self.unit     = 'Gaia DR2'
-        self.name     = name
-        self.gaia     = ft.read(self.name, lower=True, columns=['hpstardens'])['hpstardens'] # only column
+        self.gaia     = ft.read(path, lower=True, columns=['hpstardens'])['hpstardens'] # only column
         
         self.nside_in = hp.get_nside(self.gaia)
         # the map is in per sq. deg., this transforms it to # of stars
@@ -58,7 +57,7 @@ class gaia_dr2(object):
 
         if nside_out!=self.nside_in:
             self.gaia = hp.ud_grade(self.gaia, nside_out=nside_out, power=-2)
-            warnings.warn('upgrading/downgrading Gaia star density')
+            warnings.warn('upgrading/downgrading Gaia star density')  
 
 
 def G_to_C(mapi, res_in=1024, res_out=256):

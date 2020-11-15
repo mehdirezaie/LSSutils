@@ -636,6 +636,59 @@ def plot_deltaNqso(fig_path):
     plt.savefig(fig_path, bbox_inches='tight', dpi=300)
     
 
+def pcc_wnn_nchains(fig_path, ns='512'):
+
+    from scipy.stats import pearsonr
+    import fitsio as ft
+
+    
+
+    c = ['k', 'crimson']    
+    mk = ['.', 'x']
+
+
+    fig, ax = plt.subplots()
+    ax.tick_params(direction='in', which='both', top=True, right=True)   
+
+    mp = 'known'
+    for j, cap in enumerate(['NGC', 'SGC']):
+        
+        root_path = f'/home/mehdi/data/eboss/data/v7_2/1.0/{cap}'
+        
+        for k, s in enumerate(['main', 'highz']):
+            
+            d = ft.read(f'{root_path}/{ns}/{s}/nn_pnnl_{mp}/nn-weights.fits') # (Npix, Nchains)
+
+            fc = 'w' #if k==0 else c[j]
+            
+            x = []
+            pcc =  []
+            for i in range(1, 11):
+
+                set_1 = d['weight'][:, 0:i].mean(axis=1)
+                set_2 = d['weight'][:, 10:i+10].mean(axis=1)
+
+                pcc_ = pearsonr(set_1, set_2)[0]
+                
+                x.append(i)
+                pcc.append(pcc_)
+                #print(f'i={i}, pcc={pcc:.3f}')
+                
+
+            ax.plot(x, pcc, color=c[j], marker=mk[k], mfc=fc, ls='None')
+
+        ax.text(0.8, 0.5-j*0.08, f'{cap}', color=c[j], transform=ax.transAxes)
+
+    ax.set(xlabel='Nchains', ylabel=r'PCC', xticks=np.arange(1, 11)) 
+    
+    lines = ax.get_lines()
+    print(len(lines))
+    legend1 = plt.legend(lines[:2], ['Main', 'High-z'])
+    ax.add_artist(legend1)  
+    fig.savefig(fig_path, bbox_inches='tight')
+
+
+
 # def mollweide3maps(fig_path):
     
 #     import healpy as hp
@@ -987,37 +1040,6 @@ def plot_deltaNqso(fig_path):
     
 #     return fig, ax
 
-# def pcc_wnn_nchains(fig_path, cap='NGC', ns='256', s='main'):
-
-#     from scipy.stats import pearsonr
-#     import fitsio as ft
-
-#     root_path = f'/home/mehdi/data/eboss/data/v7_2/1.0/{cap}'
-
-#     c = ['k', 'crimson']    
-#     mk = ['w', 'crimson']
-
-#     fig, ax = plt.subplots()
-#     ax.tick_params(direction='in', which='both', top=True, right=True)   
-
-#     for j, mp in enumerate(['all', 'known']):
-
-#         d = ft.read(f'{root_path}/{ns}/{s}/nn_pnnl_{mp}/nn-weights.fits') # (Npix, Nchains)
-
-#         for i in range(1, 11):
-
-#             set_1 = d['weight'][:, 0:i].mean(axis=1)
-#             set_2 = d['weight'][:, 10:i+10].mean(axis=1)
-
-#             pcc = pearsonr(set_1, set_2)[0]
-#             #print(f'i={i}, pcc={pcc:.3f}')
-
-#             plt.scatter(i, pcc, color=c[j], marker='o', fc=mk[j])
-
-#         ax.text(0.8, 0.5-j*0.08, f'{mp}', color=c[j], transform=ax.transAxes)
-
-#     ax.set(xlabel='Nchains', ylabel=r'PCC', xticks=np.arange(1, 11)) 
-#     fig.savefig(fig_path, bbox_inches='tight')
 
 # def cell_ngc_main_nchain1(fig_path):
 #     from lssutils.lab import histogram_cell
