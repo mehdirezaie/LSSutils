@@ -4,17 +4,9 @@ export NUMEXPR_MAX_THREADS=2
 export PYTHONPATH=${HOME}/github/LSSutils:${HOME}/github/sysnetdev
 conda activate sysnet
 
-#---- path to the codes
-prep=/home/mehdi/github/LSSutils/scripts/analysis/prepare_data_eboss.py
-nnfit=/home/mehdi/github/sysnetdev/scripts/app.py
-swap=/home/mehdi/github/LSSutils/scripts/analysis/swap_data_eboss.py
-pk=/home/mehdi/github/LSSutils/scripts/analysis/run_pk.py
-nnbar=/home/mehdi/github/LSSutils/scripts/analysis/run_nnbar_eboss.py
-cl=/home/mehdi/github/LSSutils/scripts/analysis/run_cell_eboss.py
-xi=/home/mehdi/github/LSSutils/scripts/analysis/run_xi.py
 
 #---- path to the data
-nside=512
+nside=$1 # 512, use cmd line instead
 l1=-1.0 # l1 regularization deactivated with <0
 nn_structure=(4 20) 
 # 'star_density', 'ebv', 'loghi', 'sky_g', 'sky_r', 'sky_i', 'sky_z', 
@@ -22,40 +14,63 @@ nn_structure=(4 20)
 # 'psf_g', 'psf_r', 'psf_i', 'psf_z',
 #  'run', 'airmass'
 axes_all=({0..16})
-axes_known=(1 5 7 13) # ebv, depth-g, psf-i sky-i
+axes_known=(0 1 5 7 13) # star_density, ebv, depth-g, psf-i sky-i
 nepoch=150
 nchains=20
 version="v7_2"
-release="1.0"
-caps="NGC SGC"  # options are "NGC SGC"
-slices="mid" # options are "main highz low mid z1 z2 z3"
+release="3.0"
+caps=$2 # "NGC SGC"  # options are "NGC SGC"
+slices=$3 #"main highz" # options are "main highz low mid z1 z2 z3"
 maps="known all" # options are "all known"
 samples="mainhighz" # options are lowmidhighz mainhighz
 table_name="ngal_eboss"
-templates="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
-templates2="/home/mehdi/data/templates/SDSS_WISE_HI_imageprop_nside256.h5"
+templates="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside${nside}.h5"
+templates2="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside256.h5"
 eboss_dir="/home/mehdi/data/eboss/data/${version}/"
 
 do_prep=false
 find_lr=false
 find_st=false
 find_ne=false
-do_nnfit=false
+do_nnfit=true
 do_swap=false
 do_pk=false
 do_nnbar=false
 do_cl=false
-do_xi=true
-do_default=true
+do_xi=false
+do_default=false
+
+
+#---- path to the codes
+prep=${HOME}/github/LSSutils/scripts/analysis/prepare_data_eboss.py
+nnfit=${HOME}/github/sysnetdev/scripts/app.py
+swap=${HOME}/github/LSSutils/scripts/analysis/swap_data_eboss.py
+pk=${HOME}/github/LSSutils/scripts/analysis/run_pk.py
+nnbar=${HOME}/github/LSSutils/scripts/analysis/run_nnbar_eboss.py
+cl=${HOME}/github/LSSutils/scripts/analysis/run_cell_eboss.py
+xi=${HOME}/github/LSSutils/scripts/analysis/run_xi.py
+
 
 #---- functions
 function get_lr() {
     if [ $1 = "main" ]
     then
-        lr=0.01
+        if [ $nside = 512 ]
+        then
+            lr=0.01
+        elif [ $nside = 256 ]
+        then
+            lr=0.02
+        fi
     elif [ $1 = "highz" ]
     then
-        lr=0.05
+        if [ $nside = 512 ]
+        then
+            lr=0.05
+        elif [ $nside = 256 ]
+        then
+            lr=0.05
+        fi    
     elif [ $1 = "low" ]
     then
         lr=0.01
@@ -98,9 +113,10 @@ then
     do
         dat=${eboss_dir}eBOSS_QSO_full_${cap}_${version}.dat.fits
         ran=${eboss_dir}eBOSS_QSO_full_${cap}_${version}.ran.fits    
-        #du -h $dat $ran $templates
+        du -h $dat $ran $templates
 
         output_path=${eboss_dir}${release}/${cap}/${nside}/
+        echo ${output_path}
 
         python $prep -d ${dat} -r ${ran} -s ${templates} -o ${output_path} -n ${nside} -sl ${slices}        
     done
@@ -129,7 +145,7 @@ then
                 else
                     exit 
                 fi
-                output_path=${input_dir}nn_pnnl_${map}/hp/
+                output_path=${input_dir}nn_pnll_${map}/hp/
                 echo ${output_path}
                 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -fl
             done
@@ -142,7 +158,7 @@ then
     #---- neural net modeling
     for cap in NGC #${caps}
     do
-        for slice in low #${slices}
+        for slice in main #${slices}
         do
             lr=$(get_lr ${slice})
        
@@ -162,7 +178,7 @@ then
                 else
                     exit 
                 fi
-                output_path=${input_dir}nn_pnnl_${map}/hp/
+                output_path=${input_dir}nn_pnll_${map}/hp/
                 echo ${output_path}
                 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr  ${lr} -fs 
             done
@@ -192,7 +208,7 @@ then
         else
             exit 
         fi
-        output_path=${input_dir}nn_pnnl_${map}/hp/
+        output_path=${input_dir}nn_pnll_${map}/hp/
         echo ${output_path}
         python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr ${lr} -ne 300
     done
@@ -223,9 +239,10 @@ then
                 else
                     exit 
                 fi
-                output_path=${input_dir}nn_pnnl_${map}
-                echo ${output_path}
-                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes}  -lr ${lr} --nn_structure ${nn_structure[@]} -ne $nepoch -nc $nchains -k
+                output_path=${input_dir}nn_pnll_${map}
+                echo ${output_path} ${lr}
+                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes}  \
+                       -lr ${lr} --nn_structure ${nn_structure[@]} -ne $nepoch -nc $nchains -k
             done
         done
     done

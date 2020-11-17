@@ -1138,7 +1138,7 @@ def make_sysmaps(ran, path_lenz, path_gaia, nside=256):
     
     
     """
-    from lssutils.extrn.GalacticForegrounds.hpmaps import NStarSDSS, logHI
+    from lssutils.extrn.GalacticForegrounds.hpmaps import Gaia, logHI
     
     maps = {'sky_g':ran['skyflux'][:,1],
             'sky_r':ran['skyflux'][:,2],
@@ -1161,8 +1161,8 @@ def make_sysmaps(ran, path_lenz, path_gaia, nside=256):
         print('.', end='')
         hpmaps[name] = value2hpix(nside, ran['ra'], ran['dec'], maps[name])
     
-    lenz = logHI(nside=nside, name=path_lenz)
-    nstar = NStarSDSS(nside_out=nside, name=path_gaia)
+    lenz = logHI(nside_out=nside, path=path_lenz)
+    nstar = Gaia(nside_out=nside, path=path_gaia)
     hpmaps['loghi'] = lenz.loghi
     hpmaps['star_density'] = nstar.nstar
     for band in 'rgiz':

@@ -53,10 +53,10 @@ class Gaia(object):
         
         self.nside_in = hp.get_nside(self.gaia)
         # the map is in per sq. deg., this transforms it to # of stars
-        self.gaia     = self.gaia.astype('f8') * hp.nside2pixarea(self.nside_in, degrees=True)
+        self.nstar     = self.gaia.astype('f8') * hp.nside2pixarea(self.nside_in, degrees=True)
 
         if nside_out!=self.nside_in:
-            self.gaia = hp.ud_grade(self.gaia, nside_out=nside_out, power=-2)
+            self.nstar = hp.ud_grade(self.nstar, nside_out=nside_out, power=-2)
             warnings.warn('upgrading/downgrading Gaia star density')  
 
 
@@ -74,16 +74,15 @@ def G_to_C(mapi, res_in=1024, res_out=256):
 
 class logHI(object):
     ''' Reads Lenz et. al. HI column density '''
-    def __init__(self, nside_out=256, name='/home/mehdi/data/templates/NHI_HPX.fits'):
+    def __init__(self, nside_out=256, path='/home/mehdi/data/templates/NHI_HPX.fits'):
 
         self.nside_out    = nside_out
         nside_in      = 1024
         self.ordering = 'ring'
         self.unit     = 'Lenz et. al. HI'
-        self.name     = name
 
         if nside_out!= nside_in:warnings.warn('upgrading/downgrading HI column density')
-        nhi           = ft.FITS(self.name, lower=True)
+        nhi           = ft.FITS(path, lower=True)
         nhi           = nhi[1].read()['nhi'] # only nhi column
 
         nhi_c         = G_to_C(nhi, res_in=nside_in, res_out=nside_out)
