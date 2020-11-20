@@ -53,14 +53,14 @@ release="1.0"
 release2="2.0"
 caps="NGC" # mocks do not have SGC
 slices="main" # low mid z1 z2 z3" # ezmocks do not have highz
-maps="known"  # known all
+maps="all"  # known all
 table_name="ngal_eboss"
 data_dir=/fs/ess/PHS0336
 templates="${data_dir}/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
 eboss_dir="${data_dir}/data/${version}/"
 
 do_pk=true    # 4 min
-do_default=true
+do_default=false
 
 #---- functions
 function get_datran(){
