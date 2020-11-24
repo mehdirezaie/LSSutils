@@ -108,7 +108,7 @@ def mollweide(fig_path):
 
     vmin, vmax = np.percentile(ngal_dens[np.isfinite(ngal_dens)], [5, 95])
     dv.mollview(ngal_dens, vmin, vmax,
-                r'$n_{{\rm QSO}} [deg^{-2}]$', cmap=plt.cm.YlOrRd_r, galaxy=True, colorbar=True)
+                r'$n_{{\rm QSO}}~[{\rm deg}^{-2}]$', cmap=plt.cm.YlOrRd_r, galaxy=True, colorbar=True)
     plt.savefig(fig_path, bbox_inches='tight', dpi=300, rasterized=True)
 
 
@@ -122,7 +122,7 @@ def p0_demo(fig_path, cap='NGC', show_nn=False):
 
     def read_pk(filename):
         d = nb.ConvolvedFFTPower.load(filename)
-        p0 = d.poles['power_0'].real - d.attrs['shotnoise']
+        p0 = d.poles['power_0'].real #- d.attrs['shotnoise']
         return (d.poles['k'], p0)
 
 
@@ -131,7 +131,7 @@ def p0_demo(fig_path, cap='NGC', show_nn=False):
         ax2.errorbar(x, y, err, capsize=2, **kw, zorder=-1)
 
 
-    path = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/spectra'
+    path = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/spectra'
     pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
 
     pkcov = np.loadtxt(f'{pathm}/spectra_{cap}_knownsystot_mainhighz_512_v7_0_1to1000_6600_512_main.dat')
@@ -157,7 +157,7 @@ def p0_demo(fig_path, cap='NGC', show_nn=False):
 
 
     xmin, xbreak, xmax = (0.001, 0.02, 0.25)
-    ylim = (1.0e3, 3.0e6)
+    ylim = (1.0e4, 3.0e6)
     ax1.set(xlim=(xmin, xbreak), ylim=ylim, yscale='log', xscale='log')
     ax2.set(xlim=(xbreak, xmax), ylim=ylim, yscale='log')#, xscale='log')
     ax2.set_yticks([])
@@ -177,7 +177,7 @@ def p0_demo(fig_path, cap='NGC', show_nn=False):
         add_pk(*pks['nn'], pk_err, ax1, ax2, marker='s', mfc='w', color='#d98404', label='Neural Network treatment')
 
     ax2.legend(loc='upper left', frameon=False, 
-               bbox_to_anchor=(-0.2, 0.95), 
+               bbox_to_anchor=(-0.3, 0.95), 
                title=fr'eBOSS DR16 QSO {cap} ($0.8<z<2.2$)')
     
     fig.savefig(fig_path, dpi=300, bbox_inches='tight')        
@@ -242,13 +242,13 @@ def plot_overdensity(fig_path, sample='main'):
             out.append([nnbar[i]['bin_avg'], nnbar[i]['nnbar']-1]) #, nnbar[i]['nnbar_err']])
         return out
     
-    maps = ['E(B-V)', 'Sky-i', 'Depth-g', 'PSF-i', 'Airmass']
-    ixx = [1, 5, 7, 13, 16]    
+    maps = ['Nstar', 'E(B-V)', 'Sky-i', 'Depth-g', 'PSF-i']
+    ixx = [0, 1, 5, 7, 13]    
     zlabels = {'main':'0.8<z<2.2',
                'highz':'2.2<z<3.5'}
 
     nnbar = {}
-    path = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/nnbar/'
+    path = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/nnbar/'
     for cap in ['NGC', 'SGC']:
         nnbar[f'noweight_{cap}'] = read_nnbar(f'{path}nnbar_{cap}_noweight_mainhighz_512_v7_2_{sample}_512.npy', ixx)
         nnbar[f'systot_{cap}'] = read_nnbar(f'{path}nnbar_{cap}_knownsystot_mainhighz_512_v7_2_{sample}_512.npy', ixx)
@@ -325,51 +325,81 @@ def plot_overdensity(fig_path, sample='main'):
     
 def nnbarchi2pdf_mocks_data(fig_path, cap='NGC', 
                             xlim1=(40., 300.), xlim2=(2400., 2800.),
-                           xticks2=[2500, 2700]):
+                            xticks2=[2500, 2700],
+                            ix=None):
     from glob import glob
     from matplotlib.gridspec import GridSpec
-    
-    def chi2(y, invcov):
+    from scipy.special import gamma
+
+    def chi2_pdf(x, k):
+        """ Chi2 pdf 
+        """
+        k2 = k / 2.
+        n_ = np.power(x, k2-1.)
+        d_ = np.power(2., k2)*gamma(k2)
+        return np.exp(-0.5*x)*n_/d_    
+
+    def chi2_fn(y, invcov):
         return np.dot(y, np.dot(invcov, y))    
-    
-    def read_nnbar(path):
+
+    def read_nnbar(path, ix=None):
         d = np.load(path, allow_pickle=True)
-
         nnbar = []
-        for i, di in enumerate(d):
-            nnbar.append(di['nnbar']-1)
-        nnbar = np.array(nnbar).flatten()
-        return nnbar
-    
-    def get_chi2t(nbar_fn, invcov):
-        d = read_nnbar(nbar_fn)
-        return chi2(d, invcov)
+        if ix is None:        
+            for di in d:
+                nnbar.append(di['nnbar']-1)
+        else:
+            for i in ix:
+                di = d[i]
+                nnbar.append(di['nnbar']-1)
+        return np.array(nnbar).flatten()
 
-    def get_chi2t_mocks(nside, cap, invcov):
-        path = '/home/mehdi/data/eboss/mocks/1.0/measurements/nnbar/'
-        nbars = glob(f'{path}nnbar_{cap}_knownsystot_mainhighz_512_v7_0_*_main_{nside}.npy')
-        print('len(nbars):', len(nbars), cap)
+    def get_chi2t(path, ix, incov):
+        nnbar_ = read_nnbar(path, ix)
+        return chi2_fn(nnbar_, invcov)
+        
+    def get_chi2t_mocks(nside, cap, ix):
+        path_ = '/home/mehdi/data/eboss/mocks/1.0/measurements/nnbar/'
+        mocks = glob(f'{path_}nnbar_{cap}_knownsystot_mainhighz_512_v7_0_*_main_{nside}.npy')
+        print('len(nbars):', len(mocks), cap)
+        nmocks = len(mocks)
+        err_tot = []
+        for j, fn in enumerate(mocks):
+            err_j = read_nnbar(fn, ix=ix)
+            err_tot.append(err_j)            
+        err_tot = np.array(err_tot)
+        print(err_tot.shape)
 
-        chi2_mocks = []
-        for nbar_i in nbars:        
-            chi2_t = get_chi2t(nbar_i, invcov)        
-            chi2_mocks.append(chi2_t)
-            #print('.', end='')
-
-        return np.array(chi2_mocks)
+        nbins = err_tot.shape[1]
+        hartlapf = (nmocks-1. - 1.) / (nmocks-1. - nbins - 2.)
+        indices = [i for i in range(nmocks)]
+        chi2s = []
+        for i in range(nmocks):
+            indices_ = indices.copy()    
+            indices_.pop(i)
+            nbar_ = err_tot[i, :]
+            err_ = err_tot[indices_, :]    
+            covmax_ = np.cov(err_, rowvar=False)
+            invcov_ = np.linalg.inv(covmax_*hartlapf)
+            chi2_ = chi2_fn(nbar_, invcov_)
+            chi2s.append(chi2_)       
+            
+        print(nmocks)
+        covmax_ = np.cov(err_tot, rowvar=False)
+        hartlapf = (nmocks - 1.) / (nmocks - nbins - 2.)
+        invcov_ = np.linalg.inv(covmax_*hartlapf)
+        
+        return np.array(chi2s), invcov_
 
     # read covariance matrix
-    cov = NbarCov(cap, '512')
-    invcov = cov.get_invcov(0, 136)
-
-    chi2_mocks = get_chi2t_mocks('512', cap, invcov)
-    print(np.percentile(chi2_mocks, [0, 100]))
+    chi2mocks, invcov = get_chi2t_mocks('512', cap, ix)
+    print(np.percentile(chi2mocks, [0, 100]))
     
-    path = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/nnbar/'
+    path = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/nnbar/'
     chi2d = {}
-    chi2d['noweight'] = get_chi2t(f'{path}nnbar_{cap}_noweight_mainhighz_512_v7_2_main_512.npy', invcov)
-    chi2d['standard'] = get_chi2t(f'{path}nnbar_{cap}_knownsystot_mainhighz_512_v7_2_main_512.npy', invcov)
-    chi2d['nn'] = get_chi2t(f'{path}nnbar_{cap}_known_mainhighz_512_v7_2_main_512.npy', invcov)
+    chi2d['noweight'] = get_chi2t(f'{path}nnbar_{cap}_noweight_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['standard'] = get_chi2t(f'{path}nnbar_{cap}_knownsystot_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['nn'] = get_chi2t(f'{path}nnbar_{cap}_known_mainhighz_512_v7_2_main_512.npy', ix, invcov)
     print(chi2d)
     
     fig = plt.figure(figsize=(8, 5))
@@ -383,13 +413,27 @@ def nnbarchi2pdf_mocks_data(fig_path, cap='NGC',
 
     ax1.spines['right'].set_visible(False)
     ax2.spines['left'].set_visible(False)
-    ax1.set(xlim=xlim1, ylim=(0., 300.), xlabel=r'$\chi^{2}_{{\rm tot}}$')
-    ax2.set(xlim=xlim2, ylim=(0., 300.), xticks=xticks2)
+    ax1.set(xlim=xlim1, ylim=(0., 200.), xlabel=r'$\chi^{2}_{{\rm tot}}$')
+    ax2.set(xlim=xlim2, ylim=(0., 200.), xticks=xticks2)
     ax2.set_yticks([])
 
-    _,_, p = ax1.hist(chi2_mocks, bins=25, range=(70, 330), 
-                      alpha=0.5, label='1000 Null EZMocks', 
-                      zorder=-10)
+    mu, std = np.mean(chi2mocks), np.std(chi2mocks)
+    print(f'{mu:.1f} +- {std:.1f}')
+
+    vmin, vmax = 0.9*min(chi2mocks), 1.1*max(chi2mocks)
+    bin_width = 3.5*std / np.power(len(chi2mocks), 1./3.) # Scott 1979
+    print(bin_width)
+
+
+    bins = np.arange(vmin, vmax, bin_width)
+    x_ = np.linspace(vmin, vmax, 200)
+    #pdf = (1./np.sqrt(2*np.pi)/std)*np.exp(-0.5*((x_-mu)/std)**2)
+    pdf = chi2_pdf(x_, np.floor(mu))*bin_width*len(chi2mocks) 
+    
+    ax1.plot(x_, pdf, 'b-')
+    ax1.hist(chi2mocks, bins=bins, 
+             alpha=0.3, color='b', label='1000 Null EZMocks', 
+             zorder=-10)
 
     kw2 = dict(rotation=90)# fontsize, fontweight='bold'
     ls = ['--', '-.', ':']
@@ -398,8 +442,8 @@ def nnbarchi2pdf_mocks_data(fig_path, cap='NGC',
         ax_.axvline(v, zorder=-1, color='k', 
                    ls=ls[i], alpha=0.5, lw=1) # label='Data %s'%n,
 
-        pval = 100*(chi2_mocks > v).mean()
-        ax_.text(1.001*v, 30, fr'Data ({n.upper()}) = {v:.1f} ({pval:.1f}%)', **kw2)
+        pval = 100*(chi2mocks > v).mean()
+        ax_.text(1.01*v, 20, fr'Data ({n.upper()}) = {v:.1f} ({pval:.1f}%)', **kw2)
 
     ax1.legend(loc='upper left', frameon=False)
 
@@ -582,16 +626,19 @@ def plot_deltaNqso(fig_path):
     import sys
     sys.path.insert(0, '/home/mehdi/github/LSSutils')
     from lssutils.utils import nside2pixarea, EbossCat
-    from lssutils.dataviz import mollview, mycolor
+    from lssutils.dataviz import mollview, mycolor, shiftedColorMap
 
     ''' READ THE FULL CATALOGS
     '''
     nside = 128
     pix_area = nside2pixarea(nside, degrees=True)
     nran_bar = pix_area*5000. # 5000 per sq deg
+    
+    cmap = shiftedColorMap(plt.cm.jet, midpoint=0.5)
 
 
-    path_cats = '/home/mehdi/data/eboss/data/v7_2/1.0/catalogs/'
+    path_cats = '/home/mehdi/data/eboss/data/v7_2/3.0/catalogs/'
+    print(path_cats)
 
     # nn
     dNGC = EbossCat(f'{path_cats}eBOSS_QSO_full_NGC_known_mainhighz_512_v7_2.dat.fits', zmin=0.8, zmax=3.5)
@@ -630,9 +677,11 @@ def plot_deltaNqso(fig_path):
     delta_ngal = (ngal_dens_ - ngal_dens)
     
     vmin, vmax = np.percentile(delta_ngal[np.isfinite(delta_ngal)], [1, 99])
+    print(vmin, vmax)
+    
     mollview(delta_ngal, vmin, vmax,
              r'$\Delta$n$_{{\rmQSO}}$ [deg$^{-2}$] (Standard - NN)', 
-             cmap=plt.cm.viridis, colorbar=True)
+             cmap=cmap, colorbar=True)
     plt.savefig(fig_path, bbox_inches='tight', dpi=300)
     
 

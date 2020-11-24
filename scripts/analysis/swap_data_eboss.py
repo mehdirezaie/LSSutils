@@ -17,12 +17,15 @@ def prepare_mappers(path, cap, nside, samples, maps, z_bins, method):
     for sample in samples:
     
         if sample not in z_bins:
+            print(f'{sample} does not exist')
             continue
             
         nnw_file = nnw_path(path, cap, nside, sample, maps, method)
         if os.path.exists(nnw_file):
+            print(f'{nnw_file} does exist')
             mappers[sample] = (z_bins[sample], ut.NNWeight(nnw_file, nside))
-            
+        else:
+            print(f'{nnw_file} does not exist')
     return mappers
 
 
@@ -34,7 +37,8 @@ ap.add_argument('--zmax', type=float, default=3.5)
 ap.add_argument('-n', '--nside', type=int,   default=512)
 ap.add_argument('-s', '--samples', type=str, default=['main', 'highz'], nargs='*')
 ap.add_argument('-c', '--cap', type=str,   default='NGC')
-ap.add_argument('--method', type=str, default='nn_pnnl')
+ap.add_argument('-v', '--version', type=str,   default='1.0')
+ap.add_argument('--method', type=str, default='nn_pnll')
 ns = ap.parse_args() 
 
 cap = ns.cap
@@ -43,9 +47,10 @@ maps = ns.maps
 cat_kw = dict(zmin=ns.zmin, zmax=ns.zmax)
 samples = ns.samples
 method = ns.method
+version = ns.version
 
 path_incats =  '/home/mehdi/data/eboss/data/v7_2/'
-path_weights = '/home/mehdi/data/eboss/data/v7_2/1.0/'
+path_weights = f'/home/mehdi/data/eboss/data/v7_2/{version}/'
 
 samples_joined = ''.join(samples)
 dat_name = os.path.join(path_weights, 'catalogs', f'eBOSS_QSO_full_{cap}_{maps}_{samples_joined}_{nside}_v7_2.dat.fits')
