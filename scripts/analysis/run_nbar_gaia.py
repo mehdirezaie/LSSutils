@@ -20,7 +20,7 @@ path_gaia = '/fs/ess/PHS0336/data/templates/Gaia.dr2.bGT10.12g17.hp256.fits'
 
 
 dd = Gaia(path=path_gaia, nside_out=512)
-nstarg = dd.gaia
+nstarg = dd.nstar
 
 dat = EbossCat(dat_fn, kind='data', zmin=0.8, zmax=2.2)
 ran = EbossCat(dat_fn.replace('.dat.', '.ran.'), kind='randoms', zmin=0.8, zmax=2.2)
@@ -32,7 +32,7 @@ mask = (hpran > 0) & (np.isfinite(nstarg)) # & (np.isfinite(nstarg))
 ones = np.ones_like(hpran)
 frac = hpran / (nside2pixarea(512, degrees=True)*5000.)
 
-nbar_1 = nnbar.MeanDensity(hpdat, frac, mask, np.log10(nstarg))
+nbar_1 = nnbar.MeanDensity(hpdat, frac, mask, nstarg)
 nbar_1.run()
 
 

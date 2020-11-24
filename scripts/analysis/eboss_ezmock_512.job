@@ -29,7 +29,7 @@ source activate sysnet
 
 cd ${HOME}/github/LSSutils/scripts/analysis
 
-#mockid=0019
+#mockid=1000
 iscont=0
 printf -v mockid "%04d" $PBS_ARRAYID
 #iscont=$2 # use -v variable=value instead, see https://www.osc.edu/supercomputing/batch-processing-at-osc/job-submission
