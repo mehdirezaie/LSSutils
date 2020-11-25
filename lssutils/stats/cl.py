@@ -11,7 +11,8 @@ __all__ = ['AnaFast', 'get_cl']
 @CurrentMPIComm.enable
 def get_cl(ngal, nran, mask, selection_fn=None,
            systematics=None, njack=20, nran_bar=None, lmax=None, 
-           cache_jackknifes=True, do_jack_sys=False, comm=None):
+           cache_jackknifes=True, do_jack_sys=False, comm=None,
+	   cross_only=False):
     
     # initialize AnaFast
     af_kw = {'njack':njack, 'lmax':lmax}
@@ -40,9 +41,9 @@ def get_cl(ngal, nran, mask, selection_fn=None,
         cl_gg['shotnoise'] = get_shotnoise(ngal, weight, mask)
 
     if systematics is not None:
-        if comm.rank==0:
-            print('C_s,g', end=' ')
-            print(f'{systematics.shape}')
+        #if comm.rank==0:
+        #    print('C_s,g', end=' ')
+        #    print(f'{systematics.shape}')
 
         # split across processes
         chunk_size = systematics.shape[1]//comm.size
@@ -55,20 +56,24 @@ def get_cl(ngal, nran, mask, selection_fn=None,
         cl_ss_list = []
         cl_sg_list = []
         for i in range(start, end):
-            if comm.rank==0:
-                print('.', end='')
             systematic_i = make_overdensity(systematics[:, i],
                                         weight, mask, is_sys=True)
-            cl_ss_list.append(af(systematic_i, weight, mask, **af_kws))
+            if not cross_only:
+                cl_ss_list.append(af(systematic_i, weight, mask, **af_kws))
             cl_sg_list.append(af(delta, weight, mask,
                         map2=systematic_i, weight2=weight, mask2=mask, **af_kws))
 
         comm.Barrier()
-        cl_ss_list = comm.gather(cl_ss_list, root=0)
+
+        if not cross_only:
+            cl_ss_list = comm.gather(cl_ss_list, root=0)
         cl_sg_list = comm.gather(cl_sg_list, root=0)
 
         if comm.rank==0:
-            cl_ss_list = [cl_j for cl_i in cl_ss_list for cl_j in cl_i if len(cl_i)!=0]
+            if not cross_only:
+                cl_ss_list = [cl_j for cl_i in cl_ss_list for cl_j in cl_i if len(cl_i)!=0]
+            else:
+                cl_ss_list = np.nan
             cl_sg_list = [cl_j for cl_i in cl_sg_list for cl_j in cl_i if len(cl_i)!=0]
             output = {
                 'cl_gg':cl_gg,

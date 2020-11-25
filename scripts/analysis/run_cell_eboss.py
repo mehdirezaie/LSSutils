@@ -117,7 +117,7 @@ def angular_power_wcross(args, columns=maps_eboss_v7p2, comm=None):
     sysm = comm.bcast(sysm, root=0)
     nran_bar = comm.bcast(nran_bar, root=0)
     
-    cls_list = get_cl(ngal, nran, mask, systematics=sysm, njack=0, nran_bar=nran_bar)
+    cls_list = get_cl(ngal, nran, mask, systematics=sysm, njack=0, nran_bar=nran_bar, cross_only=args.cross_only)
     
     if comm.rank == 0:
         output_dir = os.path.dirname(output_path)
@@ -145,6 +145,7 @@ if __name__ == '__main__':
         ap.add_argument('-n', '--nside', type=int, default=None)
         ap.add_argument('--use_systot', action='store_true')
         ap.add_argument('--auto_only', action='store_true')
+        ap.add_argument('--cross_only', action='store_true')
         ns = ap.parse_args()
 
         for (key, value) in ns.__dict__.items():

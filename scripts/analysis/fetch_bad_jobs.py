@@ -1,4 +1,9 @@
-
+"""
+	1. use grep to find out what ids failed
+		$> grep 'killed' *.o* > failed.txt
+	2. then run this script 
+		$> python fetch.py failed.txt indices.txt
+"""
 import sys
 
 try:

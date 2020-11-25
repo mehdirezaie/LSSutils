@@ -1,5 +1,5 @@
-#PBS -N ezngfix512
-#PBS -l nodes=1:ppn=4
+#PBS -N ezcl512
+#PBS -l nodes=1:ppn=16
 #PBS -l walltime=00:10:00
 #PBS -j oe
 #PBS -A PHS0336 
@@ -31,14 +31,14 @@ cd ${HOME}/github/LSSutils/scripts/analysis
 
 #mockid=1000
 iscont=0
-printf -v mockid "%04d" $PBS_ARRAYID
+#printf -v mockid "%04d" $PBS_ARRAYID
 #iscont=$2 # use -v variable=value instead, see https://www.osc.edu/supercomputing/batch-processing-at-osc/job-submission
 
 # NOTE:in case some of jobs array failed
 # have the indices in indices.txt
 # PBS_ARRAYID=5 # uncomment for test
-#mockid=$(sed "$PBS_ARRAYID"'q;d' indices.txt)
-#printf -v mockid "%04d" ${mockid}
+mockid=$(sed "$PBS_ARRAYID"'q;d' indices.txt)
+printf -v mockid "%04d" ${mockid}
 
 echo ${mockid} ${iscont}
 
@@ -69,7 +69,8 @@ slices="main" # low mid z1 z2 z3" # ezmocks do not have highz
 maps="known"  # known all
 table_name="ngal_eboss"
 data_dir=/fs/ess/PHS0336
-templates="${data_dir}/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
+templates="${data_dir}/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5" # has the correct stellar SDSS
+templates2="${data_dir}/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside${nside}.h5" # has the right stellar Gaia (for data)
 eboss_dir="${data_dir}/data/${version}/"
 
 do_prep=false
@@ -80,9 +81,9 @@ do_nnfit=false # 16 h
 do_swap=false  # 1 min
 do_pk=false    # 4 min
 do_nnbar=false  # 4 min
-do_cl=false
-do_default=false
-do_nnbarfix=true
+do_cl=true
+do_default=true
+do_nnbarfix=false
 
 #---- functions
 function get_datran(){
@@ -350,13 +351,13 @@ then
             du -h $dat $ran
             echo ${out} ${zlim}
             
-            mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -t ${templates} -o $out --use_systot --zlim ${zlim}
+            mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -t ${templates2} -o $out --use_systot --zlim ${zlim}
 
 	    if [ $iscont = 1 ] # wo systot for cont. mocks
 	    then
 	        out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
                 echo ${out}
-	        mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -t ${templates} -o $out --zlim ${zlim}
+	        mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -t ${templates2} -o $out --zlim ${zlim}
 	    fi
             
 	    continue # no need to do nnbar for mocks
@@ -374,7 +375,7 @@ then
                     du -h $dat $ran
                     echo ${out}
                     
-		    mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim}
+		    mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
                 done
             done
         done
@@ -385,7 +386,7 @@ if [ "${do_cl}" = true ]
 then
     for cap in ${caps}
     do
-        for zrange in main highz
+        for zrange in main # highz # mocks do not have high-z
         do
             zlim=$(get_zlim ${zrange})
            
@@ -393,37 +394,36 @@ then
             input_dir=${eboss_dir}
             output_dir=${eboss_dir}${release}/measurements/cl/
 
-            dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-            ran=${dat/.dat./.ran.}
-            
-            out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_2_${zrange}.npy
-            du -h $dat $ran
-            echo ${out} ${zlim}
-            mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                      --zlim ${zlim}
-            
-            
-            out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.npy
-            du -h $dat $ran
-            echo ${out} ${zlim}
-            mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                    --use_systot --zlim ${zlim}
+	    read dat ran < <(get_datran $iscont)
 
+            out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+            du -h $dat $ran
+            echo ${out} ${zlim}
+            mpiexec -ppn 8 python ${cl} -d $dat -r $ran -t ${templates2} -o $out --use_systot --zlim ${zlim} --cross_only
+
+	    if [ $iscont = 1 ] # wo systot for cont. mocks
+	    then
+	        out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+                echo ${out}
+	        mpiexec -ppn 8 python ${cl} -d $dat -r $ran -t ${templates2} -o $out --zlim ${zlim} --cross_only
+	    fi
             
+	    continue # no need to do nnbar for mocks
             for map in ${maps}
             do
-                input_dir=${eboss_dir}${release}/catalogs/
+                # EZmock_eBOSS_QSO_NGC_known_mainhighz_512_v7_0_0001.dat.fits 
+	        input_dir=${eboss_dir}${release}/catalogs/
                 output_dir=${eboss_dir}${release}/measurements/cl/
 
                 for sample in mainhighz
                 do
-                    dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
+                    dat=${input_dir}EZmock_eBOSS_QSO_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}.dat.fits
                     ran=${dat/.dat./.ran.}
-                    out=${output_dir}cl_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
+                    out=${output_dir}cl_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                    --use_systot --zlim ${zlim}
+                    
+		    mpiexec -ppn 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim} --cross_only
                 done
             done
         done
