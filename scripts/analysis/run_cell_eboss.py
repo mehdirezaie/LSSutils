@@ -47,7 +47,7 @@ def angular_power(args, columns=maps_eboss_v7p2):
     mask = mask_sysm & mask_nran & mask_ngal  
 
     nran_bar = nside2pixarea(nside, degrees=True)*5000.
-    cls_list = get_cl(ngal, nran, mask, systematics=None, njack=20, nran_bar=nran_bar) # no systematics
+    cls_list = get_cl(ngal, nran, mask, systematics=None, njack=0, nran_bar=nran_bar) # no systematics
     
     output_dir = os.path.dirname(output_path)
     if not os.path.exists(output_dir):
@@ -117,7 +117,7 @@ def angular_power_wcross(args, columns=maps_eboss_v7p2, comm=None):
     sysm = comm.bcast(sysm, root=0)
     nran_bar = comm.bcast(nran_bar, root=0)
     
-    cls_list = get_cl(ngal, nran, mask, systematics=sysm, njack=20, nran_bar=nran_bar)
+    cls_list = get_cl(ngal, nran, mask, systematics=sysm, njack=0, nran_bar=nran_bar)
     
     if comm.rank == 0:
         output_dir = os.path.dirname(output_path)

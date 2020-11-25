@@ -34,9 +34,9 @@ find_st=false
 find_ne=false
 do_nnfit=false
 do_swap=false
-do_pk=true
-do_nnbar=true
-do_cl=false
+do_pk=false
+do_nnbar=false
+do_cl=true
 do_xi=false
 do_default=true
 
@@ -378,20 +378,16 @@ then
                 dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
                 ran=${dat/.dat./.ran.}
 
-                out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_2_${zrange}.npy
+                out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_2_${zrange}_${nside}.npy
                 du -h $dat $ran
                 echo ${out} ${zlim}
-                #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                #          --zlim ${zlim}
-                python ${cl} -d $dat -r $ran -o $out -t ${templates} --zlim ${zlim} --auto_only --nside 1024
+                mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} --zlim ${zlim}
 
 
-                out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.npy
+                out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}_${nside}.npy
                 du -h $dat $ran
                 echo ${out} ${zlim}
-                #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                #        --use_systot --zlim ${zlim}
-                python ${cl} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim} --auto_only --nside 1024
+                mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim}
             fi
             
             for map in ${maps}
@@ -403,13 +399,10 @@ then
                 do
                     dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
                     ran=${dat/.dat./.ran.}
-                    out=${output_dir}cl_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}.npy
+                    out=${output_dir}cl_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}_${nside}.npy
                     du -h $dat $ran
                     echo ${out}
-                    #mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} \
-                    #--use_systot --zlim ${zlim}
-                    python ${cl} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim} --auto_only --nside 1024
-                    
+                    mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim}
                 done
             done
         done

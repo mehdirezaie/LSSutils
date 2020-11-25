@@ -113,7 +113,7 @@ def mollweide(fig_path):
 
 
     
-def p0_demo(fig_path, cap='NGC', show_nn=False):
+def p0_demo(fig_path, cap='NGC', sample='main', show_nn=False):
     # plot P0 
     # FIX covmax
     
@@ -130,7 +130,9 @@ def p0_demo(fig_path, cap='NGC', show_nn=False):
         ax1.errorbar(x, y, err, capsize=2, **kw)
         ax2.errorbar(x, y, err, capsize=2, **kw, zorder=-1)
 
-
+    zlim = {'main':'$0.8<z<2.2$',
+            'highz':'$2.2<z<3.5$'}
+    
     path = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/spectra'
     pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
 
@@ -138,9 +140,9 @@ def p0_demo(fig_path, cap='NGC', show_nn=False):
     pk_err = np.sqrt(np.diagonal(pkcov))
 
     pks = {}
-    pks['systot'] = read_pk(f'{path}/spectra_{cap}_knownsystot_mainhighz_512_v7_2_main.json')
-    pks['noweight'] = read_pk(f'{path}/spectra_{cap}_noweight_mainhighz_512_v7_2_main.json')
-    pks['nn'] = read_pk(f'{path}/spectra_{cap}_known_mainhighz_512_v7_2_main.json')    
+    pks['systot'] = read_pk(f'{path}/spectra_{cap}_knownsystot_mainhighz_512_v7_2_{sample}.json')
+    pks['noweight'] = read_pk(f'{path}/spectra_{cap}_noweight_mainhighz_512_v7_2_{sample}.json')
+    pks['nn'] = read_pk(f'{path}/spectra_{cap}_known_mainhighz_512_v7_2_{sample}.json')    
 
     fig = plt.figure(figsize=(8, 5))
     plt.subplots_adjust(wspace=0.0)
@@ -178,7 +180,7 @@ def p0_demo(fig_path, cap='NGC', show_nn=False):
 
     ax2.legend(loc='upper left', frameon=False, 
                bbox_to_anchor=(-0.3, 0.95), 
-               title=fr'eBOSS DR16 QSO {cap} ($0.8<z<2.2$)')
+               title=fr"eBOSS DR16 QSO {cap} ({zlim[sample]})")
     
     fig.savefig(fig_path, dpi=300, bbox_inches='tight')        
     
