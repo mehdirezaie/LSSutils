@@ -17,12 +17,14 @@ axes=({0..26})
 #  'mjd_r_min', 'mjd_g_min', 'mjd_z_min', 
 # 'galdepth_g','galdepth_r', 'galdepth_z', 
 # 'psfsize_g', 'psfsize_r', 'psfsize_z'
-nchains=25
-nepochs=70
-lr=0.2
+nchains=1  # 25 for NN-MSE
+nepochs=300 # 70 for NN-MSE
+#lr=0.2  # NN-MSE
+lr=0.7   # Lin-MSE
 etamin=0.001
 input_path=/home/mehdi/data/tanveer/dr8_elg_0.32.0_256.fits
-output_path=/home/mehdi/data/tanveer/elg_mse/
+#output_path=/home/mehdi/data/tanveer/elg_mse/
+output_path=/home/mehdi/data/tanveer/elg_lin/
 
 
 find_lr=false
@@ -47,7 +49,8 @@ then
     du -h ${input_path}
     output_path=${output_path}hp/
     echo ${output_path}
-    python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -fl 
+    #python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -fl 
+    python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model lin --loss mse -fl 
 fi
 
 if [ "${find_st}" = true ]
@@ -73,6 +76,8 @@ if [ "${do_nnfit}" = true ]
 then
     du -h ${input_path}
     echo ${output_path}
-    python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k
+    #python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k
+    python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model lin --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k
+
 fi
 

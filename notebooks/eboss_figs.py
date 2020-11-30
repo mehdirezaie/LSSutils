@@ -113,7 +113,7 @@ def mollweide(fig_path):
 
 
     
-def p0_demo(fig_path, cap='NGC', sample='main', show_nn=False):
+def p0_demo(fig_path, cap='NGC', sample='main', method='known', show_nn=False):
     # plot P0 
     # FIX covmax
     
@@ -142,7 +142,7 @@ def p0_demo(fig_path, cap='NGC', sample='main', show_nn=False):
     pks = {}
     pks['systot'] = read_pk(f'{path}/spectra_{cap}_knownsystot_mainhighz_512_v7_2_{sample}.json')
     pks['noweight'] = read_pk(f'{path}/spectra_{cap}_noweight_mainhighz_512_v7_2_{sample}.json')
-    pks['nn'] = read_pk(f'{path}/spectra_{cap}_known_mainhighz_512_v7_2_{sample}.json')    
+    pks['nn'] = read_pk(f'{path}/spectra_{cap}_{method}_mainhighz_512_v7_2_{sample}.json')    
 
     fig = plt.figure(figsize=(8, 5))
     plt.subplots_adjust(wspace=0.0)
