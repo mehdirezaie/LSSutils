@@ -15,13 +15,14 @@ nn_structure=(4 20)
 #  'run', 'airmass'
 axes_all=({0..16})
 axes_known=(0 1 5 7 13) # star_density, ebv, depth-g, psf-i sky-i
+batchsize=4098
 nepoch=150
 nchains=20
 version="v7_2"
 release="3.0"
 caps=$2 # "NGC SGC"  # options are "NGC SGC"
 slices=$3 #"main highz" # options are "main highz low mid z1 z2 z3"
-maps="known all" # options are "all known"
+maps="known" # options are "all known" but known is enough
 samples="mainhighz" # options are lowmidhighz mainhighz
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside${nside}.h5"
@@ -32,13 +33,13 @@ do_prep=false
 find_lr=false
 find_st=false
 find_ne=false
-do_nnfit=false
+do_nnfit=true
 do_swap=false
 do_pk=false
 do_nnbar=false
-do_cl=true
+do_cl=false
 do_xi=false
-do_default=true
+do_default=false
 
 
 #---- path to the codes
@@ -60,7 +61,7 @@ function get_lr() {
             lr=0.01
         elif [ $nside = 256 ]
         then
-            lr=0.02
+            lr=0.01
         fi
     elif [ $1 = "highz" ]
     then
@@ -69,14 +70,26 @@ function get_lr() {
             lr=0.05
         elif [ $nside = 256 ]
         then
-            lr=0.05
+            lr=0.01
         fi    
     elif [ $1 = "low" ]
     then
-        lr=0.01
+        if [ $nside = 512 ]
+        then
+            lr=0.01
+        elif [ $nside = 256 ]
+        then
+            lr=0.02
+        fi
     elif [ $1 = "mid" ]
     then
-        lr=0.01        
+        if [ $nside = 512 ]
+        then
+            lr=0.01
+        elif [ $nside = 256 ]
+        then
+            lr=0.02
+        fi
     fi
     echo $lr
 }
@@ -116,7 +129,7 @@ then
         du -h $dat $ran $templates
 
         output_path=${eboss_dir}${release}/${cap}/${nside}/
-        echo ${output_path}
+        echo ${output_path} ${nside} ${templates} ${slices}
 
         python $prep -d ${dat} -r ${ran} -s ${templates} -o ${output_path} -n ${nside} -sl ${slices}        
     done
@@ -136,18 +149,11 @@ then
 
             for map in ${maps}
             do
-                if [ ${map} = "all" ]
-                then
-                    axes=${axes_all[@]}
-                elif [ ${map} = "known" ]
-                then
-                    axes=${axes_known[@]}
-                else
-                    exit 
-                fi
+                axes=$(get_axes ${map})
+
                 output_path=${input_dir}nn_pnll_${map}/hp/
-                echo ${output_path}
-                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -fl
+                echo ${output_path} ${axes}
+                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -bs ${batchsize} -fl
             done
         done
     done
@@ -169,18 +175,10 @@ then
 
             for map in "known"
             do
-                if [ ${map} = "all" ]
-                then
-                    axes=${axes_all[@]}
-                elif [ ${map} = "known" ]
-                then
-                    axes=${axes_known[@]}
-                else
-                    exit 
-                fi
+                axes=$(get_axes ${map})
                 output_path=${input_dir}nn_pnll_${map}/hp/
-                echo ${output_path}
-                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr  ${lr} -fs 
+                echo ${output_path} $axes
+                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr  ${lr} -bs $batchsize -fs 
             done
         done
     done
@@ -189,7 +187,7 @@ fi
 if [ "${find_ne}" = true ]
 then
     cap=NGC
-    slice=highz
+    slice=main
 
     input_dir=${eboss_dir}${release}/${cap}/${nside}/${slice}/      # output of 'do_prep'
     input_path=${input_dir}${table_name}_${slice}_${nside}.fits
@@ -199,18 +197,10 @@ then
 
     for map in "known"
     do
-        if [ ${map} = "all" ]
-        then
-            axes=${axes_all[@]}
-        elif [ ${map} = "known" ]
-        then
-            axes=${axes_known[@]}
-        else
-            exit 
-        fi
+        axes=$(get_axes ${map}) 
         output_path=${input_dir}nn_pnll_${map}/hp/
         echo ${output_path}
-        python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr ${lr} -ne 300
+        python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr ${lr} -bs $batchsize -ne 300
     done
 fi
 
@@ -230,19 +220,11 @@ then
 
             for map in ${maps}
             do
-                if [ ${map} = "all" ]
-                then
-                    axes=${axes_all[@]}
-                elif [ ${map} = "known" ]
-                then
-                    axes=${axes_known[@]}
-                else
-                    exit 
-                fi
+                
+                axes=$(get_axes ${map})
                 output_path=${input_dir}nn_pnll_${map}
-                echo ${output_path} ${lr}
-                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes}  \
-                       -lr ${lr} --nn_structure ${nn_structure[@]} -ne $nepoch -nc $nchains -k
+                echo ${output_path} ${lr} ${axes} ${slice}
+                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr ${lr} -bs $batchsize --nn_structure ${nn_structure[@]} -ne $nepoch -nc $nchains -k
             done
         done
     done
