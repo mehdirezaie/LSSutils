@@ -1,5 +1,6 @@
 """ Swap WEIGHT_SYSTOT with NN weights """
 import os
+import sys
 from argparse import ArgumentParser
 
 import lssutils.utils as ut
@@ -66,8 +67,9 @@ dat_dir = os.path.dirname(dat_name)
 if not os.path.exists(dat_dir):
     os.makedirs(dat_dir)
 
-
-
+if os.path.exists(dat_name):
+    print(f'file {dat_name} exists! going to exit')
+    sys.exit()
 
 # read data, randoms, and prepare mappers
 dat = ut.EbossCat(incat, **cat_kw)
