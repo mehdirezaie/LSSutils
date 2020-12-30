@@ -22,11 +22,11 @@ version="v7_2"
 release="3.0"
 caps=$2 # "NGC SGC"  # options are "NGC SGC"
 slices=$3 #"main highz" # options are "main highz low mid z1 z2 z3"
-maps="known" # options are "all known" but known is enough
+maps="all" # options are "all known" but known is enough
 samples="mainhighz" # options are lowmidhighz mainhighz
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside${nside}.h5"
-templates2="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside256.h5"
+templates2="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside512.h5"
 eboss_dir="/home/mehdi/data/eboss/data/${version}/"
 
 do_prep=false
@@ -239,8 +239,8 @@ then
     do
         for map in ${maps}
         do
-            echo ${cap} ${map} ${release} ${nside}
-            python $swap -m ${map} -n ${nside} -s main highz -c ${cap} -v ${release} --method nn_pnll # 1+1 z
+            echo ${cap} ${map} ${release} ${nside} ${slices}
+            python $swap -m ${map} -n ${nside} -s ${slices} -c ${cap} -v ${release} --method nn_pnll # 1+1 z
         done
     done
 fi
@@ -311,16 +311,16 @@ then
                 dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
                 ran=${dat/.dat./.ran.}
 
-                out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_2_${zrange}_${nside}.npy
+                out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_2_${zrange}_512.npy
                 du -h $dat $ran
                 echo ${out} ${zlim}
-                mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} --zlim ${zlim}
+                mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --zlim ${zlim}
 
 
-                out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}_${nside}.npy
+                out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}_512.npy
                 du -h $dat $ran
                 echo ${out} ${zlim}
-                mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim}
+                mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
             fi
 
             
@@ -333,10 +333,10 @@ then
                 do
                     dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
                     ran=${dat/.dat./.ran.}
-                    out=${output_dir}nnbar_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}_${nside}.npy
+                    out=${output_dir}nnbar_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}_512.npy
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim}
+                    mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
                 done
             done
         done
@@ -360,16 +360,16 @@ then
                 dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
                 ran=${dat/.dat./.ran.}
 
-                out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_2_${zrange}_${nside}.npy
+                out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_2_${zrange}_512.npy
                 du -h $dat $ran
                 echo ${out} ${zlim}
-                mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} --zlim ${zlim}
+                mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} --zlim ${zlim}
 
 
-                out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}_${nside}.npy
+                out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}_512.npy
                 du -h $dat $ran
                 echo ${out} ${zlim}
-                mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim}
+                mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
             fi
             
             for map in ${maps}
@@ -381,10 +381,10 @@ then
                 do
                     dat=${input_dir}eBOSS_QSO_full_${cap}_${map}_${sample}_${nside}_v7_2.dat.fits
                     ran=${dat/.dat./.ran.}
-                    out=${output_dir}cl_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}_${nside}.npy
+                    out=${output_dir}cl_${cap}_${map}_${sample}_${nside}_v7_2_${zrange}_512.npy
                     du -h $dat $ran
                     echo ${out}
-                    mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates} --use_systot --zlim ${zlim}
+                    mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
                 done
             done
         done
