@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=ezpk512
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:20:00
+#SBATCH --time=00:40:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=16
 #SBATCH --mail-type=FAIL
@@ -33,7 +33,7 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/scripts/analysis
 
 #mockid=0001
-iscont=0
+iscont=1
 printf -v mockid "%04d" $SLURM_ARRAY_TASK_ID
 #iscont=$2 # use -v variable=value instead, see https://www.osc.edu/supercomputing/batch-processing-at-osc/job-submission
 
@@ -86,7 +86,7 @@ do_swap=true  # 1 min
 do_pk=true    # 4 min
 do_nnbar=false  # 4 min
 do_cl=false      # 10 min
-do_default=false
+do_default=true
 do_nnbarfix=false
 
 #---- functions
@@ -289,7 +289,7 @@ then
 		    input_dir=${eboss_dir}
 		    output_dir=${eboss_dir}${release}/measurements/spectra/
 
-		    read dat ran < <(get_datran $iscont)
+		    read dat ran < <(get_datran $iscont ${cap})
 
 		    out=${output_dir}spectra_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}.json
 		    du -h $dat $ran
@@ -337,7 +337,7 @@ then
             input_dir=${eboss_dir}
             output_dir=${eboss_dir}${release}/measurements/nnbar/
 
-	    read dat ran < <(get_datran $iscont)
+	    read dat ran < <(get_datran $iscont ${cap})
 
             out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
             du -h $dat $ran
@@ -386,7 +386,7 @@ then
             input_dir=${eboss_dir}
             output_dir=${eboss_dir}${release}/measurements/cl/
 
-	    read dat ran < <(get_datran $iscont)
+	    read dat ran < <(get_datran $iscont ${cap})
 
             out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
             du -h $dat $ran
@@ -437,7 +437,7 @@ then
             input_dir1=${eboss_dir}${release}/measurements/nnbar_nov15/
             output_dir=${eboss_dir}${release}/measurements/nnbar/
 		
-	    read dat ran < <(get_datran $iscont)
+	    read dat ran < <(get_datran $iscont $cap )
 
             out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
             inpn=${input_dir1}nnbar_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
