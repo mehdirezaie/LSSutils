@@ -19,11 +19,11 @@ batchsize=4098
 nepoch=150
 nchains=20
 version="v7_2"
-release="3.0"
+release="3.0" # or 3.0 (w/ Gaia)
 caps=$2 # "NGC SGC"  # options are "NGC SGC"
 slices=$3 #"main highz" # options are "main highz low mid z1 z2 z3"
-maps="all" # options are "all known" but known is enough
-samples="mainhighz" # options are lowmidhighz mainhighz
+maps="known" # options are "all known" but known is enough
+samples="mainhighz" # options are lowmidhighz mainhighz / only 1: mainlinmse mainlinp mainmse mainhighz mainwocos mainstar mainstarg
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside${nside}.h5"
 templates2="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside512.h5"
@@ -33,7 +33,7 @@ do_prep=false
 find_lr=false
 find_st=false
 find_ne=false
-do_nnfit=true
+do_nnfit=false
 do_swap=false
 do_pk=false
 do_nnbar=false
@@ -298,7 +298,7 @@ if [ "${do_nnbar}" = true ]
 then
     for cap in ${caps}
     do
-        for zrange in main highz
+        for zrange in ${slices}
         do
             zlim=$(get_zlim ${zrange})
            
