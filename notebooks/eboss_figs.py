@@ -1,6 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+# [
+#     'star_density', 'ebv', 'loghi',
+#     'sky_g', 'sky_r', 'sky_i', 'sky_z',
+#     'depth_g_minus_ebv','depth_r_minus_ebv', 
+#     'depth_i_minus_ebv', 'depth_z_minus_ebv', 
+#     'psf_g', 'psf_r', 'psf_i', 'psf_z',
+#      'run', 'airmass'
+# ]
 
 def plot_nz(fig_path):
     '''
@@ -906,11 +914,11 @@ def pcc_wnn_nchains(fig_path, ns='512'):
     mp = 'known'
     for j, cap in enumerate(['NGC', 'SGC']):
         
-        root_path = f'/home/mehdi/data/eboss/data/v7_2/1.0/{cap}'
+        root_path = f'/home/mehdi/data/eboss/data/v7_2/3.0/{cap}'
         
         for k, s in enumerate(['main', 'highz']):
             
-            d = ft.read(f'{root_path}/{ns}/{s}/nn_pnnl_{mp}/nn-weights.fits') # (Npix, Nchains)
+            d = ft.read(f'{root_path}/{ns}/{s}/nn_pnll_{mp}/nn-weights.fits') # (Npix, Nchains)
 
             fc = 'w' #if k==0 else c[j]
             
