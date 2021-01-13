@@ -7,23 +7,27 @@ import lssutils.utils as ut
 from lssutils import setup_logging
 setup_logging('info')
 
-# /users/PHS0336/medirz90/data/v7/1.0/0001/0/512/main/nn_pnnl_known
-def nnw_path(path, idmock, iscont, nside, sample, maps):
-    return os.path.join(path, f'{idmock}/{iscont}/{nside}/{sample}/nn_pnnl_{maps}/nn-weights.fits')
+# /users/PHS0336/medirz90/data/v7/1.0/0001/NGC/0/512/main/nn_pnll_known
+def nnw_path(path, cap, idmock, iscont, nside, sample, maps):
+    return os.path.join(path, f'{idmock}/{cap}/{iscont}/{nside}/{sample}/nn_pnll_{maps}/nn-weights.fits')
 
-def prepare_mappers(path, idmock, iscont, nside, samples, maps, z_bins):
+def prepare_mappers(path, cap, idmock, iscont, nside, samples, maps, z_bins):
     """ prepare mappers for NN weights """
     mappers = {}
     
     for sample in samples:
     
         if sample not in z_bins:
-            continue
+           print(f'{sample} does not exist')
+           continue
             
-        nnw_file = nnw_path(path, idmock, iscont, nside, sample, maps)
+        nnw_file = nnw_path(path, cap, idmock, iscont, nside, sample, maps)
         if os.path.exists(nnw_file):
+            print(f'{nnw_file} does exist')
             mappers[sample] = (z_bins[sample], ut.NNWeight(nnw_file, nside))
-            
+        else:
+            print(f'{nnw_file} does not exist')
+
     return mappers
 
 
@@ -74,7 +78,7 @@ if os.path.exists(dat_name):
 # read data, randoms, and prepare mappers
 dat = ut.EbossCat(incat, **cat_kw)
 ran = ut.EbossCat(inran, kind='randoms', **cat_kw)
-mappers = prepare_mappers(path_weights, idmock, iscont, nside, samples, maps, ut.z_bins)
+mappers = prepare_mappers(path_weights, cap, idmock, iscont, nside, samples, maps, ut.z_bins)
 
 
 # swap weight_systot weights, and reassign z-attrs to randoms
