@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=ezpk512
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:40:00
+#SBATCH --time=00:20:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=16
 #SBATCH --mail-type=FAIL
@@ -33,7 +33,7 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/scripts/analysis
 
 #mockid=0001
-iscont=1
+iscont=0
 printf -v mockid "%04d" $SLURM_ARRAY_TASK_ID
 #iscont=$2 # use -v variable=value instead, see https://www.osc.edu/supercomputing/batch-processing-at-osc/job-submission
 
