@@ -10,6 +10,14 @@ import numpy as np
 #      'run', 'airmass'
 # ]
 
+def setup_color():
+    from cycler import cycler
+    colors = ['#377eb8', '#ff7f00', '#4daf4a',
+              '#f781bf', '#a65628', '#984ea3',
+              '#999999', '#e41a1c']
+    styles = 2*['-', '--', '-.', ':']
+    plt.rc('axes', prop_cycle=(cycler('color', colors)+cycler('linestyle', styles)))
+
 def plot_nz(fig_path):
     '''
     !head -n 3 /home/mehdi/data/eboss/data/v7_2/nbar_eBOSS_QSO_*GC_v7_2.dat
@@ -39,8 +47,8 @@ def plot_nz(fig_path):
     fig, ax = plt.subplots(figsize=(6, 4))
 
     kw = dict(where='mid')
-    ax.step(nbar_ngc[:,0], nbar_ngc[:, 3]/1.0e-5, label='NGC', ls='--', color='royalblue', **kw)
-    ax.step(nbar_sgc[:,0], nbar_sgc[:, 3]/1.0e-5, label='SGC', ls='-', color='darkorange', **kw)
+    ax.step(nbar_ngc[:,0], nbar_ngc[:, 3]/1.0e-5, label='NGC',  **kw) # ls='--', color='royalblue',
+    ax.step(nbar_sgc[:,0], nbar_sgc[:, 3]/1.0e-5, label='SGC',  **kw) # ls='-', color='darkorange',
 
     samples = ['Main', 'High-z']
     lines  = [0.8, 2.2, 3.5]
@@ -68,8 +76,8 @@ def plot_nz(fig_path):
             ax.arrow(lines[i+1], ypos-0.1, -lines[i+1]+lines[i]+1.5*hwidth, 0.0, **kw) 
 
     ax.tick_params(direction='in', which='both', axis='both', pad=6, right=True, top=True)
-    ax.set(xlabel='z', ylabel=r'10$^{5} \times$ n(z) [h/Mpc]$^{3}$', 
-           ylim=(0, 2.5), xlim=(-0.2, 4))
+    ax.set(xlabel='z', ylabel=r'$10^{5}n(z)~[h/{\rm Mpc}]^{3}$', 
+           ylim=(0.0, 2.5), xlim=(0.5, 3.8))
     ax.legend(loc='center right')
     fig.savefig(fig_path, bbox_inches='tight')
     return fig, ax
@@ -119,6 +127,68 @@ def mollweide(fig_path):
                 r'$n_{{\rm QSO}}~[{\rm deg}^{-2}]$', cmap=plt.cm.YlOrRd_r, galaxy=True, colorbar=True)
     plt.savefig(fig_path, bbox_inches='tight', dpi=300, rasterized=True)
 
+    
+def plot_deltaNqso(fig_path):
+    import sys
+    sys.path.insert(0, '/home/mehdi/github/LSSutils')
+    from lssutils.utils import nside2pixarea, EbossCat
+    from lssutils.dataviz import mollview, mycolor, shiftedColorMap
+
+    ''' READ THE FULL CATALOGS
+    '''
+    nside = 128
+    pix_area = nside2pixarea(nside, degrees=True)
+    nran_bar = pix_area*5000. # 5000 per sq deg
+    
+    cmap = shiftedColorMap(plt.cm.jet, midpoint=0.5)
+
+
+    path_cats = '/home/mehdi/data/eboss/data/v7_2/3.0/catalogs/'
+    print(path_cats)
+
+    # nn
+    dNGC = EbossCat(f'{path_cats}eBOSS_QSO_full_NGC_known_mainhighz_512_v7_2.dat.fits', zmin=0.8, zmax=3.5)
+    rNGC = EbossCat(f'{path_cats}eBOSS_QSO_full_NGC_known_mainhighz_512_v7_2.ran.fits', kind='randoms', zmin=0.8, zmax=3.5)
+    dSGC = EbossCat(f'{path_cats}eBOSS_QSO_full_SGC_known_mainhighz_512_v7_2.dat.fits', zmin=0.8, zmax=3.5)
+    rSGC = EbossCat(f'{path_cats}eBOSS_QSO_full_SGC_known_mainhighz_512_v7_2.ran.fits', kind='randoms', zmin=0.8, zmax=3.5)
+
+    ngal_ngc = dNGC.to_hp(nside, 0.8, 3.5, raw=2)
+    nran_ngc = rNGC.to_hp(nside, 0.8, 3.5, raw=2)
+    ngal_sgc = dSGC.to_hp(nside, 0.8, 3.5, raw=2)
+    nran_sgc = rSGC.to_hp(nside, 0.8, 3.5, raw=2)
+    frac_ngc = nran_ngc / nran_bar
+    frac_sgc = nran_sgc / nran_bar
+    ngal_tot = ngal_ngc + ngal_sgc
+    frac_tot = frac_ngc + frac_sgc
+
+    # standard
+    path_cats = '/home/mehdi/data/eboss/data/v7_2/'
+    dNGC = EbossCat(f'{path_cats}eBOSS_QSO_full_NGC_v7_2.dat.fits', zmin=0.8, zmax=3.5)
+    rNGC = EbossCat(f'{path_cats}eBOSS_QSO_full_NGC_v7_2.ran.fits', kind='randoms', zmin=0.8, zmax=3.5)
+    dSGC = EbossCat(f'{path_cats}eBOSS_QSO_full_SGC_v7_2.dat.fits', zmin=0.8, zmax=3.5)
+    rSGC = EbossCat(f'{path_cats}eBOSS_QSO_full_SGC_v7_2.ran.fits', kind='randoms', zmin=0.8, zmax=3.5)
+
+    ngal_ngc = dNGC.to_hp(nside, 0.8, 3.5, raw=2)
+    nran_ngc = rNGC.to_hp(nside, 0.8, 3.5, raw=2)
+    ngal_sgc = dSGC.to_hp(nside, 0.8, 3.5, raw=2)
+    nran_sgc = rSGC.to_hp(nside, 0.8, 3.5, raw=2)
+    frac_ngc = nran_ngc / nran_bar
+    frac_sgc = nran_sgc / nran_bar
+    ngal_tot_ = ngal_ngc + ngal_sgc
+    frac_tot_ = frac_ngc + frac_sgc
+
+    ngal_dens = ngal_tot / (frac_tot * pix_area)
+    ngal_dens_ = ngal_tot_ / (frac_tot_ * pix_area)
+    
+    delta_ngal = (ngal_dens_ - ngal_dens)
+    
+    vmin, vmax = np.percentile(delta_ngal[np.isfinite(delta_ngal)], [1, 99])
+    print(vmin, vmax)
+    
+    mollview(delta_ngal, vmin, vmax,
+             r'$\Delta$n$_{{\rmQSO}}$ [deg$^{-2}$] (Standard - NN)', 
+             cmap=cmap, colorbar=True)
+    plt.savefig(fig_path, bbox_inches='tight', dpi=300)    
 
     
 def p0_demo(fig_path, cap='NGC', sample='main', method='known', show_nn=False):
@@ -142,10 +212,10 @@ def p0_demo(fig_path, cap='NGC', sample='main', method='known', show_nn=False):
             'highz':'$2.2<z<3.5$'}
     
     path = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/spectra'
-    pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
 
-    pkcov = np.loadtxt(f'{pathm}/spectra_{cap}_knownsystot_mainhighz_512_v7_0_1to1000_6600_512_main.dat')
-    pk_err = np.sqrt(np.diagonal(pkcov))
+    covpks_all = np.load('./covpk_ezmocks_ngcsgc_v1.0.npz', allow_pickle=True)
+    covpks = covpks_all[f'{cap}_null_standard_512'].item()    
+    pk_err = np.sqrt(np.diagonal(covpks['covp0']))
 
     pks = {}
     pks['systot'] = read_pk(f'{path}/spectra_{cap}_knownsystot_mainhighz_512_v7_2_{sample}.json')
@@ -181,10 +251,10 @@ def p0_demo(fig_path, cap='NGC', sample='main', method='known', show_nn=False):
     ax2.xaxis.set_label_coords(0., -0.1) # https://stackoverflow.com/a/25018490/9746916
 
     #--- plots
-    add_pk(*pks['noweight'], pk_err, ax1, ax2, marker='.', color='#000000', label='Before treatment')
-    add_pk(*pks['systot'], pk_err, ax1, ax2, marker='o', mfc='w', ls='--', color='#4b88e3', label='Standard treatment')
+    add_pk(*pks['noweight'], pk_err, ax1, ax2, marker='.',  label='Before treatment') # color='#000000',
+    add_pk(*pks['systot'], pk_err, ax1, ax2, marker='o', mfc='w',  label='Standard treatment') # ls='--', color='#4b88e3',
     if show_nn:
-        add_pk(*pks['nn'], pk_err, ax1, ax2, marker='s', mfc='w', color='#d98404', label='Neural Network treatment')
+        add_pk(*pks['nn'], pk_err, ax1, ax2, marker='s', mfc='w', label='Neural Network treatment') # color='#d98404',
 
     ax2.legend(loc='upper left', frameon=False, 
                bbox_to_anchor=(-0.3, 0.95), 
@@ -308,15 +378,15 @@ def plot_overdensity(fig_path, sample='main'):
                 invcov = inv_cov[cap][j][0]
                 covmax = np.sqrt(np.diag(inv_cov[cap][j][1]))
                 
-                ax[jk].errorbar(*nbar_j, yerr=covmax, label=labels[name], 
-                        marker=markers[name], color=colors[name],
+                ebar = ax[jk].errorbar(*nbar_j, yerr=covmax, label=labels[name], 
+                        marker=markers[name], #color=colors[name],
                         mfc='w', capsize=2, alpha=0.8, ls=ls
                        )
 
                 chi2v = chi2(nbar_j[1], invcov)
                 
                 ax[jk].text(0.4, 0.92-i*0.06, r'$\chi^{2}/dof$ = %.2f/%d'%(chi2v,len(nbar_j[1])),
-                        color=colors[name], transform=ax[jk].transAxes)
+                        color=ebar[0].get_color(), transform=ax[jk].transAxes)
 
 
         ax[5*k].set_ylabel(r'$\delta$')
@@ -367,7 +437,7 @@ def nbar_covmax(fig_path, cap='NGC', nside=512):
     maps += ['-'.join([s, b]) for s in ['sky', 'depth', 'psf'] for b in 'griz']
     maps += ['run', 'airmass']
 
-    fig, ax = plt.subplots(figsize=(8, 8))
+    fig, ax = plt.subplots(figsize=(8, 7))
 
     fig.subplots_adjust(wspace=0.0, hspace=0.0)
 
@@ -383,8 +453,8 @@ def nbar_covmax(fig_path, cap='NGC', nside=512):
     ax.set_xticklabels(maps, rotation=90, fontsize=14)
     ax.set_yticklabels(maps, fontsize=14)
     ax.grid(which='minor', color='grey', linestyle=':')
-    cbar = fig.colorbar(covmap, ax=ax, extend='both', shrink=0.8, pad=0.02)
-    cbar.set_label(r'Covariance Matrix [x 10$^{-5}$]', fontsize=15)
+    cbar = fig.colorbar(covmap, ax=ax, extend='both', shrink=0.8, pad=0.02, ticks=[-1.0, -0.5, 0.0, 0.5, 1.0])
+    cbar.set_label(r'10$^{5}$ Covariance Matrix', fontsize=15)
     
     fig.savefig(fig_path, dpi=300, bbox_inches='tight')
     
@@ -500,7 +570,7 @@ def nnbarchi2pdf_mocks_data(fig_path, cap='NGC',
              alpha=0.3, color='b', label=f'{len(chi2mocks)} Null EZMocks', 
              zorder=-10)
 
-    kw2 = dict(rotation=90)# fontsize, fontweight='bold'
+    kw2 = dict(rotation=90, fontsize=12)# fontsize, fontweight='bold'
     ls = ['--', '-.', ':']
     for i, (n,v) in enumerate(chi2d.items()):    
         ax_ = ax2 if n=='noweight' else ax1
@@ -508,7 +578,7 @@ def nnbarchi2pdf_mocks_data(fig_path, cap='NGC',
                    ls=ls[i], alpha=0.5, lw=1) # label='Data %s'%n,
 
         pval = 100*(chi2mocks > v).mean()
-        ax_.text(1.0*v, 10, fr'Data ({n.upper()}) = {v:.1f} ({pval:.1f}%)', **kw2)
+        ax_.text(1.001*v, 10, fr'Data ({n.upper()}) = {v:.1f} ({pval:.1f}%)', **kw2)
 
     ax1.legend(loc='upper left', frameon=False)
 
@@ -646,7 +716,7 @@ def cellchi2pdf_mocks_data(fig_path, cap='NGC',
              alpha=0.3, color='orange', label=f'{nmocks} Null EZMocks', 
              zorder=-10)
 
-    kw2 = dict(rotation=90, fontsize=13)# fontsize, fontweight='bold'
+    kw2 = dict(rotation=90, fontsize=12)# fontsize, fontweight='bold'
     ls = ['--', '-.', ':']
     for i, (n,v) in enumerate(chi2d.items()):    
         ax_ = ax2 if n=='noweight' else ax1
@@ -664,237 +734,6 @@ def cellchi2pdf_mocks_data(fig_path, cap='NGC',
     ax2.plot((-d/2, +d/2), (-d, +d), **kwargs)        # top-left diagonal
     fig.savefig(fig_path, bbox_inches='tight')
 
-    
-    
-def table_chi2():
-    """ chi2 table for main/highz before and after mitigation and 95th mocks 
-    """
-    from glob import glob
-
-    def get_chi2t(nbar_fn):
-        d = np.load(nbar_fn, allow_pickle=True)
-        chi2_t = 0.0
-        for di in d:
-            res = (di['nnbar'] - 1)/di['nnbar_err']
-            res_sq = res*res
-            chi2_t += res_sq.sum()
-        return chi2_t
-
-    def get_chi2t_mocks(nside, cap):
-        path = '/home/mehdi/data/eboss/mocks/1.0/measurements/nnbar/'
-        nbars = glob(f'{path}nnbar_{cap}_knownsystot_mainhighz_512_v7_0_*_main_{nside}.npy')
-        print('len(nbars):', len(nbars), cap)
-
-        chi2_mocks = []
-        for nbar_i in nbars:        
-            chi2_t = get_chi2t(nbar_i)        
-            chi2_mocks.append(chi2_t)
-            #print('.', end='')
-
-        return np.array(chi2_mocks)
-    print()
-    
-    path = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/nnbar/'
-
-    chi2_mocks = {}
-    chi2d = {}
-
-    for cap in ['NGC', 'SGC']:
-
-        chi2_mocks[cap] = get_chi2t_mocks('512', cap)
-
-        for sample in ['main', 'highz']:
-
-            chi2d[f'{cap}_noweight_{sample}'] = get_chi2t(f'{path}nnbar_{cap}_noweight_mainhighz_512_v7_2_{sample}_512.npy')
-            chi2d[f'{cap}_systot_{sample}'] = get_chi2t(f'{path}nnbar_{cap}_knownsystot_mainhighz_512_v7_2_{sample}_512.npy')
-            chi2d[f'{cap}_nn_{sample}'] = get_chi2t(f'{path}nnbar_{cap}_known_mainhighz_512_v7_2_{sample}_512.npy')
-
-    for cap in ['NGC', 'SGC']:
-
-        for sample in ['main', 'highz']:
-
-            msg = f'{cap}, {sample}, '
-
-            for method in ['noweight', 'systot', 'nn']:
-                s_ = f'{cap}_{method}_{sample}'
-                msg += f'& {chi2d[s_]:.1f} '
-
-            if sample == 'main':
-                msg += f'& {np.percentile(chi2_mocks[cap], 95):.1f}\\\ \n'
-            else:
-                msg += '& -- \\\ \n'
-
-            print(msg, end='')   
-            
-            
-
-def p0mocks(fig_path):
-
-    from glob import glob
-    import nbodykit.lab as nb
-
-    def p0mocks(maps, nside, ax=None):
-        path = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
-        pkc = glob(f'{path}spectra_NGC_noweight_mainhighz_512_v7_1_*_main.json')
-        pk0 = glob(f'{path}spectra_NGC_knownsystot_mainhighz_512_v7_0_*_main.json')
-        pk1 = glob(f'{path}spectra_NGC_knownsystot_mainhighz_512_v7_1_*_main.json')
-        pk0n = glob(f'{path}spectra_NGC_{maps}_mainhighz_{nside}_v7_0_*_main.json')
-        pk1n = glob(f'{path}spectra_NGC_{maps}_mainhighz_{nside}_v7_1_*_main.json')
-
-
-        if ax is None:
-            fig, ax = plt.subplots()
-
-        c = ['green', 'grey', 'blue', 'orange', 'red']
-        
-        ls = 2*[':', '-', '--', '-.', '-']
-        i = 0
-        for ni, pk_list in zip(['Cont', 'Null', 'Cont+Standard', f'Null+NN', f'Cont+NN'],
-                           [pkc, pk0, pk1, pk0n, pk1n]):
-            pk_k = []
-            print(ni, len(pk_list))
-            for pk_fn in pk_list:
-                pk_ = nb.ConvolvedFFTPower.load(pk_fn)
-
-                ki = pk_.poles['k']
-                pk_i= pk_.poles['power_0'].real-pk_.attrs['shotnoise']+1.0e5
-                pk_k.append(pk_i)
- 
-            ax.plot(ki, np.mean(pk_k, axis=0), color=c[i], alpha=1, label=ni, ls=ls[i])
-            ax.fill_between(ki, *np.percentile(pk_k, [0, 100], axis=0), color=c[i], alpha=0.1)
-            i += 1
-
-        #ax.grid(ls=':', color='grey', alpha=0.4)
-        #ax.set(xscale='log', yscale='log', xlabel='k', ylabel='P0')
-        #ax.set_ylim(1.0e2, 2.0e6)
-        #ax.legend()
-        return ax
-
-    fig, ax = plt.subplots(figsize=(6, 4))
-
-    p0mocks('known', '512', ax=ax)
-    ax.set(xscale='log', yscale='log')
-    ax.grid(True, ls=':', alpha=0.5)
-    ax.legend()
-    ax.tick_params(direction='in', which='both', axis='both', right=True, top=True)
-    ax.set_ylabel(r'P$_{0}~[Mpc/h]^{3}$ + Const.')
-    ax.set_xlabel(r'k [h/Mpc]')
-    fig.savefig(fig_path, bbox_inches='tight')    
-    
-    
-def sigP0mocks(fig_path):
-    
-    import nbodykit.lab as nb
-    from glob import glob
-
-    def read_pk(addrs):
-        files = glob(addrs)
-        print(len(files))
-        pk_ = []
-        for file_ in files:
-            d = nb.ConvolvedFFTPower.load(file_)
-
-            k = d.poles['k']
-            pk_.append(d.poles['power_0'].real)#-d.attrs['shotnoise'])
-
-        return (k, np.array(pk_))
-
-    maps = 'known'
-    nside = 512
-    path = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
-    pks = {}
-    pks['Cont'] = read_pk(f'{path}spectra_NGC_noweight_mainhighz_512_v7_1_*_main.json')
-    pks['Null'] = read_pk(f'{path}spectra_NGC_knownsystot_mainhighz_512_v7_0_*_main.json')
-    pks['Cont+Standard'] = read_pk(f'{path}spectra_NGC_knownsystot_mainhighz_512_v7_1_*_main.json')
-    pks['Null+NN'] = read_pk(f'{path}spectra_NGC_{maps}_mainhighz_{nside}_v7_0_*_main.json')
-    pks['Cont+NN'] = read_pk(f'{path}spectra_NGC_{maps}_mainhighz_{nside}_v7_1_*_main.json')    
-
-    print(pks.keys())
-
-
-    fig, ax = plt.subplots(figsize=(6, 4))
-
-    c = ['green', 'grey', 'blue', 'orange', 'red']
-
-    ls = 2*[':', '-', '--', '-.', '-']
-
-
-    for i, (ni, pki) in enumerate(pks.items()):
-
-        ax.plot(pki[0], np.std(pki[1], axis=0, ddof=1), label=ni, ls=ls[i], color=c[i])
-
-
-    ax.grid(which='both', ls=':', alpha=0.5)    
-    ax.legend(fontsize=10)    
-    ax.set_xscale('log')
-
-    ax.set_ylabel(r'$\sigma~P_{0}$')
-    ax.set_xlabel(r'k [h/Mpc]')
-    ax.set_yscale('log')
-    ax.tick_params(direction='in', which='both', axis='both', right=True, top=True)
-    fig.savefig(fig_path, bbox_inches='tight')
-        
-def plot_deltaNqso(fig_path):
-    import sys
-    sys.path.insert(0, '/home/mehdi/github/LSSutils')
-    from lssutils.utils import nside2pixarea, EbossCat
-    from lssutils.dataviz import mollview, mycolor, shiftedColorMap
-
-    ''' READ THE FULL CATALOGS
-    '''
-    nside = 128
-    pix_area = nside2pixarea(nside, degrees=True)
-    nran_bar = pix_area*5000. # 5000 per sq deg
-    
-    cmap = shiftedColorMap(plt.cm.jet, midpoint=0.5)
-
-
-    path_cats = '/home/mehdi/data/eboss/data/v7_2/3.0/catalogs/'
-    print(path_cats)
-
-    # nn
-    dNGC = EbossCat(f'{path_cats}eBOSS_QSO_full_NGC_known_mainhighz_512_v7_2.dat.fits', zmin=0.8, zmax=3.5)
-    rNGC = EbossCat(f'{path_cats}eBOSS_QSO_full_NGC_known_mainhighz_512_v7_2.ran.fits', kind='randoms', zmin=0.8, zmax=3.5)
-    dSGC = EbossCat(f'{path_cats}eBOSS_QSO_full_SGC_known_mainhighz_512_v7_2.dat.fits', zmin=0.8, zmax=3.5)
-    rSGC = EbossCat(f'{path_cats}eBOSS_QSO_full_SGC_known_mainhighz_512_v7_2.ran.fits', kind='randoms', zmin=0.8, zmax=3.5)
-
-    ngal_ngc = dNGC.to_hp(nside, 0.8, 3.5, raw=2)
-    nran_ngc = rNGC.to_hp(nside, 0.8, 3.5, raw=2)
-    ngal_sgc = dSGC.to_hp(nside, 0.8, 3.5, raw=2)
-    nran_sgc = rSGC.to_hp(nside, 0.8, 3.5, raw=2)
-    frac_ngc = nran_ngc / nran_bar
-    frac_sgc = nran_sgc / nran_bar
-    ngal_tot = ngal_ngc + ngal_sgc
-    frac_tot = frac_ngc + frac_sgc
-
-    # standard
-    path_cats = '/home/mehdi/data/eboss/data/v7_2/'
-    dNGC = EbossCat(f'{path_cats}eBOSS_QSO_full_NGC_v7_2.dat.fits', zmin=0.8, zmax=3.5)
-    rNGC = EbossCat(f'{path_cats}eBOSS_QSO_full_NGC_v7_2.ran.fits', kind='randoms', zmin=0.8, zmax=3.5)
-    dSGC = EbossCat(f'{path_cats}eBOSS_QSO_full_SGC_v7_2.dat.fits', zmin=0.8, zmax=3.5)
-    rSGC = EbossCat(f'{path_cats}eBOSS_QSO_full_SGC_v7_2.ran.fits', kind='randoms', zmin=0.8, zmax=3.5)
-
-    ngal_ngc = dNGC.to_hp(nside, 0.8, 3.5, raw=2)
-    nran_ngc = rNGC.to_hp(nside, 0.8, 3.5, raw=2)
-    ngal_sgc = dSGC.to_hp(nside, 0.8, 3.5, raw=2)
-    nran_sgc = rSGC.to_hp(nside, 0.8, 3.5, raw=2)
-    frac_ngc = nran_ngc / nran_bar
-    frac_sgc = nran_sgc / nran_bar
-    ngal_tot_ = ngal_ngc + ngal_sgc
-    frac_tot_ = frac_ngc + frac_sgc
-
-    ngal_dens = ngal_tot / (frac_tot * pix_area)
-    ngal_dens_ = ngal_tot_ / (frac_tot_ * pix_area)
-    
-    delta_ngal = (ngal_dens_ - ngal_dens)
-    
-    vmin, vmax = np.percentile(delta_ngal[np.isfinite(delta_ngal)], [1, 99])
-    print(vmin, vmax)
-    
-    mollview(delta_ngal, vmin, vmax,
-             r'$\Delta$n$_{{\rmQSO}}$ [deg$^{-2}$] (Standard - NN)', 
-             cmap=cmap, colorbar=True)
-    plt.savefig(fig_path, bbox_inches='tight', dpi=300)
     
 
 def pcc_wnn_nchains(fig_path, ns='512'):
@@ -957,8 +796,17 @@ def nbarnstar(fig_path):
     _, covmax = incov_ngc.get_invcov(ix*8, (ix+1)*8, return_covmax=True)
     y_err = np.sqrt(np.diag(covmax))
         
+    #p = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/nnbar/'
+    #d = np.load(f'{p}nnbar_NGC_main_512_nstar.npy', allow_pickle=True).item()
+
+    d = {}
     p = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/nnbar/'
-    d = np.load(f'{p}nnbar_NGC_main_512_nstar.npy', allow_pickle=True).item()
+    d['standard'] = np.load(f'{p}nnbar_NGC_knownsystot_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    p = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/nnbar/'
+    d['nn-known'] = np.load(f'{p}nnbar_NGC_known_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    d['nn-all'] = np.load(f'{p}nnbar_NGC_all_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    d['nn-known+sdss'] = np.load(f'{p}nnbar_NGC_known_mainstar_512_v7_2_main_512.npy', allow_pickle=True)
+    d['nn-known+gaia'] = np.load(f'{p}nnbar_NGC_known_mainstarg_512_v7_2_main_512.npy', allow_pickle=True)
     
     fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
     fig.subplots_adjust(wspace=0.0)
@@ -966,17 +814,26 @@ def nbarnstar(fig_path):
     ls = 4*['-', '--', '-.']
     mk = 4*['o', 's', '^', '.', 'x', '*']
     si = r'Nstar [Gaia DR2]'
-    for j, ni in enumerate(['standard', 'NN-known', 'NN-all', 'NN-known+sdss', 'NN-known+gaia']):  
-        di = d[ni]
-            
-        #if ni == 'NN-known+gaia':        
-        #    ax.errorbar(di['bin_avg'], di['nnbar']-1, y_err, 
+    for j, (ni,di) in enumerate(d.items()):        
+        #if ni == 'nn-pnll':        
+        #    ax.errorbar(di[ix]['bin_avg'], di[ix]['nnbar']-1, y_err, 
         #                  capsize=3, marker=mk[j], mfc='w', ls=ls[j], label=ni, alpha=0.8)        
         #else:
-        ax.plot(di['bin_avg'], di['nnbar']-1,
-                    marker=mk[j], mfc='w', ls=ls[j], label=ni, alpha=0.8)
-    
-    ax.fill_between(di['bin_avg'], -y_err, y_err, color='grey', alpha=0.1)
+        ax.plot(di[ix]['bin_avg'], di[ix]['nnbar']-1,
+                marker=mk[j], mfc='w', ls=ls[j], label=ni) #
+
+    ax.fill_between(di[ix]['bin_avg'], -y_err, y_err, color='grey', alpha=0.1)        
+
+#     for j, ni in enumerate(['standard', 'NN-known', 'NN-all', 'NN-known+sdss', 'NN-known+gaia']):  
+#         di = d[ni]
+            
+#         #if ni == 'NN-known+gaia':        
+#         #    ax.errorbar(di['bin_avg'], di['nnbar']-1, y_err, 
+#         #                  capsize=3, marker=mk[j], mfc='w', ls=ls[j], label=ni, alpha=0.8)        
+#         #else:
+#         ax.plot(di['bin_avg'], di['nnbar']-1,
+#                     marker=mk[j], mfc='w', ls=ls[j], label=ni, alpha=0.8)
+#     ax.fill_between(di['bin_avg'], -y_err, y_err, color='grey', alpha=0.1)
     
     ax.axhline(0.0, ls=':', lw=1, color='k')
     ax.set_xlabel(f'{si}')
@@ -992,9 +849,12 @@ def p0nstar(fig_path):
         return (dt.poles['k'], dt.poles['power_0'].real-0.0*dt.attrs['shotnoise']) 
     
     cap = 'NGC'
-    pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
-    pkcov = np.loadtxt(f'{pathm}/spectra_{cap}_knownsystot_mainhighz_512_v7_0_1to1000_6600_512_main.dat')
-    pk_err = np.sqrt(np.diagonal(pkcov))
+    #pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
+    #pkcov = np.loadtxt(f'{pathm}/spectra_{cap}_knownsystot_mainhighz_512_v7_0_1to1000_6600_512_main.dat')
+    #pk_err = np.sqrt(np.diagonal(pkcov))
+    covpks_all = np.load('./covpk_ezmocks_ngcsgc_v1.0.npz', allow_pickle=True)
+    covpks = covpks_all[f'{cap}_null_standard_512'].item()    
+    pk_err = np.sqrt(np.diagonal(covpks['covp0']))  
 
     
     
@@ -1022,9 +882,9 @@ def p0nstar(fig_path):
         
         if ni == 'NN-known+gaia':        
             ax.errorbar(di[0], di[1], yerr=pk_err, marker=mk[j], mfc='w', ls=ls[j], 
-                    label=ni, alpha=0.8, capsize=3)
+                    label=ni, capsize=3) # alpha=0.8, 
         else:
-            ax.plot(di[0], di[1], marker=mk[j], mfc='w', ls=ls[j], label=ni, alpha=0.8)
+            ax.plot(di[0], di[1], marker=mk[j], mfc='w', ls=ls[j], label=ni) #alpha=0.8)
 
 
     ax.set(xlabel='k [h/Mpc]', xscale='log') #yscale='log', 
@@ -1062,7 +922,7 @@ def nbarlinnn(fig_path):
         #                  capsize=3, marker=mk[j], mfc='w', ls=ls[j], label=ni, alpha=0.8)        
         #else:
         ax.plot(di[ix]['bin_avg'], di[ix]['nnbar']-1,
-                marker=mk[j], mfc='w', ls=ls[j], label=ni, alpha=0.8)
+                marker=mk[j], mfc='w', ls=ls[j], label=ni) #, alpha=0.8)
 
     ax.fill_between(di[ix]['bin_avg'], -y_err, y_err, color='grey', alpha=0.1)        
     ax.axhline(0.0, ls=':', lw=1, color='k')
@@ -1080,10 +940,12 @@ def p0linnn(fig_path):
         return (dt.poles['k'], dt.poles['power_0'].real-0.0*dt.attrs['shotnoise']) 
     
     cap = 'NGC'
-    pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
-    pkcov = np.loadtxt(f'{pathm}/spectra_{cap}_knownsystot_mainhighz_512_v7_0_1to1000_6600_512_main.dat')
-    pk_err = np.sqrt(np.diagonal(pkcov))    
-    
+    #pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
+    #pkcov = np.loadtxt(f'{pathm}/spectra_{cap}_knownsystot_mainhighz_512_v7_0_1to1000_6600_512_main.dat')
+    #pk_err = np.sqrt(np.diagonal(pkcov))    
+    covpks_all = np.load('./covpk_ezmocks_ngcsgc_v1.0.npz', allow_pickle=True)
+    covpks = covpks_all[f'{cap}_null_standard_512'].item()    
+    pk_err = np.sqrt(np.diagonal(covpks['covp0']))      
     
     p = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/spectra/'
 
@@ -1107,11 +969,11 @@ def p0linnn(fig_path):
     mk = 4*['o', 's', '^', '.', 'x', '*']
 
     for j, (ni,di) in enumerate(d.items()):        
-        if ni == 'nn-pnll':
+        if ni == 'nn-pnllwocos':
             ax.errorbar(di[0], di[1], pk_err, marker=mk[j], capsize=3,
-                        mfc='w', ls=ls[j], label=ni, alpha=0.8)
+                        mfc='w', ls=ls[j], label=ni) #alpha=0.8)
         else:
-            ax.plot(di[0], di[1], marker=mk[j], mfc='w', ls=ls[j], label=ni, alpha=0.8)
+            ax.plot(di[0], di[1], marker=mk[j], mfc='w', ls=ls[j], label=ni)#, alpha=0.8)
 
 
     ax.set(xlabel='k [h/Mpc]', xscale='log')
@@ -1146,7 +1008,7 @@ def nbarnside(fig_path):
         #                  capsize=3, marker=mk[j], mfc='w', ls=ls[j], label=ni, alpha=0.8)        
         #else:
         ax.plot(di[ix]['bin_avg'], di[ix]['nnbar']-1,
-                marker=mk[j], mfc='w', ls=ls[j], label=ni, alpha=0.8)
+                marker=mk[j], mfc='w', ls=ls[j], label=ni)#, alpha=0.8)
         
     ax.fill_between(di[ix]['bin_avg'], -y_err, y_err, color='grey', alpha=0.1)
     ax.axhline(0.0, ls=':', lw=1, color='k')
@@ -1162,9 +1024,11 @@ def p0nside(fig_path):
         return (dt.poles['k'], dt.poles['power_0'].real-0.0*dt.attrs['shotnoise']) 
     
     cap = 'NGC'
-    pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
-    pkcov = np.loadtxt(f'{pathm}/spectra_{cap}_knownsystot_mainhighz_512_v7_0_1to1000_6600_512_main.dat')
-    pk_err = np.sqrt(np.diagonal(pkcov))    
+    #pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'    
+    #pkcov = np.loadtxt(f'{pathm}/spectra_{cap}_knownsystot_mainhighz_512_v7_0_1to1000_6600_512_main.dat')
+    covpks_all = np.load('./covpk_ezmocks_ngcsgc_v1.0.npz', allow_pickle=True)
+    covpks = covpks_all[f'{cap}_null_standard_512'].item()    
+    pk_err = np.sqrt(np.diagonal(covpks['covp0']))    
     
     
     p = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/spectra/'
@@ -1184,17 +1048,390 @@ def p0nside(fig_path):
     mk = 4*['o', 's', '^', '.', 'x', '*']
 
     for j, (ni,di) in enumerate(d.items()):        
-        if ni == 'NN 512-1z':
+        if ni == 'NN 256-1z':
             ax.errorbar(di[0], di[1], pk_err, marker=mk[j], capsize=3,
-                        mfc='w', ls=ls[j], label=ni, alpha=0.8)
+                        mfc='w', ls=ls[j], label=ni) #alpha=0.8)
         else:
-            ax.plot(di[0], di[1], marker=mk[j], mfc='w', ls=ls[j], label=ni, alpha=0.8)
+            ax.plot(di[0], di[1], marker=mk[j], mfc='w', ls=ls[j], label=ni) #, alpha=0.8)
 
 
     ax.set(xlabel='k [h/Mpc]', xscale='log')
     ax.legend(fontsize=11)    
     ax.set_ylabel(r'P$_{0}$ [Mpc/h]$^{3}$')
-    fig.savefig(fig_path, dpi=300, bbox_inches='tight')          
+    fig.savefig(fig_path, dpi=300, bbox_inches='tight')      
+    
+
+def table_chi2methods():
+    from glob import glob
+    def chi2_fn(y, invcov):
+        return np.dot(y, np.dot(invcov, y))    
+
+    def read_nnbar(path, ix=None):
+        d = np.load(path, allow_pickle=True)
+        nnbar = []
+        if ix is None:        
+            for di in d:
+                nnbar.append(di['nnbar']-1)
+        else:
+            for i in ix:
+                di = d[i]
+                nnbar.append(di['nnbar']-1)
+        return np.array(nnbar).flatten()
+
+    def get_chi2t(path, ix, incov):
+        nnbar_ = read_nnbar(path, ix)
+        return chi2_fn(nnbar_, invcov)
+
+    def get_chi2t_mocks(nside, cap, ix):
+        path_ = '/home/mehdi/data/eboss/mocks/1.0/measurements/nnbar/'
+        mocks = glob(f'{path_}nnbar_{cap}_knownsystot_mainhighz_512_v7_0_*_main_{nside}.npy')
+        print('len(nbars):', len(mocks), cap)
+        nmocks = len(mocks)
+        err_tot = []
+        for j, fn in enumerate(mocks):
+            err_j = read_nnbar(fn, ix=ix)
+            err_tot.append(err_j)            
+        err_tot = np.array(err_tot)
+        print(err_tot.shape)
+
+        nbins = err_tot.shape[1]
+        hartlapf = (nmocks-1. - 1.) / (nmocks-1. - nbins - 2.)
+        indices = [i for i in range(nmocks)]
+        chi2s = []
+        for i in range(nmocks):
+            indices_ = indices.copy()    
+            indices_.pop(i)
+            nbar_ = err_tot[i, :]
+            err_ = err_tot[indices_, :]    
+            covmax_ = np.cov(err_, rowvar=False)
+            invcov_ = np.linalg.inv(covmax_*hartlapf)
+            chi2_ = chi2_fn(nbar_, invcov_)
+            chi2s.append(chi2_)       
+
+        print(nmocks)
+        covmax_ = np.cov(err_tot, rowvar=False)
+        hartlapf = (nmocks - 1.) / (nmocks - nbins - 2.)
+        invcov_ = np.linalg.inv(covmax_*hartlapf)
+
+        return np.array(chi2s), invcov_
+
+    # read covariance matrix
+    cap = 'NGC'
+    ix = None # [i for i in range(1, 17)]
+    chi2mocks, invcov = get_chi2t_mocks('512', cap, ix)
+    print(np.percentile(chi2mocks, [0, 1, 5, 95, 99, 100]))
+    
+    
+    path = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/nnbar/'
+
+    chi2d = {}
+    chi2d['noweight'] = get_chi2t(f'{path}nnbar_{cap}_noweight_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['standard'] = get_chi2t(f'{path}nnbar_{cap}_knownsystot_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    # chi2d['nn'] = get_chi2t(f'{path}nnbar_{cap}_known_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    # chi2d['standard2'] = get_chi2t(f'{path}nnbar_NGC_knownsystot_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['NN 512-1z'] = get_chi2t(f'{path}nnbar_NGC_known_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['NN 512-2z'] = get_chi2t(f'{path}nnbar_NGC_known_lowmidhighz_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['NN 256-1z'] = get_chi2t(f'{path}nnbar_NGC_known_mainhighz_256_v7_2_main_512.npy', ix, invcov)
+
+    p = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/nnbar/'
+    # chi2d['standard1'] = get_chi2t(f'{p}nnbar_NGC_knownsystot_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['lin-mse'] = get_chi2t(f'{p}nnbar_NGC_known_mainlinmse_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['lin-pnll'] = get_chi2t(f'{p}nnbar_NGC_known_mainlinp_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['nn-mse'] = get_chi2t(f'{p}nnbar_NGC_known_mainmse_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['nn-pnll'] = get_chi2t(f'{p}nnbar_NGC_known_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['nn-pnll-wocos'] = get_chi2t(f'{p}nnbar_NGC_known_mainwocos_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['nn-pnll-all'] = get_chi2t(f'{p}nnbar_NGC_all_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['nn-known+gaia'] = get_chi2t(f'{p}nnbar_NGC_known_mainstarg_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['nn-known+sdss'] = get_chi2t(f'{p}nnbar_NGC_known_mainstar_512_v7_2_main_512.npy', ix, invcov)
+    
+    for n, v in chi2d.items():
+        print(f'{n}, {v:.4f}')
+
+        
+def dpvp(fig_path):
+    import sys
+    sys.path.append('/home/mehdi/github/LSSutils/scripts/analysis/')
+    from compute_mitigationbias import Spectra, solve
+    
+    ngc1 = Spectra(cap='NGC', nside='512')
+    ngc1.load('known', '1')
+    
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+
+    colors = ['#377eb8', '#ff7f00', '#4daf4a',
+             '#984ea3', '#a65628', '#f781bf',
+              '#999999', '#e41a1c']
+    ls = ['-', '--', '-.', ':']
+    vs = 0
+    x_plot = None
+    for j in [0, 1, 2, 3]:
+
+        color = colors[j]
+
+        bins_p = np.percentile(ngc1.pks[:, vs, j], [0, 20, 40, 60, 80, 100])
+        bins_p[-1] += 1.0e-4
+        if x_plot is None:
+            x_plot = bins_p
+
+        ix = np.digitize(ngc1.pks[:, vs, j], bins=bins_p)
+
+        x_ = []
+        y_ = []
+        for i in ix:
+            s_i = ix == i
+            x_.append(np.median(ngc1.pks[s_i, vs, j], axis=0))
+            y_.append(np.median(ngc1.pks[s_i, 2, j], axis=0))
+
+        x_ = np.array(x_)
+        y_ = np.array(y_)
+
+        m,b  = solve(x_, y_)            
+
+
+        ax.scatter(ngc1.pks[:, vs, j], ngc1.pks[:, 2, j], 2, marker='.', alpha=1., color=color, zorder=-10+j)
+        if j == 0:
+            ax.scatter(x_, y_, 50, marker='s', fc='w', color=color, zorder=10)
+
+        ax.plot(x_plot, m*x_plot + b, ls=ls[j], color=color, lw=3., alpha=.9, label=f'k = {ngc1.k[j]:.3f} h/Mpc', zorder=-20+j)
+        print(ngc1.k[j], m, b) 
+
+
+    ax.set(xlabel=r'P$_{0, {\rm Truth}}$ [Mpc/h]$^{3}$', 
+           ylabel=r'$\Delta$P$_{0}$ [Mpc/h]$^{3}$')#ylim=(0., 10),
+    ax.legend(fontsize=15, handlelength=2.5, title='NGC EZmocks')
+    ax.tick_params(direction='in', which='both', top=True, right=True) 
+    fig.savefig(fig_path, dpi=300, bbox_inches='tight')
+    
+    
+def p0mocks(fig_path):
+    
+    pkm = np.load('pk_ezmocks_ngcsgc_v1.0.npz', allow_pickle=True)    
+    covpk = np.load('covpk_ezmocks_ngcsgc_v1.0.npz', allow_pickle=True)
+    
+    fig, ax = plt.subplots(figsize=(12, 16), nrows=4, ncols=2, sharex=True, sharey='row')
+    ax = ax.flatten()
+    fig.subplots_adjust(hspace=0.0, wspace=0.0) # like subplot adjust
+
+
+    ylabels = {#:r'P [Mpc/h]$^{3}$',
+               0:r'P$_{X}$-P$_{\rm Truth}$ [(Mpc/h)$^{3}$]',
+               2:r'(P$_{X}$-P$_{\rm Truth}$)/|P$_{\rm Truth}|$', #[10$^{4}$ (Mpc/h)$^{3}$]
+               4:r'$\sigma$P$_{X}$ [(Mpc/h)$^{3}$]',
+               6:r'$\sigma$P$_{X}$/|P$_{X}$|'}
+
+    for j,cap in enumerate(['NGC', 'SGC']):        
+        axes = [2*p+j for p in range(4)]
+
+        nmocks = 1000 if cap=='NGC' else 999
+        for method, name in zip([f'{cap}_null_standard_512', 
+                                 f'{cap}_cont_standard_512',
+                                 f'{cap}_cont_nnknown_512',
+                                 f'{cap}_null_nnknown_512'], 
+                                ['Truth', 
+                                 'Cont after Standard',
+                                 'Cont after NN', 
+                                 'Truth after NN']):
+
+            k = pkm[method][:, 0]
+            ptruth = pkm[f'{cap}_null_standard_512'][:, 2]
+            dp = (pkm[method][:, 2]-ptruth)
+            dpr = (pkm[method][:, 2]-ptruth)/abs(ptruth)
+            sigP = np.sqrt(np.diagonal(covpk[method].item()['covp0']))[:]
+            sigPr = sigP / np.abs(pkm[method][:, 2])
+
+            mk = '.' if method!=f'{cap}_null_standard_512' else 'None'
+            for i,y in zip(axes,
+                           [dp, dpr, sigP, sigPr]):
+                ax[i].plot(k, y, marker=mk, mfc='w', label=name)
+
+
+            if method == f'{cap}_null_standard_512':
+                ax[axes[0]].fill_between(k, -sigP, sigP, alpha=0.1, zorder=-10, color='#377eb8')        
+                ax[axes[0]].fill_between(k, -sigP/np.sqrt(nmocks), sigP/np.sqrt(nmocks), 
+                                         alpha=0.2, zorder=-8, color='#377eb8')            
+                ax[axes[1]].fill_between(k, -sigP/abs(ptruth), sigP/abs(ptruth), alpha=0.1, zorder=-10, color='#377eb8')        
+                ax[axes[1]].fill_between(k, -sigP/np.sqrt(nmocks)/abs(ptruth), sigP/np.sqrt(nmocks)/abs(ptruth), 
+                                         alpha=0.2, zorder=-8, color='#377eb8')
+    ax[1].legend()
+    for i in range(8):
+        if i > 5:ax[i].set(xlabel=r'k [h/Mpc]')
+        if i%2==0:ax[i].set(ylabel=ylabels[i])
+        ax[i].set_xscale('log')
+        ax[i].tick_params(direction='in', which='both', right=True, top=True)
+
+    fig.align_labels()
+    fig.savefig(fig_path, dpi=300, bbox_inches='tight')    
+    
+# def table_chi2():
+#     """ chi2 table for main/highz before and after mitigation and 95th mocks 
+#     """
+#     from glob import glob
+
+#     def get_chi2t(nbar_fn):
+#         d = np.load(nbar_fn, allow_pickle=True)
+#         chi2_t = 0.0
+#         for di in d:
+#             res = (di['nnbar'] - 1)/di['nnbar_err']
+#             res_sq = res*res
+#             chi2_t += res_sq.sum()
+#         return chi2_t
+
+#     def get_chi2t_mocks(nside, cap):
+#         path = '/home/mehdi/data/eboss/mocks/1.0/measurements/nnbar/'
+#         nbars = glob(f'{path}nnbar_{cap}_knownsystot_mainhighz_512_v7_0_*_main_{nside}.npy')
+#         print('len(nbars):', len(nbars), cap)
+
+#         chi2_mocks = []
+#         for nbar_i in nbars:        
+#             chi2_t = get_chi2t(nbar_i)        
+#             chi2_mocks.append(chi2_t)
+#             #print('.', end='')
+
+#         return np.array(chi2_mocks)
+#     print()
+    
+#     path = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/nnbar/'
+
+#     chi2_mocks = {}
+#     chi2d = {}
+
+#     for cap in ['NGC', 'SGC']:
+
+#         chi2_mocks[cap] = get_chi2t_mocks('512', cap)
+
+#         for sample in ['main', 'highz']:
+
+#             chi2d[f'{cap}_noweight_{sample}'] = get_chi2t(f'{path}nnbar_{cap}_noweight_mainhighz_512_v7_2_{sample}_512.npy')
+#             chi2d[f'{cap}_systot_{sample}'] = get_chi2t(f'{path}nnbar_{cap}_knownsystot_mainhighz_512_v7_2_{sample}_512.npy')
+#             chi2d[f'{cap}_nn_{sample}'] = get_chi2t(f'{path}nnbar_{cap}_known_mainhighz_512_v7_2_{sample}_512.npy')
+
+#     for cap in ['NGC', 'SGC']:
+
+#         for sample in ['main', 'highz']:
+
+#             msg = f'{cap}, {sample}, '
+
+#             for method in ['noweight', 'systot', 'nn']:
+#                 s_ = f'{cap}_{method}_{sample}'
+#                 msg += f'& {chi2d[s_]:.1f} '
+
+#             if sample == 'main':
+#                 msg += f'& {np.percentile(chi2_mocks[cap], 95):.1f}\\\ \n'
+#             else:
+#                 msg += '& -- \\\ \n'
+
+#             print(msg, end='')   
+            
+            
+
+# def p0mocks(fig_path):
+
+#     from glob import glob
+#     import nbodykit.lab as nb
+
+#     def p0mocks(maps, nside, ax=None):
+#         path = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
+#         pkc = glob(f'{path}spectra_NGC_noweight_mainhighz_512_v7_1_*_main.json')
+#         pk0 = glob(f'{path}spectra_NGC_knownsystot_mainhighz_512_v7_0_*_main.json')
+#         pk1 = glob(f'{path}spectra_NGC_knownsystot_mainhighz_512_v7_1_*_main.json')
+#         pk0n = glob(f'{path}spectra_NGC_{maps}_mainhighz_{nside}_v7_0_*_main.json')
+#         pk1n = glob(f'{path}spectra_NGC_{maps}_mainhighz_{nside}_v7_1_*_main.json')
+
+
+#         if ax is None:
+#             fig, ax = plt.subplots()
+
+#         c = ['green', 'grey', 'blue', 'orange', 'red']
+        
+#         ls = 2*[':', '-', '--', '-.', '-']
+#         i = 0
+#         for ni, pk_list in zip(['Cont', 'Null', 'Cont+Standard', f'Null+NN', f'Cont+NN'],
+#                            [pkc, pk0, pk1, pk0n, pk1n]):
+#             pk_k = []
+#             print(ni, len(pk_list))
+#             for pk_fn in pk_list:
+#                 pk_ = nb.ConvolvedFFTPower.load(pk_fn)
+
+#                 ki = pk_.poles['k']
+#                 pk_i= pk_.poles['power_0'].real-pk_.attrs['shotnoise']+1.0e5
+#                 pk_k.append(pk_i)
+ 
+#             ax.plot(ki, np.mean(pk_k, axis=0), color=c[i], alpha=1, label=ni, ls=ls[i])
+#             ax.fill_between(ki, *np.percentile(pk_k, [0, 100], axis=0), color=c[i], alpha=0.1)
+#             i += 1
+
+#         #ax.grid(ls=':', color='grey', alpha=0.4)
+#         #ax.set(xscale='log', yscale='log', xlabel='k', ylabel='P0')
+#         #ax.set_ylim(1.0e2, 2.0e6)
+#         #ax.legend()
+#         return ax
+
+#     fig, ax = plt.subplots(figsize=(6, 4))
+
+#     p0mocks('known', '512', ax=ax)
+#     ax.set(xscale='log', yscale='log')
+#     ax.grid(True, ls=':', alpha=0.5)
+#     ax.legend()
+#     ax.tick_params(direction='in', which='both', axis='both', right=True, top=True)
+#     ax.set_ylabel(r'P$_{0}~[Mpc/h]^{3}$ + Const.')
+#     ax.set_xlabel(r'k [h/Mpc]')
+#     fig.savefig(fig_path, bbox_inches='tight')    
+    
+    
+# def sigP0mocks(fig_path):
+    
+#     import nbodykit.lab as nb
+#     from glob import glob
+
+#     def read_pk(addrs):
+#         files = glob(addrs)
+#         print(len(files))
+#         pk_ = []
+#         for file_ in files:
+#             d = nb.ConvolvedFFTPower.load(file_)
+
+#             k = d.poles['k']
+#             pk_.append(d.poles['power_0'].real)#-d.attrs['shotnoise'])
+
+#         return (k, np.array(pk_))
+
+#     maps = 'known'
+#     nside = 512
+#     path = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
+#     pks = {}
+#     pks['Cont'] = read_pk(f'{path}spectra_NGC_noweight_mainhighz_512_v7_1_*_main.json')
+#     pks['Null'] = read_pk(f'{path}spectra_NGC_knownsystot_mainhighz_512_v7_0_*_main.json')
+#     pks['Cont+Standard'] = read_pk(f'{path}spectra_NGC_knownsystot_mainhighz_512_v7_1_*_main.json')
+#     pks['Null+NN'] = read_pk(f'{path}spectra_NGC_{maps}_mainhighz_{nside}_v7_0_*_main.json')
+#     pks['Cont+NN'] = read_pk(f'{path}spectra_NGC_{maps}_mainhighz_{nside}_v7_1_*_main.json')    
+
+#     print(pks.keys())
+
+
+#     fig, ax = plt.subplots(figsize=(6, 4))
+
+#     c = ['green', 'grey', 'blue', 'orange', 'red']
+
+#     ls = 2*[':', '-', '--', '-.', '-']
+
+
+#     for i, (ni, pki) in enumerate(pks.items()):
+
+#         ax.plot(pki[0], np.std(pki[1], axis=0, ddof=1), label=ni, ls=ls[i], color=c[i])
+
+
+#     ax.grid(which='both', ls=':', alpha=0.5)    
+#     ax.legend(fontsize=10)    
+#     ax.set_xscale('log')
+
+#     ax.set_ylabel(r'$\sigma~P_{0}$')
+#     ax.set_xlabel(r'k [h/Mpc]')
+#     ax.set_yscale('log')
+#     ax.tick_params(direction='in', which='both', axis='both', right=True, top=True)
+#     fig.savefig(fig_path, bbox_inches='tight')
+        
+        
     
 # def mollweide3maps(fig_path):
     

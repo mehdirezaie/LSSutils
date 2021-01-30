@@ -1122,3 +1122,21 @@ def plot_nnbar(nnbars, title=None, axes=[i for i in range(17)],
         if annot:ax[-1].text(0.05, 0.9-0.1*j, '%.1f %d %.1f'%(chi2tot, m, chi2tot/m),
                              color=c, transform=ax[-1].transAxes)
     if not hold:plt.show()                            
+
+def plot_loss_epoch(mt, color, ls):
+    """ Plot loss vs epoch given metrics file (mt)
+    """
+    losses = mt['losses'].item()
+    stats = mt['stats'].item()
+    y_ = []
+    for i, part in enumerate(losses['valid']):
+        base = stats[i]['base_valid_loss']
+        print(base)
+        for chain in part:
+            plt.plot(np.arange(1, len(chain)+1), np.array(chain)-base, color=color, lw=1, alpha=0.3)
+            y_.append(np.array(chain)-base)
+#         y_.append(np.array(part))
+    y_m = np.array(y_)
+    plt.plot(np.arange(1, y_m.shape[1]+1), np.mean(y_m, axis=0), 
+            color=color, lw=1, ls=ls, alpha=0.8)
+    print(10*'-')        

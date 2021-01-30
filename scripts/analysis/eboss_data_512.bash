@@ -6,7 +6,7 @@ conda activate sysnet
 
 
 #---- path to the data
-nside=$1 # 512, use cmd line instead
+nside=512 # 512 or 256, use cmd line instead
 l1=-1.0 # l1 regularization deactivated with <0
 nn_structure=(4 20) 
 # 'star_density', 'ebv', 'loghi', 'sky_g', 'sky_r', 'sky_i', 'sky_z', 
@@ -20,10 +20,10 @@ nepoch=150
 nchains=20
 version="v7_2"
 release="3.0" # or 3.0 (w/ Gaia)
-caps=$2 # "NGC SGC"  # options are "NGC SGC"
-slices=$3 #"main highz" # options are "main highz low mid z1 z2 z3"
+caps="SGC" # "NGC SGC"  # options are "NGC SGC"
+slices="low mid highz" #"low mid" #"main highz" # options are "main highz low mid z1 z2 z3"
 maps="known all" # options are "all known" but known is enough
-samples="mainhighz" # options are lowmidhighz mainhighz / only 1: mainlinmse mainlinp mainmse mainhighz mainwocos mainstar mainstarg
+samples="lowmidhighz" # options are lowmidhighz mainhighz / only 1: mainlinmse mainlinp mainmse mainhighz mainwocos mainstar mainstarg
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside${nside}.h5"
 templates2="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside512.h5"
@@ -33,8 +33,8 @@ do_prep=false
 find_lr=false
 find_st=false
 find_ne=false
-do_nnfit=true
-do_swap=false
+do_nnfit=false
+do_swap=true
 do_pk=false
 do_nnbar=false
 do_cl=false

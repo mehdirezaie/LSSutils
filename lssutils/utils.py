@@ -1952,7 +1952,38 @@ class Readfits(object):
         plt.savefig(path2fig, bbox_inches='tight')
         
 
-        
+def split_jackknife_strip(hpix, weight, njack=20):
+    f = weight.sum() // njack
+    hpix_L = []
+    hpix_l = []
+    frac_L = []
+    frac    = 0
+    w_L = []
+    w_l = []
+    remainder = None
+    
+    for i in range(hpix.size):
+        frac += weight[i]
+        hpix_l.append(hpix[i])
+        w_l.append(weight[i])
+
+        if frac >= f:
+            hpix_L.append(hpix_l)
+            frac_L.append(frac)
+            w_L.append(w_l)
+            frac    = 0
+            w_l     = []
+            hpix_l = []
+        elif (i == hpix.size-1):
+            if (frac > 0.9*f):
+                hpix_L.append(hpix_l)
+                frac_L.append(frac)
+                w_L.append(w_l)
+            else:
+                print('the remaining chunk is less than 90% complete!')
+                remainder = [hpix_l, w_l, frac]
+            
+    return hpix_L, w_L, remainder      
         
 
 
