@@ -20,10 +20,10 @@ nepoch=150
 nchains=20
 version="v7_2"
 release="3.0" # or 3.0 (w/ Gaia)
-caps="SGC" # "NGC SGC"  # options are "NGC SGC"
-slices="low mid highz" #"low mid" #"main highz" # options are "main highz low mid z1 z2 z3"
+caps="NGC SGC" # "NGC SGC"  # options are "NGC SGC"
+slices="main highz" #"low mid" #"main highz" # options are "main highz low mid z1 z2 z3"
 maps="known all" # options are "all known" but known is enough
-samples="lowmidhighz" # options are lowmidhighz mainhighz / only 1: mainlinmse mainlinp mainmse mainhighz mainwocos mainstar mainstarg
+samples="mainhighz" # options are lowmidhighz mainhighz / only 1: mainlinmse mainlinp mainmse mainhighz mainwocos mainstar mainstarg
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside${nside}.h5"
 templates2="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside512.h5"
@@ -34,12 +34,12 @@ find_lr=false
 find_st=false
 find_ne=false
 do_nnfit=false
-do_swap=true
+do_swap=false
 do_pk=false
-do_nnbar=false
-do_cl=false
+do_nnbar=true
+do_cl=true
 do_xi=false
-do_default=false
+do_default=true
 
 
 #---- path to the codes
@@ -53,6 +53,27 @@ xi=${HOME}/github/LSSutils/scripts/analysis/run_xi.py
 
 
 #---- functions
+function get_datran(){
+    if [ $1 = "main" ]
+    then
+        dat=${eboss_dir}eBOSS_QSO_${3}_${2}_v7_2.dat.fits
+        ran=${dat/.dat./.ran.}
+    elif [ $1 = "highz" ]
+    then
+        if [ $3 = "full" ]
+        then
+            dat=${eboss_dir}eBOSS_QSO_${3}_${2}_v7_2.dat.fits
+            ran=${dat/.dat./.ran.}
+        elif [ $3 = "clustering" ]
+        then
+            dat=${eboss_dir}eBOSS_QSOhiz_${3}_${2}_v7_2.dat.fits
+            ran=${dat/.dat./.ran.}
+        fi
+    fi
+    echo ${dat} ${ran}
+}
+
+
 function get_lr() {
     if [ $1 = "main" ]
     then
@@ -260,8 +281,7 @@ then
                 input_dir=${eboss_dir}
                 output_dir=${eboss_dir}${release}/measurements/spectra/
 
-                dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-                ran=${dat/.dat./.ran.}
+                read dat ran < <(get_datran $zrange $cap "clustering")
 
                 out=${output_dir}spectra_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.json
                 du -h $dat $ran
@@ -274,7 +294,7 @@ then
                 echo ${out} ${zlim}
                 mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --zlim ${zlim}            
             fi
-            
+            continue
             for map in ${maps}
             do
                 input_dir=${eboss_dir}${release}/catalogs/
@@ -308,8 +328,7 @@ then
                 input_dir=${eboss_dir}
                 output_dir=${eboss_dir}${release}/measurements/nnbar/
 
-                dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-                ran=${dat/.dat./.ran.}
+                read dat ran < <(get_datran $zrange $cap "full")
 
                 out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_2_${zrange}_512.npy
                 du -h $dat $ran
@@ -323,7 +342,7 @@ then
                 mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
             fi
 
-            
+            continue
             for map in ${maps}
             do
                 input_dir=${eboss_dir}${release}/catalogs/
@@ -357,8 +376,7 @@ then
                 input_dir=${eboss_dir}
                 output_dir=${eboss_dir}${release}/measurements/cl/
 
-                dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-                ran=${dat/.dat./.ran.}
+                read dat ran < <(get_datran $zrange $cap "full")
 
                 out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_2_${zrange}_512.npy
                 du -h $dat $ran
@@ -371,7 +389,7 @@ then
                 echo ${out} ${zlim}
                 mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
             fi
-            
+            continue 
             for map in ${maps}
             do
                 input_dir=${eboss_dir}${release}/catalogs/
@@ -404,9 +422,7 @@ then
                 # default
                 input_dir=${eboss_dir}
                 output_dir=${eboss_dir}${release}/measurements/spectra/
-
-                dat=${input_dir}eBOSS_QSO_full_${cap}_v7_2.dat.fits
-                ran=${dat/.dat./.ran.}
+                read dat ran < <(get_datran $zrange $cap "clustering")
 
                 out=${output_dir}xi_${cap}_knownsystot_mainhighz_512_v7_2_${zrange}.json
                 du -h $dat $ran
