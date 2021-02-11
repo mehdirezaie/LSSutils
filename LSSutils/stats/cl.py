@@ -75,10 +75,16 @@ def get_cl(ngal, nran, mask, select_fun=None,
             }
             return output
 
-def get_shotnoise(ngal, weight, mask):
+def get_shotnoise(ngal, weight, mask, estimator='nbar'):
+    '''
+        ngal is the weighted number of galaxies
+    '''
     area = hp.nside2pixarea(256, degrees=True)*weight[mask].sum()*3.0462e-4
-    return area/ngal[mask].sum()
-    #shotnoise = np.std(ngal[mask]) / nbar # fixme
+    nbar = ngal[mask].sum()/area
+    if estimator=='nbar':
+        return 1./nbar
+    elif estimator=='signbar':
+        return np.std(ngal[mask])/nbar
 
 class AnaFast:
     '''
