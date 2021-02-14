@@ -77,7 +77,7 @@ def plot_nz(fig_path):
 
     ax.tick_params(direction='in', which='both', axis='both', pad=6, right=True, top=True)
     ax.set(xlabel='z', ylabel=r'$10^{5}n(z)~[h/{\rm Mpc}]^{3}$', 
-           ylim=(0.0, 2.5), xlim=(0.5, 3.8))
+           ylim=(0.0, 2.5), xlim=(0.3, 3.8))
     ax.legend(loc='center right')
     fig.savefig(fig_path, bbox_inches='tight')
     return fig, ax
@@ -643,6 +643,7 @@ def cellchi2pdf_mocks_data(fig_path, cap='NGC',
     cl['standard'] = read_cl(f'{p}cl_{cap}_knownsystot_mainhighz_512_v7_2_main_512.npy', colmax=4)
     cl['nn'] = read_cl(f'{p}cl_{cap}_known_mainhighz_512_v7_2_main_512.npy', colmax=4)    
     
+    print('ell=', cl['nn'][0])
     # mocks
     p = '/home/mehdi/data/eboss/mocks/1.0/measurements/cl/'
     mocks = glob(f'{p}cl_{cap}_knownsystot_mainhighz_512_v7_0_*')
@@ -846,7 +847,7 @@ def p0nstar(fig_path):
     import nbodykit.lab as nb
     def read(file):
         dt = nb.ConvolvedFFTPower.load(file)
-        return (dt.poles['k'], dt.poles['power_0'].real-0.0*dt.attrs['shotnoise']) 
+        return (dt.poles['k'], dt.poles['power_0'].real-dt.attrs['shotnoise']) 
     
     cap = 'NGC'
     #pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
@@ -857,12 +858,12 @@ def p0nstar(fig_path):
     pk_err = np.sqrt(np.diagonal(covpks['covp0']))  
 
     
-    
+    p_ = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/spectra/'    
     p = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/spectra/'
 
     d = {}
-    #d['noweight'] = read(f'{p}spectra_NGC_noweight_mainhighz_512_v7_2_main.json')
-    d['standard'] = read(f'{p}spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')          
+    #d['noweight'] = read(f'{p_}spectra_NGC_noweight_mainhighz_512_v7_2_main.json')
+    d['standard'] = read(f'{p_}spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')          
     d['NN-known'] = read(f'{p}spectra_NGC_known_mainhighz_512_v7_2_main.json')
     d['NN-all'] = read(f'{p}spectra_NGC_all_mainhighz_512_v7_2_main.json')    
     d['NN-known+sdss'] = read(f'{p}spectra_NGC_known_mainstar_512_v7_2_main.json')
@@ -937,7 +938,7 @@ def p0linnn(fig_path):
     import nbodykit.lab as nb
     def read(file):
         dt = nb.ConvolvedFFTPower.load(file)
-        return (dt.poles['k'], dt.poles['power_0'].real-0.0*dt.attrs['shotnoise']) 
+        return (dt.poles['k'], dt.poles['power_0'].real-dt.attrs['shotnoise']) 
     
     cap = 'NGC'
     #pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'
@@ -948,11 +949,11 @@ def p0linnn(fig_path):
     pk_err = np.sqrt(np.diagonal(covpks['covp0']))      
     
     p = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/spectra/'
-
+    p_ = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/spectra/'    
     d = {}
 
-    d['standard'] = read(f'{p}spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')  
-    #d['noweight'] = read(f'{p}spectra_NGC_noweight_mainhighz_512_v7_2_main.json')
+    d['standard'] = read(f'{p_}spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')  
+    #d['noweight'] = read(f'{p_}spectra_NGC_noweight_mainhighz_512_v7_2_main.json')
     d['lin-mse'] = read(f'{p}spectra_NGC_known_mainlinmse_512_v7_2_main.json')
     d['lin-pnll'] = read(f'{p}spectra_NGC_known_mainlinp_512_v7_2_main.json')
     d['nn-mse'] = read(f'{p}spectra_NGC_known_mainmse_512_v7_2_main.json')
@@ -1021,7 +1022,7 @@ def p0nside(fig_path):
     import nbodykit.lab as nb
     def read(file):
         dt = nb.ConvolvedFFTPower.load(file)
-        return (dt.poles['k'], dt.poles['power_0'].real-0.0*dt.attrs['shotnoise']) 
+        return (dt.poles['k'], dt.poles['power_0'].real-dt.attrs['shotnoise']) 
     
     cap = 'NGC'
     #pathm = '/home/mehdi/data/eboss/mocks/1.0/measurements/spectra/'    

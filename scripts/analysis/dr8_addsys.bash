@@ -17,18 +17,18 @@ axes=({0..26})
 #  'mjd_r_min', 'mjd_g_min', 'mjd_z_min', 
 # 'galdepth_g','galdepth_r', 'galdepth_z', 
 # 'psfsize_g', 'psfsize_r', 'psfsize_z'
-nchains=1  # 25 for NN-MSE, 1 NN-MSE-snapshot
-nepochs=70 # 70 for NN-MSE, 300 for NN-MSE-snapshot
+nchains=1  # 25 for NN-MSE, 1 NN-MSE-snapshot / NN-Jackknife
+nepochs=125 # 70 for NN-MSE/NN-Jackknife, 125 for NN-MSE-snapshot
 lr=0.2  # NN-MSE
 #lr=0.7   # Lin-MSE
 etamin=0.001
-#input_path=/home/mehdi/data/tanveer/dr8_elg_0.32.0_256.fits
-input_dir=/home/mehdi/data/tanveer/jackknife/25/
+input_path=/home/mehdi/data/tanveer/dr8_elg_0.32.0_256.fits
+#input_dir=/home/mehdi/data/tanveer/jackknife/25/
 
 #output_path=/home/mehdi/data/tanveer/elg_mse/
 #output_path=/home/mehdi/data/tanveer/elg_lin/
-#output_path=/home/mehdi/data/tanveer/elg_mse_snapshots/
-output_path=/home/mehdi/data/tanveer/elg_mse_jk/
+output_path=/home/mehdi/data/tanveer/elg_mse_snapshots_bc/
+#output_path=/home/mehdi/data/tanveer/elg_mse_jk/
 
 find_lr=false
 find_st=false
@@ -83,17 +83,17 @@ then
     #echo ${output_path}
     #python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k
     #python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model lin --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k
-    #python $nnfite -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs --snapshot_ensemble -k -bs 4096
+    python $nnfite -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs --snapshot_ensemble -k -bs 5000
     
     # jackknife
-    for i in {0..24}
-    do
-        input_path=${input_dir}dr8jk${i}_elg_0.32.0_256.fits
-        output_path_jk=${output_path}jk${i}/
+#     for i in {0..24}
+#     do
+#         input_path=${input_dir}dr8jk${i}_elg_0.32.0_256.fits
+#         output_path_jk=${output_path}jk${i}/
         
-        du -h ${input_path}
-        echo ${output_path_jk}
-        python $nnfit -i ${input_path} -o ${output_path_jk} -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k -bs 5000
-    done
+#         du -h ${input_path}
+#         echo ${output_path_jk}
+#         python $nnfit -i ${input_path} -o ${output_path_jk} -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k -bs 5000
+#     done
 fi
 

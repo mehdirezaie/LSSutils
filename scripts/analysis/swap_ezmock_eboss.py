@@ -60,7 +60,6 @@ else:
     path_incats =  '/fs/ess/PHS0336/data/v7/catalogs_raw/null/'
     incat = f'{path_incats}EZmock_eBOSS_QSO_{cap}_v7_noweight_{idmock}.dat.fits'
     inran = incat.replace('.dat.', '.ran.')
- 
 
 path_weights = '/fs/ess/PHS0336/data/v7/1.0'
 
