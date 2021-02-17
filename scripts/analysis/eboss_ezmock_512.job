@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=ezpk512
+#SBATCH --job-name=ezcell1
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:20:00
+#SBATCH --time=00:40:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=16
 #SBATCH --mail-type=FAIL
@@ -17,7 +17,7 @@
 
 #--- notes
 # aug 27: only main and known
-# run with 'qsub -t 1-9 -v iscont=1 eboss_ezmock_512.job'
+# run with 'sbatch --array=1-1000 eboss_ezmock_512.job'
 #---- environment variables and activation
 #set -x
 
@@ -33,7 +33,7 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/scripts/analysis
 
 #mockid=0001
-iscont=0
+iscont=1
 printf -v mockid "%04d" $SLURM_ARRAY_TASK_ID
 #iscont=$2 # use -v variable=value instead, see https://www.osc.edu/supercomputing/batch-processing-at-osc/job-submission
 
@@ -68,7 +68,7 @@ nepoch=150
 nchains=20
 version="v7" # real data was v7_2
 release="1.0"
-caps="SGC" # mocks do not have SGC
+caps="SGC"    # mocks do not have SGC
 slices="main" # low mid z1 z2 z3" # ezmocks do not have highz
 maps="known"  # known all
 table_name="ngal_eboss"
@@ -82,10 +82,10 @@ find_lr=false  # 3 min
 find_st=false  # 3 min
 find_ne=false  # 30 min
 do_nnfit=false # 16 h
-do_swap=true  # 1 min
-do_pk=true    # 4 min
+do_swap=false  # 1 min
+do_pk=false    # 4 min
 do_nnbar=false  # 4 min
-do_cl=false      # 10 min
+do_cl=true      # 10 min
 do_default=true
 do_nnbarfix=false
 
@@ -332,27 +332,29 @@ then
         for zrange in main # highz # mocks do not have high-z
         do
             zlim=$(get_zlim ${zrange})
-           
-            # default
-            input_dir=${eboss_dir}
-            output_dir=${eboss_dir}${release}/measurements/nnbar/
+        
+	    if [ "${do_default}" = true ]
+            then       
+                # default
+                input_dir=${eboss_dir}
+                output_dir=${eboss_dir}${release}/measurements/nnbar/
 
-	    read dat ran < <(get_datran $iscont ${cap})
+	        read dat ran < <(get_datran $iscont ${cap})
 
-            out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
-            du -h $dat $ran
-            echo ${out} ${zlim}
+                out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+                du -h $dat $ran
+                echo ${out} ${zlim}
             
-            mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -t ${templates2} -o $out --use_systot --zlim ${zlim}
+                srun -n 8 python ${nnbar} -d $dat -r $ran -t ${templates2} -o $out --use_systot --zlim ${zlim}
 
-	    if [ $iscont = 1 ] # wo systot for cont. mocks
-	    then
-	        out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
-                echo ${out}
-	        mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -t ${templates2} -o $out --zlim ${zlim}
-	    fi
+    	        if [ $iscont = 1 ] # wo systot for cont. mocks
+    	   	    then
+    	   	        out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+    	                   echo ${out}
+    	   	        srun -n 8 python ${nnbar} -d $dat -r $ran -t ${templates2} -o $out --zlim ${zlim}
+    	   	fi
+            fi
             
-	    continue # no need to do nnbar for mocks
             for map in ${maps}
             do
                 # EZmock_eBOSS_QSO_NGC_known_mainhighz_512_v7_0_0001.dat.fits 
@@ -367,7 +369,7 @@ then
                     du -h $dat $ran
                     echo ${out}
                     
-		    mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
+		    srun -n 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
                 done
             done
         done
@@ -381,26 +383,28 @@ then
         for zrange in main # highz # mocks do not have high-z
         do
             zlim=$(get_zlim ${zrange})
-           
-            # default
-            input_dir=${eboss_dir}
-            output_dir=${eboss_dir}${release}/measurements/cl/
+          
+            if [ "${do_default}" = true ]
+            then 
+		    # default
+		    input_dir=${eboss_dir}
+		    output_dir=${eboss_dir}${release}/measurements/cl/
 
-	    read dat ran < <(get_datran $iscont ${cap})
+		    read dat ran < <(get_datran $iscont ${cap})
 
-            out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
-            du -h $dat $ran
-            echo ${out} ${zlim}
-            mpiexec -ppn 8 python ${cl} -d $dat -r $ran -t ${templates2} -o $out --use_systot --zlim ${zlim} --cross_only
+		    out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+		    du -h $dat $ran
+		    echo ${out} ${zlim}
+		    srun -n 8 python ${cl} -d $dat -r $ran -t ${templates2} -o $out --use_systot --zlim ${zlim} --cross_only
 
-	    if [ $iscont = 1 ] # wo systot for cont. mocks
-	    then
-	        out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
-                echo ${out}
-	        mpiexec -ppn 8 python ${cl} -d $dat -r $ran -t ${templates2} -o $out --zlim ${zlim} --cross_only
-	    fi
+		    if [ $iscont = 1 ] # wo systot for cont. mocks
+		    then
+			out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+			echo ${out}
+			srun -n 8 python ${cl} -d $dat -r $ran -t ${templates2} -o $out --zlim ${zlim} --cross_only
+		    fi
+            fi 
             
-	    continue # no need to do nnbar for mocks
             for map in ${maps}
             do
                 # EZmock_eBOSS_QSO_NGC_known_mainhighz_512_v7_0_0001.dat.fits 
@@ -415,7 +419,7 @@ then
                     du -h $dat $ran
                     echo ${out}
                     
-		    mpiexec -ppn 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim} --cross_only
+		    srun -n 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim} --cross_only
                 done
             done
         done
