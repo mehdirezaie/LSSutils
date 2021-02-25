@@ -18,4 +18,4 @@ with open(input_fn, 'r') as fl:
 
 with open(output_fn, 'w') as fo:
 	for line in lines:
-	    fo.write(line.split('-')[1].split(':')[0]+' \n')
+	    fo.write(line.split('_')[1].split('.')[0]+' \n')

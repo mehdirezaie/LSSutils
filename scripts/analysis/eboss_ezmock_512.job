@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=ezcell1
+#SBATCH --job-name=eznbar
 #SBATCH --account=PHS0336 
 #SBATCH --time=00:40:00
 #SBATCH --nodes=1
@@ -32,14 +32,14 @@ source activate sysnet
 
 cd ${HOME}/github/LSSutils/scripts/analysis
 
-#mockid=0001
+mockid=1000
 iscont=1
-printf -v mockid "%04d" $SLURM_ARRAY_TASK_ID
+#printf -v mockid "%04d" $SLURM_ARRAY_TASK_ID
 #iscont=$2 # use -v variable=value instead, see https://www.osc.edu/supercomputing/batch-processing-at-osc/job-submission
 
 # NOTE:in case some of jobs array failed
 # have the indices in indices.txt
-# SLURM_ARRAY_TASK_ID=5 # uncomment for test
+#SLURM_ARRAY_TASK_ID=5 # uncomment for test
 #mockid=$(sed "$SLURM_ARRAY_TASK_ID"'q;d' indices.txt)
 #printf -v mockid "%04d" ${mockid}
 
@@ -68,7 +68,7 @@ nepoch=150
 nchains=20
 version="v7" # real data was v7_2
 release="1.0"
-caps="SGC"    # mocks do not have SGC
+caps="NGC"    # NGC SGC
 slices="main" # low mid z1 z2 z3" # ezmocks do not have highz
 maps="known"  # known all
 table_name="ngal_eboss"
@@ -84,8 +84,8 @@ find_ne=false  # 30 min
 do_nnfit=false # 16 h
 do_swap=false  # 1 min
 do_pk=false    # 4 min
-do_nnbar=false  # 4 min
-do_cl=true      # 10 min
+do_nnbar=true  # 4 min
+do_cl=false      # 10 min
 do_default=true
 do_nnbarfix=false
 
