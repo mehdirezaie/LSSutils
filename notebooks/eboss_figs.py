@@ -237,12 +237,14 @@ def p0_demo(fig_path, cap='NGC', sample='main', method='known', show_nn=False):
 
 
     xmin, xbreak, xmax = (0.001, 0.02, 0.25)
-    ylim = (1.0e4, 3.0e6)
+    ylim = (8.0e3, 3.0e6)
     ax1.set(xlim=(xmin, xbreak), ylim=ylim, yscale='log', xscale='log')
+    ax1.set_xticks([0.001, 0.01])
+    ax1.set_xticklabels(['0.001', '0.01'])
     ax2.set(xlim=(xbreak, xmax), ylim=ylim, yscale='log')#, xscale='log')
     ax2.set_yticks([])
     ax2.set_yticklabels([])
-    ax2.set_xticks([0.02, 0.05, 0.1, 0.15, 0.2, 0.25])
+    ax2.set_xticks([0.02, 0.08, 0.14, 0.2])
 
     ax1.axvline(xbreak, ls=':', color='grey', alpha=0.2)
 
@@ -257,7 +259,7 @@ def p0_demo(fig_path, cap='NGC', sample='main', method='known', show_nn=False):
         add_pk(*pks['nn'], pk_err, ax1, ax2, marker='s', mfc='w', label='Neural Network treatment') # color='#d98404',
 
     ax2.legend(loc='upper left', frameon=False, 
-               bbox_to_anchor=(-0.3, 0.95), 
+               bbox_to_anchor=(-0.4, 0.95), 
                title=fr"eBOSS DR16 QSO {cap} ({zlim[sample]})")
     
     fig.savefig(fig_path, dpi=300, bbox_inches='tight')        
@@ -346,8 +348,8 @@ def plot_overdensity(fig_path, sample='main'):
         inv_cov['NGC'].append(incov_ngc.get_invcov(ix*8, (ix+1)*8, return_covmax=True))
         
 
-    fig, ax = plt.subplots(figsize=(30, 8), nrows=2, ncols=5, sharey='row')
-    fig.subplots_adjust(wspace=0.0, hspace=0.1)
+    fig, ax = plt.subplots(figsize=(20, 7), nrows=2, ncols=5, sharey='row')
+    fig.subplots_adjust(wspace=0.0, hspace=0.15)
 
     ax = ax.flatten()
 
@@ -385,16 +387,23 @@ def plot_overdensity(fig_path, sample='main'):
 
                 chi2v = chi2(nbar_j[1], invcov)
                 
-                ax[jk].text(0.4, 0.92-i*0.06, r'$\chi^{2}/dof$ = %.2f/%d'%(chi2v,len(nbar_j[1])),
+                xtext = 0.05 if jk in [3, 8] else 0.38
+                ax[jk].text(xtext, 0.9-i*0.085, r'$\chi^{2}/dof$ = $%.2f/%d$'%(chi2v,len(nbar_j[1])),
                         color=ebar[0].get_color(), transform=ax[jk].transAxes)
 
 
         ax[5*k].set_ylabel(r'$\delta$')
-        ax[5*k+4].legend(loc='lower left', title=f'{cap} {zlabels[sample]}')
+        ax[5*k].text(0.1, 0.2, cap, transform=ax[5*k].transAxes, color='grey')
+        
+        #ax[5*k+4].legend(loc='lower left', title=f'{cap} {zlabels[sample]}', 
+        #                 frameon=False, fontsize=13)
+    ax[1].legend(**dict(ncol=3, frameon=False,
+                 bbox_to_anchor=(0, 1.05, 3, 0.4), loc="lower left",
+                 mode="expand", borderaxespad=0))
 
 
     for axi in ax:
-
+        axi.locator_params(tight=True, nbins=6, prune='both')
         axi.tick_params(direction='in', which='both', axis='both', right=True)    
         axi.axhline(0, ls=':', color='grey') 
 
@@ -441,7 +450,7 @@ def nbar_covmax(fig_path, cap='NGC', nside=512):
 
     fig.subplots_adjust(wspace=0.0, hspace=0.0)
 
-    covmap = ax.imshow(covmax*1.0e5, origin='lower', cmap=plt.cm.bwr, vmin=-1.0, vmax=1.0)
+    covmap = ax.imshow(covmax*1.0e5, origin='lower', cmap=plt.cm.bwr, vmin=-1.1, vmax=1.1)
     xticks = np.array([i*8+4 for i in range(nbins//8)])
     ax.set_xticks(xticks)
     ax.set_yticks(xticks)
@@ -788,12 +797,21 @@ def pcc_wnn_nchains(fig_path, ns='512'):
     ax.add_artist(legend1)  
     fig.savefig(fig_path, bbox_inches='tight')
 
-
+def plot_nstar(fig_path):
+    fig, ax = plt.subplots(figsize=(6, 8), nrows=2)
     
-def nbarnstar(fig_path):
+    ax[0] = nbarnstar(ax[0])
+    ax[1] = p0nstar(ax[1])
+    
+    fig.align_labels()
+    fig.savefig(fig_path, bbox_inches='tight')
+    
+    
+    
+def nbarnstar(ax):
     
     incov_ngc = NbarCov('NGC', '512')
-    ix = 0 # nstar
+    ix = 0                             # nstar
     _, covmax = incov_ngc.get_invcov(ix*8, (ix+1)*8, return_covmax=True)
     y_err = np.sqrt(np.diag(covmax))
         
@@ -802,15 +820,13 @@ def nbarnstar(fig_path):
 
     d = {}
     p = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/nnbar/'
-    d['standard'] = np.load(f'{p}nnbar_NGC_knownsystot_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    d['Standard'] = np.load(f'{p}nnbar_NGC_knownsystot_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
     p = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/nnbar/'
-    d['nn-known'] = np.load(f'{p}nnbar_NGC_known_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
-    d['nn-all'] = np.load(f'{p}nnbar_NGC_all_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
-    d['nn-known+sdss'] = np.load(f'{p}nnbar_NGC_known_mainstar_512_v7_2_main_512.npy', allow_pickle=True)
-    d['nn-known+gaia'] = np.load(f'{p}nnbar_NGC_known_mainstarg_512_v7_2_main_512.npy', allow_pickle=True)
+    d['NN (known)'] = np.load(f'{p}nnbar_NGC_known_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    d['NN (all)'] = np.load(f'{p}nnbar_NGC_all_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    d['NN (known+sdss)'] = np.load(f'{p}nnbar_NGC_known_mainstar_512_v7_2_main_512.npy', allow_pickle=True)
+    d['NN (known+gaia)'] = np.load(f'{p}nnbar_NGC_known_mainstarg_512_v7_2_main_512.npy', allow_pickle=True)
     
-    fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
-    fig.subplots_adjust(wspace=0.0)
     
     ls = 4*['-', '--', '-.']
     mk = 4*['o', 's', '^', '.', 'x', '*']
@@ -838,12 +854,15 @@ def nbarnstar(fig_path):
     
     ax.axhline(0.0, ls=':', lw=1, color='k')
     ax.set_xlabel(f'{si}')
-    ax.legend(fontsize=11)    
+    ax.legend(fontsize=12, ncol=2, frameon=False)   
+    ax.set_ylim(-0.025, 0.025)
+    ax.tick_params(direction='in', which='both', axis='both', right=True, top=True)    
     ax.set_ylabel(r'$\delta$')
-    fig.savefig(fig_path, bbox_inches='tight')
+    #fig.savefig(fig_path, bbox_inches='tight')
+    return ax
     
     
-def p0nstar(fig_path):
+def p0nstar(ax):
     import nbodykit.lab as nb
     def read(file):
         dt = nb.ConvolvedFFTPower.load(file)
@@ -863,37 +882,47 @@ def p0nstar(fig_path):
 
     d = {}
     #d['noweight'] = read(f'{p_}spectra_NGC_noweight_mainhighz_512_v7_2_main.json')
-    d['standard'] = read(f'{p_}spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')          
-    d['NN-known'] = read(f'{p}spectra_NGC_known_mainhighz_512_v7_2_main.json')
-    d['NN-all'] = read(f'{p}spectra_NGC_all_mainhighz_512_v7_2_main.json')    
-    d['NN-known+sdss'] = read(f'{p}spectra_NGC_known_mainstar_512_v7_2_main.json')
-    d['NN-known+gaia'] = read(f'{p}spectra_NGC_known_mainstarg_512_v7_2_main.json')
+    d['Standard'] = read(f'{p_}spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')          
+    d['NN (known)'] = read(f'{p}spectra_NGC_known_mainhighz_512_v7_2_main.json')
+    d['NN (all)'] = read(f'{p}spectra_NGC_all_mainhighz_512_v7_2_main.json')    
+    d['NN (known+sdss)'] = read(f'{p}spectra_NGC_known_mainstar_512_v7_2_main.json')
+    d['NN (known+gaia)'] = read(f'{p}spectra_NGC_known_mainstarg_512_v7_2_main.json')
 
     
-    fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
-    fig.subplots_adjust(wspace=0.0)
+    #fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
+    #fig.subplots_adjust(wspace=0.0)
 
 
     ls = 4*['-', '--', '-.']
     mk = 4*['o', 's', '^', '.', 'x', '*']
 
     for j, (ni,di) in enumerate(d.items()):   
-        if ni == 'noweight':
-            continue
         
-        if ni == 'NN-known+gaia':        
-            ax.errorbar(di[0], di[1], yerr=pk_err, marker=mk[j], mfc='w', ls=ls[j], 
+        if ni == 'NN (known+gaia)':        
+            ax.errorbar(di[0], 1.0e-4*di[1], yerr=1.0e-4*pk_err, marker=mk[j], mfc='w', ls=ls[j], 
                     label=ni, capsize=3) # alpha=0.8, 
         else:
-            ax.plot(di[0], di[1], marker=mk[j], mfc='w', ls=ls[j], label=ni) #alpha=0.8)
+            ax.plot(di[0], 1.0e-4*di[1], marker=mk[j], mfc='w', ls=ls[j], label=ni) #alpha=0.8)
 
 
     ax.set(xlabel='k [h/Mpc]', xscale='log') #yscale='log', 
-    ax.legend(fontsize=11)    
-    ax.set_ylabel(r'P$_{0}$ [Mpc/h]$^{3}$')
-    fig.savefig(fig_path, dpi=300, bbox_inches='tight')    
+    ax.legend(fontsize=12, frameon=False, ncol=2)    
+    ax.tick_params(direction='in', which='both', axis='both', right=True, top=True)
+    ax.set_ylabel(r'P$_{0}$ [$10^{4}$ (Mpc/h)$^{3}$]')
+    #fig.savefig(fig_path, dpi=300, bbox_inches='tight')    
+    return ax
     
-def nbarlinnn(fig_path):
+def plot_linnn(fig_path):
+    fig, ax = plt.subplots(figsize=(6, 8), nrows=2)
+    
+    ax[0] = nbarlinnn(ax[0])
+    ax[1] = p0linnn(ax[1])
+    
+    fig.align_labels()
+    fig.savefig(fig_path, bbox_inches='tight')    
+
+    
+def nbarlinnn(ax):
 
     incov_ngc = NbarCov('NGC', '512')
     ix = 1 # EBV
@@ -903,16 +932,16 @@ def nbarlinnn(fig_path):
     p = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/nnbar/'
 
     d = {}
-    d['standard'] = np.load(f'{p}nnbar_NGC_knownsystot_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)    
-    d['lin-mse'] = np.load(f'{p}nnbar_NGC_known_mainlinmse_512_v7_2_main_512.npy', allow_pickle=True)
-    d['lin-pnll'] = np.load(f'{p}nnbar_NGC_known_mainlinp_512_v7_2_main_512.npy', allow_pickle=True)
-    d['nn-mse'] = np.load(f'{p}nnbar_NGC_known_mainmse_512_v7_2_main_512.npy', allow_pickle=True)
-    d['nn-pnll'] = np.load(f'{p}nnbar_NGC_known_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
-    d['nn-pnll-wocos'] = np.load(f'{p}nnbar_NGC_known_mainwocos_512_v7_2_main_512.npy', allow_pickle=True)
+    d['Standard'] = np.load(f'{p}nnbar_NGC_knownsystot_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)    
+    d['LIN (mse)'] = np.load(f'{p}nnbar_NGC_known_mainlinmse_512_v7_2_main_512.npy', allow_pickle=True)
+    d['LIN (pnll)'] = np.load(f'{p}nnbar_NGC_known_mainlinp_512_v7_2_main_512.npy', allow_pickle=True)
+    d['NN (mse)'] = np.load(f'{p}nnbar_NGC_known_mainmse_512_v7_2_main_512.npy', allow_pickle=True)
+    d['NN (pnll)'] = np.load(f'{p}nnbar_NGC_known_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    d['NN (pnll-lr)'] = np.load(f'{p}nnbar_NGC_known_mainwocos_512_v7_2_main_512.npy', allow_pickle=True)
 
     
-    fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
-    fig.subplots_adjust(wspace=0.0)
+    #fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
+    #fig.subplots_adjust(wspace=0.0)
     
     ls = 4*['-', '--', '-.']
     mk = 4*['o', 's', '^', '.', 'x', '*']
@@ -928,11 +957,15 @@ def nbarlinnn(fig_path):
     ax.fill_between(di[ix]['bin_avg'], -y_err, y_err, color='grey', alpha=0.1)        
     ax.axhline(0.0, ls=':', lw=1, color='k')
     ax.set_xlabel(f'{si}')
-    ax.legend(fontsize=11)    
+    ax.legend(fontsize=11, frameon=False, ncol=2, loc='upper right')    
     ax.set_ylabel(r'$\delta$')
-    fig.savefig(fig_path, bbox_inches='tight')    
+    ax.set_ylim(-0.025, 0.025)
+    ax.set_xlim(xmax=0.055)
+    ax.tick_params(direction='in', which='both', axis='both', right=True, top=True)    
+    #fig.savefig(fig_path, bbox_inches='tight')    
+    return ax
     
-def p0linnn(fig_path):
+def p0linnn(ax):
     
     
     import nbodykit.lab as nb
@@ -952,38 +985,50 @@ def p0linnn(fig_path):
     p_ = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/spectra/'    
     d = {}
 
-    d['standard'] = read(f'{p_}spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')  
+    d['Standard'] = read(f'{p_}spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')  
     #d['noweight'] = read(f'{p_}spectra_NGC_noweight_mainhighz_512_v7_2_main.json')
-    d['lin-mse'] = read(f'{p}spectra_NGC_known_mainlinmse_512_v7_2_main.json')
-    d['lin-pnll'] = read(f'{p}spectra_NGC_known_mainlinp_512_v7_2_main.json')
-    d['nn-mse'] = read(f'{p}spectra_NGC_known_mainmse_512_v7_2_main.json')
-    d['nn-pnll'] = read(f'{p}spectra_NGC_known_mainhighz_512_v7_2_main.json')
-    d['nn-pnllwocos'] = read(f'{p}spectra_NGC_known_mainwocos_512_v7_2_main.json')
+    d['LIN (mse)'] = read(f'{p}spectra_NGC_known_mainlinmse_512_v7_2_main.json')
+    d['LIN (pnll)'] = read(f'{p}spectra_NGC_known_mainlinp_512_v7_2_main.json')
+    d['NN (mse)'] = read(f'{p}spectra_NGC_known_mainmse_512_v7_2_main.json')
+    d['NN (pnll)'] = read(f'{p}spectra_NGC_known_mainhighz_512_v7_2_main.json')
+    d['NN (pnll-lr)'] = read(f'{p}spectra_NGC_known_mainwocos_512_v7_2_main.json')
     
     
     
-    fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
-    fig.subplots_adjust(wspace=0.0)
+    #fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
+    #fig.subplots_adjust(wspace=0.0)
 
 
     ls = 4*['-', '--', '-.']
     mk = 4*['o', 's', '^', '.', 'x', '*']
 
     for j, (ni,di) in enumerate(d.items()):        
-        if ni == 'nn-pnllwocos':
-            ax.errorbar(di[0], di[1], pk_err, marker=mk[j], capsize=3,
+        if ni == 'NN (pnll-lr)':
+            ax.errorbar(di[0], 1.0e-4*di[1], 1.0e-4*pk_err, marker=mk[j], capsize=3,
                         mfc='w', ls=ls[j], label=ni) #alpha=0.8)
         else:
-            ax.plot(di[0], di[1], marker=mk[j], mfc='w', ls=ls[j], label=ni)#, alpha=0.8)
+            ax.plot(di[0], 1.0e-4*di[1], marker=mk[j], mfc='w', ls=ls[j], label=ni)#, alpha=0.8)
 
 
     ax.set(xlabel='k [h/Mpc]', xscale='log')
-    ax.legend(fontsize=11)    
-    ax.set_ylabel(r'P$_{0}$ [Mpc/h]$^{3}$')
-    fig.savefig(fig_path, dpi=300, bbox_inches='tight')        
+    ax.legend(fontsize=12, frameon=False, ncol=2)    
+    ax.set_ylabel(r'P$_{0}$ [$10^{4}$ (Mpc/h)$^{3}$]')
+    ax.tick_params(direction='in', which='both', axis='both', right=True, top=True)
+    #fig.savefig(fig_path, dpi=300, bbox_inches='tight')        
+    return ax
 
+
+def plot_nsidexz(fig_path):
+    fig, ax = plt.subplots(figsize=(6, 8), nrows=2)
     
-def nbarnside(fig_path):
+    ax[0] = nbarnside(ax[0])
+    ax[1] = p0nside(ax[1])
+    
+    fig.align_labels()
+    fig.savefig(fig_path, bbox_inches='tight') 
+    
+    
+def nbarnside(ax):
 
     incov_ngc = NbarCov('NGC', '512')
     ix = 7 # depth-g
@@ -992,13 +1037,13 @@ def nbarnside(fig_path):
     
     p = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/nnbar/'
     d = {}
-    d['standard'] = np.load(f'{p}nnbar_NGC_knownsystot_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
-    d['NN 512-1z'] = np.load(f'{p}nnbar_NGC_known_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
-    d['NN 512-2z'] = np.load(f'{p}nnbar_NGC_known_lowmidhighz_512_v7_2_main_512.npy', allow_pickle=True)
-    d['NN 256-1z'] = np.load(f'{p}nnbar_NGC_known_mainhighz_256_v7_2_main_512.npy', allow_pickle=True)
+    d['Standard'] = np.load(f'{p}nnbar_NGC_knownsystot_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    d['NN (512-1z)'] = np.load(f'{p}nnbar_NGC_known_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    d['NN (512-2z)'] = np.load(f'{p}nnbar_NGC_known_lowmidhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    d['NN (256-1z)'] = np.load(f'{p}nnbar_NGC_known_mainhighz_256_v7_2_main_512.npy', allow_pickle=True)
     
-    fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
-    fig.subplots_adjust(wspace=0.0)
+    #fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
+    #fig.subplots_adjust(wspace=0.0)
     
     ls = 4*['-', '--', '-.']
     mk = 4*['o', 's', '^', '.', 'x', '*']
@@ -1014,11 +1059,14 @@ def nbarnside(fig_path):
     ax.fill_between(di[ix]['bin_avg'], -y_err, y_err, color='grey', alpha=0.1)
     ax.axhline(0.0, ls=':', lw=1, color='k')
     ax.set_xlabel(f'{si}')
-    ax.legend(fontsize=11)    
+    ax.set_ylim(-0.025, 0.025)
+    ax.tick_params(direction='in', which='both', axis='both', right=True, top=True)    
+    ax.legend(fontsize=12, ncol=2, loc='lower right', frameon=False)    
     ax.set_ylabel(r'$\delta$')
-    fig.savefig(fig_path, bbox_inches='tight') 
+    #fig.savefig(fig_path, bbox_inches='tight') 
+    return ax
 
-def p0nside(fig_path):
+def p0nside(ax):
     import nbodykit.lab as nb
     def read(file):
         dt = nb.ConvolvedFFTPower.load(file)
@@ -1035,31 +1083,33 @@ def p0nside(fig_path):
     p = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/spectra/'
 
     d = {}
-    d['standard'] = read(f'{p}spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')
-    d['NN 512-1z'] = read(f'{p}spectra_NGC_known_mainhighz_512_v7_2_main.json')
-    d['NN 512-2z'] = read(f'{p}spectra_NGC_known_lowmidhighz_512_v7_2_main.json')
-    d['NN 256-1z'] = read(f'{p}spectra_NGC_known_mainhighz_256_v7_2_main.json')    
+    d['Standard'] = read(f'{p}spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')
+    d['NN (512-1z)'] = read(f'{p}spectra_NGC_known_mainhighz_512_v7_2_main.json')
+    d['NN (512-2z)'] = read(f'{p}spectra_NGC_known_lowmidhighz_512_v7_2_main.json')
+    d['NN (256-1z)'] = read(f'{p}spectra_NGC_known_mainhighz_256_v7_2_main.json')    
 
     
     
-    fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
-    fig.subplots_adjust(wspace=0.0)
+    #fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
+    #fig.subplots_adjust(wspace=0.0)
 
     ls = 4*['-', '--', '-.']
     mk = 4*['o', 's', '^', '.', 'x', '*']
 
     for j, (ni,di) in enumerate(d.items()):        
-        if ni == 'NN 256-1z':
-            ax.errorbar(di[0], di[1], pk_err, marker=mk[j], capsize=3,
+        if ni == 'NN (256-1z)':
+            ax.errorbar(di[0], 1.0e-4*di[1], 1.0e-4*pk_err, marker=mk[j], capsize=3,
                         mfc='w', ls=ls[j], label=ni) #alpha=0.8)
         else:
-            ax.plot(di[0], di[1], marker=mk[j], mfc='w', ls=ls[j], label=ni) #, alpha=0.8)
+            ax.plot(di[0], 1.0e-4*di[1], marker=mk[j], mfc='w', ls=ls[j], label=ni) #, alpha=0.8)
 
 
     ax.set(xlabel='k [h/Mpc]', xscale='log')
-    ax.legend(fontsize=11)    
-    ax.set_ylabel(r'P$_{0}$ [Mpc/h]$^{3}$')
-    fig.savefig(fig_path, dpi=300, bbox_inches='tight')      
+    ax.legend(fontsize=12, frameon=False, ncol=2)   
+    ax.tick_params(direction='in', which='both', axis='both', right=True, top=True)    
+    ax.set_ylabel(r'P$_{0}$ [$10^{4}$ (Mpc/h)$^{3}$]')
+    #fig.savefig(fig_path, dpi=300, bbox_inches='tight')      
+    return ax
     
 
 def table_chi2methods():
@@ -1157,7 +1207,7 @@ def dpvp(fig_path):
     ngc1 = Spectra(cap='NGC', nside='512')
     ngc1.load('known', '1')
     
-    fig, ax = plt.subplots(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(8, 5))
     
 
     colors = ['#377eb8', '#ff7f00', '#4daf4a',
@@ -1190,17 +1240,19 @@ def dpvp(fig_path):
         m,b  = solve(x_, y_)            
 
 
-        ax.scatter(ngc1.pks[:, vs, j], ngc1.pks[:, 2, j], 2, marker='.', alpha=1., color=color, zorder=-10+j)
+        ax.scatter(1.0e-4*ngc1.pks[:, vs, j], 1.0e-4*ngc1.pks[:, 2, j], 2, marker='.', alpha=1., color=color, zorder=-10+j)
         if j == 0:
-            ax.scatter(x_, y_, 50, marker='s', fc='w', color=color, zorder=10)
+            ax.scatter(1.0e-4*x_, 1.0e-4*y_, 50, marker='s', fc='w', color=color, zorder=10)
 
-        ax.plot(x_plot, m*x_plot + b, ls=ls[j], color=color, lw=3., alpha=.9, label=f'k = {ngc1.k[j]:.3f} h/Mpc', zorder=-20+j)
+        ax.plot(1.0e-4*x_plot, 1.0e-4*(m*x_plot + b), ls=ls[j], 
+                color=color, lw=3., alpha=.9, label=f'k = {ngc1.k[j]:.3f} h/Mpc', zorder=-20+j)
         print(ngc1.k[j], m, b) 
 
 
-    ax.set(xlabel=r'P$_{0, {\rm Truth}}$ [Mpc/h]$^{3}$', 
-           ylabel=r'$\Delta$P$_{0}$ [Mpc/h]$^{3}$')#ylim=(0., 10),
-    ax.legend(fontsize=15, handlelength=2.5, title='NGC EZmocks')
+    ax.set_xlabel(r'P$_{0, {\rm Truth}}$ [$10^{4}$(Mpc/h)$^{3}$]', fontsize=20)
+    ax.set_ylabel(r'$\Delta$P$_{0}$ [$10^{4}$(Mpc/h)$^{3}$]', fontsize=20)
+    ax.legend(fontsize=17, handlelength=2.5, frameon=False)
+    ax.text(0.1, 0.1, 'NGC EZmocks', color='grey', transform=ax.transAxes, fontsize=20)
     ax.tick_params(direction='in', which='both', top=True, right=True) 
     fig.savefig(fig_path, dpi=300, bbox_inches='tight')
     
@@ -1216,9 +1268,9 @@ def p0mocks(fig_path):
 
 
     ylabels = {#:r'P [Mpc/h]$^{3}$',
-               0:r'P$_{X}$-P$_{\rm Truth}$ [(Mpc/h)$^{3}$]',
+               0:r'P$_{X}$-P$_{\rm Truth}$ [$10^{4}$(Mpc/h)$^{3}$]',
                2:r'(P$_{X}$-P$_{\rm Truth}$)/|P$_{\rm Truth}|$', #[10$^{4}$ (Mpc/h)$^{3}$]
-               4:r'$\sigma$P$_{X}$ [(Mpc/h)$^{3}$]',
+               4:r'$\sigma$P$_{X}$ [$10^{4}$(Mpc/h)$^{3}$]',
                6:r'$\sigma$P$_{X}$/|P$_{X}$|'}
 
     for j,cap in enumerate(['NGC', 'SGC']):        
@@ -1235,11 +1287,12 @@ def p0mocks(fig_path):
                                  'Truth after NN']):
 
             k = pkm[method][:, 0]
-            ptruth = pkm[f'{cap}_null_standard_512'][:, 2]
-            dp = (pkm[method][:, 2]-ptruth)
-            dpr = (pkm[method][:, 2]-ptruth)/abs(ptruth)
-            sigP = np.sqrt(np.diagonal(covpk[method].item()['covp0']))[:]
-            sigPr = sigP / np.abs(pkm[method][:, 2])
+            ptruth = 1.0e-4*pkm[f'{cap}_null_standard_512'][:, 2]
+            pkm_ = 1.0e-4*pkm[method][:, 2]
+            dp = (pkm_-ptruth)
+            dpr = (pkm_-ptruth)/abs(ptruth)
+            sigP = 1.0e-4*np.sqrt(np.diagonal(covpk[method].item()['covp0']))[:]
+            sigPr = sigP / np.abs(pkm_)
 
             mk = '.' if method!=f'{cap}_null_standard_512' else 'None'
             for i,y in zip(axes,
@@ -1254,10 +1307,10 @@ def p0mocks(fig_path):
                 ax[axes[1]].fill_between(k, -sigP/abs(ptruth), sigP/abs(ptruth), alpha=0.1, zorder=-10, color='#377eb8')        
                 ax[axes[1]].fill_between(k, -sigP/np.sqrt(nmocks)/abs(ptruth), sigP/np.sqrt(nmocks)/abs(ptruth), 
                                          alpha=0.2, zorder=-8, color='#377eb8')
-    ax[1].legend()
+    ax[1].legend(frameon=False, fontsize=16)
     for i in range(8):
-        if i > 5:ax[i].set(xlabel=r'k [h/Mpc]')
-        if i%2==0:ax[i].set(ylabel=ylabels[i])
+        if i > 5:ax[i].set_xlabel(r'k [h/Mpc]', fontsize=19)
+        if i%2==0:ax[i].set_ylabel(ylabels[i], fontsize=19)
         ax[i].set_xscale('log')
         ax[i].tick_params(direction='in', which='both', right=True, top=True)
 
