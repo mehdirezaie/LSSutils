@@ -9,8 +9,8 @@ import logging
 
 
 import sys
-sys.path.append('/home/mehdi/github/LSSutils')
-from LSSutils.catalogs.combinefits import SysWeight, DesiCatalog
+sys.path.append('/home/mehdi/github/lssutils')
+from lssutils.catalogs.combinefits import SysWeight, DesiCatalog
 
 def main(mockid=1,
          method='nn',
@@ -114,7 +114,7 @@ if __name__ == '__main__':
 #    --version VERSION     eg: v0
 #    --versiono VERSIONO   eg: 0.1
 #
-    from LSSutils import setup_logging
+    from lssutils import setup_logging
     setup_logging('info')
 
     logger = logging.getLogger("Swapper")

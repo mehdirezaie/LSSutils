@@ -7,11 +7,11 @@ import healpy as hp
 import logging
 
 import sys
-sys.path.append('/home/mehdi/github/LSSutils')
-from LSSutils import setup_logging
-from LSSutils.catalogs.combinefits import hd5_2_fits
-from LSSutils.catalogs.datarelease import cols_dr8_rand
-from LSSutils.utils import hpixsum
+sys.path.append('/home/mehdi/github/lssutils')
+from lssutils import setup_logging
+from lssutils.catalogs.combinefits import hd5_2_fits
+from lssutils.catalogs.datarelease import cols_dr8_rand
+from lssutils.utils import hpixsum
 
 
 

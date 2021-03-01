@@ -1,0 +1,460 @@
+#!/bin/bash
+#SBATCH --job-name=ezpk512
+#SBATCH --account=PHS0336 
+#SBATCH --time=00:20:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=16
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=mr095415@ohio.edu
+
+# submit with 'qsub [name of the script]'
+# find out start time with 'showstart [job id]'
+# find stats of the queue with 'qstat -u medirz90'
+# delete job with 'qdel [job id]'
+# or with 'qstop [job id]'  
+# see the balance with 'OSCusage'
+
+
+#--- notes
+# aug 27: only main and known
+# run with 'qsub -t 1-9 -v iscont=1 eboss_ezmock_512.job'
+#---- environment variables and activation
+#set -x
+
+#module load cuda/10.1.168
+
+# manually add the path, later we will install the pipeline with `pip`
+source ${HOME}/.bashrc
+
+export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
+export NUMEXPR_MAX_THREADS=2
+source activate sysnet
+
+cd ${HOME}/github/LSSutils/scripts/analysis
+
+#mockid=0001
+iscont=0
+printf -v mockid "%04d" $SLURM_ARRAY_TASK_ID
+#iscont=$2 # use -v variable=value instead, see https://www.osc.edu/supercomputing/batch-processing-at-osc/job-submission
+
+# NOTE:in case some of jobs array failed
+# have the indices in indices.txt
+# SLURM_ARRAY_TASK_ID=5 # uncomment for test
+#mockid=$(sed "$SLURM_ARRAY_TASK_ID"'q;d' indices.txt)
+#printf -v mockid "%04d" ${mockid}
+
+echo ${mockid} ${iscont}
+
+#---- path to the codes
+prep=${HOME}/github/LSSutils/scripts/analysis/prepare_data_eboss.py
+nnfit=${HOME}/github/sysnetdev/scripts/app.py
+swap=${HOME}/github/LSSutils/scripts/analysis/swap_ezmock_eboss.py
+pk=${HOME}/github/LSSutils/scripts/analysis/run_pk.py
+nnbar=${HOME}/github/LSSutils/scripts/analysis/run_nnbar_eboss.py
+cl=${HOME}/github/LSSutils/scripts/analysis/run_cell_eboss.py
+
+#---- path to the data
+batchsize=4098
+nside=512
+l1=-1.0 # l1 regularization deactivated with <0
+nn_structure=(4 20) 
+# 'star_density', 'ebv', 'loghi', 'sky_g', 'sky_r', 'sky_i', 'sky_z', 
+# 'depth_g_minus_ebv','depth_r_minus_ebv', 'depth_i_minus_ebv', 'depth_z_minus_ebv', 
+# 'psf_g', 'psf_r', 'psf_i', 'psf_z',
+#  'run', 'airmass'
+axes_all=({0..16})
+axes_known=(0 7) # nstar, depth-g
+nepoch=150
+nchains=20
+version="v7" # real data was v7_2
+release="1.0"
+caps="SGC" # mocks do not have SGC
+slices="main" # low mid z1 z2 z3" # ezmocks do not have highz
+maps="known"  # known all
+table_name="ngal_eboss"
+data_dir=/fs/ess/PHS0336
+templates="${data_dir}/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5" # has the correct stellar SDSS
+templates2="${data_dir}/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside${nside}.h5" # has the right stellar Gaia (for data)
+eboss_dir="${data_dir}/data/${version}/"
+
+do_prep=false
+find_lr=false  # 3 min
+find_st=false  # 3 min
+find_ne=false  # 30 min
+do_nnfit=false # 16 h
+do_swap=true  # 1 min
+do_pk=true    # 4 min
+do_nnbar=false  # 4 min
+do_cl=false      # 10 min
+do_default=true
+do_nnbarfix=false
+
+#---- functions
+function get_datran(){
+    if [ $1 = 0 ]
+    then
+        dat=${eboss_dir}catalogs_raw/null/EZmock_eBOSS_QSO_${2}_v7_noweight_${mockid}.dat.fits
+        ran=${dat/.dat./.ran.}
+    else
+	dat=${eboss_dir}catalogs_raw/contaminated/EZmock_eBOSS_QSO_${2}_v7_${mockid}.dat.fits
+        ran=${dat/.dat./.ran.}
+    fi
+    echo ${dat} ${ran}
+}
+
+function get_lr() {
+    if [ $1 = "main" ]
+    then
+        lr=0.01
+    elif [ $1 = "highz" ]
+    then
+        lr=0.05
+    elif [ $1 = "low" ]
+    then
+        lr=0.04
+    elif [ $1 = "mid" ]
+    then
+        lr=0.04        
+    fi
+    echo $lr
+}
+
+function get_zlim(){
+    
+    if [ $1 = main ]
+    then
+        zlim='0.8 2.2'
+    elif [ $1 = highz ]
+    then
+        zlim='2.2 3.5'
+    fi
+    echo $zlim
+}
+
+function get_axes(){
+    if [ $1 = "all" ]
+    then
+        axes=${axes_all[@]}
+    elif [ $1 = "known" ]
+    then
+        axes=${axes_known[@]}
+    else
+        exit 
+    fi   
+    echo $axes
+}
+
+#---- run
+if [ "${do_prep}" = true ] # ~ 1 min
+then
+    for cap in $caps
+    do
+	read dat ran < <(get_datran $iscont $cap)
+
+        du -h $dat $ran $templates
+
+        output_path=${eboss_dir}${release}/${mockid}/${cap}/${iscont}/${nside}/
+        echo ${output_path}
+        srun -n 1 python $prep -d ${dat} -r ${ran} -s ${templates} -o ${output_path} -n ${nside} -sl ${slices}
+    done 
+fi
+
+if [ "${find_lr}" = true ]
+then
+    #---- neural net modeling
+    for cap in ${caps}
+    do
+        for slice in ${slices}
+        do
+        
+            input_dir=${eboss_dir}${release}/${mockid}/${cap}/${iscont}/${nside}/${slice}/      # output of 'do_prep'
+            input_path=${input_dir}${table_name}_${slice}_${nside}.fits
+            du -h ${input_path}
+
+            for map in ${maps}
+            do
+                axes=$(get_axes ${map})
+
+                output_path=${input_dir}nn_pnll_${map}/hp/
+                echo ${output_path}
+                srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -bs $batchsize -fl
+            done
+        done
+    done
+fi
+
+if [ "${find_st}" = true ]
+then
+    #---- neural net modeling
+    for cap in ${caps}
+    do
+        for slice in ${slices}
+        do
+            lr=$(get_lr ${slice})
+       
+            input_dir=${eboss_dir}${release}/${mockid}/${cap}/${iscont}/${nside}/${slice}/      # output of 'do_prep'
+            input_path=${input_dir}${table_name}_${slice}_${nside}.fits
+            du -h ${input_path}
+
+ 
+            for map in "known"
+            do
+                axes=$(get_axes ${map})
+
+                output_path=${input_dir}nn_pnll_${map}/hp/
+                echo ${output_path}
+                srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} \
+                      -lr  ${lr} -fs 
+            done
+        done
+    done
+fi
+
+if [ "${find_ne}" = true ]
+then
+    cap=NGC
+    slice=main
+
+    input_dir=${eboss_dir}${release}/${mockid}/${cap}/${iscont}/${nside}/${slice}/      # output of 'do_prep'
+    input_path=${input_dir}${table_name}_${slice}_${nside}.fits
+    du -h ${input_path}
+
+    lr=$(get_lr ${slice})
+
+    for map in "known"
+    do  
+        axes=$(get_axes ${map})
+
+        output_path=${input_dir}nn_pnll_${map}/hp/
+        echo ${output_path}
+        srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} \
+        -lr ${lr} -ne 300
+    done
+fi
+
+if [ "${do_nnfit}" = true ]
+then
+    #---- neural net modeling
+    for cap in ${caps}
+    do
+        for slice in ${slices}
+        do
+            lr=$(get_lr ${slice})
+
+            input_dir=${eboss_dir}${release}/${mockid}/${cap}/${iscont}/${nside}/${slice}/      # output of 'do_prep'
+            input_path=${input_dir}${table_name}_${slice}_${nside}.fits
+            du -h ${input_path}
+
+
+            for map in ${maps}
+            do
+                axes=$(get_axes ${map})
+                
+                output_path=${input_dir}nn_pnll_${map}
+                echo ${output_path}
+                srun -n 1 python $nnfit -i ${input_path} -o ${output_path} \
+                -ax ${axes}  -lr ${lr} --nn_structure ${nn_structure[@]} \
+                -ne $nepoch -nc $nchains -bs $batchsize --do_tar -k
+            done
+        done
+    done
+fi
+
+#conda deactivate
+#conda activate py3p6
+
+if [ "${do_swap}" = true ]
+then
+    for cap in ${caps}
+    do
+        for map in ${maps}
+        do
+            echo $cap $map
+            srun -n 1 python $swap -m ${map} -n ${nside} -s main highz -c ${cap} --idmock ${mockid} --iscont ${iscont}
+        done
+    done
+fi
+
+if [ "${do_pk}" = true ]
+then
+    for cap in ${caps}
+    do
+        for zrange in main # highz  # mocks do not have highz
+        do
+            zlim=$(get_zlim ${zrange})
+            
+            if [ "${do_default}" = true ]
+            then
+		    # default
+		    input_dir=${eboss_dir}
+		    output_dir=${eboss_dir}${release}/measurements/spectra/
+
+		    read dat ran < <(get_datran $iscont ${cap})
+
+		    out=${output_dir}spectra_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}.json
+		    du -h $dat $ran
+		    echo ${out} ${zlim}
+		    
+		    srun -n 8 python ${pk} -g $dat -r $ran -o $out --use_systot --zlim ${zlim}
+		    if [ $iscont = 1 ]
+		    then
+			out=${output_dir}spectra_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}.json
+			echo ${out}
+			srun -n 8 python ${pk} -g $dat -r $ran -o $out --zlim ${zlim}
+		    fi
+            fi 
+              
+            for map in ${maps}
+            do
+                # EZmock_eBOSS_QSO_NGC_known_mainhighz_512_v7_0_0001.dat.fits
+                input_dir=${eboss_dir}${release}/catalogs/
+                output_dir=${eboss_dir}${release}/measurements/spectra/
+
+                for sample in mainhighz
+                do
+                    dat=${input_dir}EZmock_eBOSS_QSO_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}.dat.fits
+                    ran=${dat/.dat./.ran.}
+                    out=${output_dir}spectra_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}_${zrange}.json
+                    du -h $dat $ran
+                    echo ${out}
+
+                    srun -n 8 python ${pk} -g $dat -r $ran -o $out --use_systot --zlim ${zlim}
+                done
+            done
+        done
+    done
+fi
+
+if [ "${do_nnbar}" = true ]
+then
+    for cap in ${caps}
+    do
+        for zrange in main # highz # mocks do not have high-z
+        do
+            zlim=$(get_zlim ${zrange})
+           
+            # default
+            input_dir=${eboss_dir}
+            output_dir=${eboss_dir}${release}/measurements/nnbar/
+
+	    read dat ran < <(get_datran $iscont ${cap})
+
+            out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+            du -h $dat $ran
+            echo ${out} ${zlim}
+            
+            mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -t ${templates2} -o $out --use_systot --zlim ${zlim}
+
+	    if [ $iscont = 1 ] # wo systot for cont. mocks
+	    then
+	        out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+                echo ${out}
+	        mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -t ${templates2} -o $out --zlim ${zlim}
+	    fi
+            
+	    continue # no need to do nnbar for mocks
+            for map in ${maps}
+            do
+                # EZmock_eBOSS_QSO_NGC_known_mainhighz_512_v7_0_0001.dat.fits 
+	        input_dir=${eboss_dir}${release}/catalogs/
+                output_dir=${eboss_dir}${release}/measurements/nnbar/
+
+                for sample in mainhighz
+                do
+                    dat=${input_dir}EZmock_eBOSS_QSO_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}.dat.fits
+                    ran=${dat/.dat./.ran.}
+                    out=${output_dir}nnbar_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+                    du -h $dat $ran
+                    echo ${out}
+                    
+		    mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
+                done
+            done
+        done
+    done
+fi
+
+if [ "${do_cl}" = true ]
+then
+    for cap in ${caps}
+    do
+        for zrange in main # highz # mocks do not have high-z
+        do
+            zlim=$(get_zlim ${zrange})
+           
+            # default
+            input_dir=${eboss_dir}
+            output_dir=${eboss_dir}${release}/measurements/cl/
+
+	    read dat ran < <(get_datran $iscont ${cap})
+
+            out=${output_dir}cl_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+            du -h $dat $ran
+            echo ${out} ${zlim}
+            mpiexec -ppn 8 python ${cl} -d $dat -r $ran -t ${templates2} -o $out --use_systot --zlim ${zlim} --cross_only
+
+	    if [ $iscont = 1 ] # wo systot for cont. mocks
+	    then
+	        out=${output_dir}cl_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+                echo ${out}
+	        mpiexec -ppn 8 python ${cl} -d $dat -r $ran -t ${templates2} -o $out --zlim ${zlim} --cross_only
+	    fi
+            
+	    continue # no need to do nnbar for mocks
+            for map in ${maps}
+            do
+                # EZmock_eBOSS_QSO_NGC_known_mainhighz_512_v7_0_0001.dat.fits 
+	        input_dir=${eboss_dir}${release}/catalogs/
+                output_dir=${eboss_dir}${release}/measurements/cl/
+
+                for sample in mainhighz
+                do
+                    dat=${input_dir}EZmock_eBOSS_QSO_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}.dat.fits
+                    ran=${dat/.dat./.ran.}
+                    out=${output_dir}cl_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+                    du -h $dat $ran
+                    echo ${out}
+                    
+		    mpiexec -ppn 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim} --cross_only
+                done
+            done
+        done
+    done
+fi
+
+
+
+if [ "${do_nnbarfix}" = true ]
+then
+    for cap in ${caps}
+    do
+        for zrange in main # highz # mocks do not have high-z
+        do
+            zlim=$(get_zlim ${zrange})
+           
+            # default
+            input_dir=${eboss_dir}
+            input_dir1=${eboss_dir}${release}/measurements/nnbar_nov15/
+            output_dir=${eboss_dir}${release}/measurements/nnbar/
+		
+	    read dat ran < <(get_datran $iscont $cap )
+
+            out=${output_dir}nnbar_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+            inpn=${input_dir1}nnbar_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+
+	    du -h $dat $ran $inpn
+            echo ${out} ${zlim}
+            
+	    python run_nbar_gaia.py $dat $inpn $out
+            #mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -t ${templates} -o $out --use_systot --zlim ${zlim}
+
+	    if [ $iscont = 1 ] # wo systot for cont. mocks
+	    then
+	        out=${output_dir}nnbar_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}_${nside}.npy
+                echo ${out}
+	        mpiexec -ppn 8 python ${nnbar} -d $dat -r $ran -t ${templates} -o $out --zlim ${zlim}
+	    fi
+            
+        done
+    done
+fi

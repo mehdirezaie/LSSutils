@@ -14,9 +14,8 @@ ss/sysmaps/;echo $chunk is done;done
 for id in dr3 dr3_utah_ngc dr5-eboss dr5-eboss2; do python make_sysmaps.py --survey eBOSS --dr ${id} --localdir /Volumes/TimeMachine/data/eboss/sysmaps/;echo ${id} is done;done    
 '''
 
-import sys
-sys.path.append('/Users/rezaie/github/LSSutils')
-import LSSutils.extrn.quicksip.qsdriver as qsdriver
+import os
+import lssutils.extrn.quicksip.qsdriver as qsdriver
 from argparse import ArgumentParser
 
 ap = ArgumentParser(description='systematic maps generating routine')
@@ -26,6 +25,10 @@ ap.add_argument('--localdir', default='/global/cscratch1/sd/mehdi/dr5_anand/sysm
 ap.add_argument('--nside', default=256, type=int)
 ap.add_argument('--bands', nargs='*', type=str, default=['r','g','z'])
 ns = ap.parse_args()
+
+if not os.path.exists(ns.localdir):
+    os.makedirs(ns.localdir)
+    print(f'created {ns.localdir}')
 
 
 verbose=False

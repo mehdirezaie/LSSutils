@@ -22,12 +22,11 @@ if rank ==0:
     import os
     from argparse import ArgumentParser
     ap = ArgumentParser(description='Correlation Function (NBODYKIT/Corrfunc)')
-    ap.add_argument('--galaxy_path',  default='/Volumes/TimeMachine/data/eboss/v6/eBOSS_QSO_clustering_NGC_v6.dat.fits')
-    ap.add_argument('--random_path',  default='/Volumes/TimeMachine/data/eboss/v6/eBOSS_QSO_clustering_NGC_v6.ran.fits')
-    ap.add_argument('--output_path',  default='/Volumes/TimeMachine/data/eboss/v6/results_ngc/clustering/xi_256_p8_2p2.json')
-    ap.add_argument('--nmesh',        default=256, type=int)
+    ap.add_argument('-g', '--galaxy_path',  default='/Volumes/TimeMachine/data/eboss/v6/eBOSS_QSO_clustering_NGC_v6.dat.fits')
+    ap.add_argument('-r', '--random_path',  default='/Volumes/TimeMachine/data/eboss/v6/eBOSS_QSO_clustering_NGC_v6.ran.fits')
+    ap.add_argument('-o', '--output_path',  default='/Volumes/TimeMachine/data/eboss/v6/results_ngc/clustering/xi_256_p8_2p2.json')
     ap.add_argument('--zlim',         nargs='*',   type=float, default=[0.8, 2.2])
-    ap.add_argument('--sys_tot',      action='store_true')
+    ap.add_argument('--use_systot',      action='store_true')
     ns = ap.parse_args()
 
     outpath1 = ns.output_path.split('/')
@@ -44,23 +43,20 @@ if rank ==0:
     random_path = ns.random_path
     output_path = ns.output_path
     zlim        = ns.zlim
-    nmesh       = ns.nmesh
-    sys_tot      = ns.sys_tot 
+    use_systot      = ns.use_systot 
 else:
     galaxy_path = None
     random_path = None
     output_path = None
     zlim        = None
-    nmesh       = None
-    sys_tot     = None
+    use_systot     = None
 
 
 galaxy_path = comm.bcast(galaxy_path, root=0)
 random_path = comm.bcast(random_path, root=0)
 output_path = comm.bcast(output_path, root=0)
 zlim = comm.bcast(zlim, root=0) 
-nmesh = comm.bcast(nmesh, root=0)
-sys_tot = comm.bcast(sys_tot, root=0)  
+use_systot = comm.bcast(use_systot, root=0)  
 
 # 
 data    = nb.FITSCatalog(galaxy_path)
@@ -103,7 +99,7 @@ randoms  = randoms[valid]
 cosmo = Cosmology(h=0.676).match(Omega0_m=0.31)
 
 # apply the Completeness weights to both data and randoms
-if sys_tot:
+if use_systot:
     if rank ==0:print('including sys_tot')
     data['WEIGHT'] = data['WEIGHT_SYSTOT'] * data['WEIGHT_NOZ'] * data['WEIGHT_CP'] * data['WEIGHT_FKP']  
 else:
@@ -146,7 +142,7 @@ if rank==0:
         # write the attributes
         for k in results.attrs:
             if k=='edges':
-               continue
+                continue
             of.write(f'#{k:20s} : {results.attrs[k]}\n')
         
         of.write('# r_mid - xi_0 - xi_1 - xi_2 - xi_3 - xi_4\n')

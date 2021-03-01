@@ -20,11 +20,11 @@ import numpy as np
 from time import time
 home = os.getenv("HOME")
 sys.path.append(home + '/github/SYSNet/src')
-sys.path.append(home + '/github/LSSutils')
+sys.path.append(home + '/github/lssutils')
 
 
-from LSSutils import setup_logging, CurrentMPIComm
-from LSSutils.lab import MeanDensity, get_cl        
+from lssutils import setup_logging, CurrentMPIComm
+from lssutils.lab import MeanDensity, get_cl        
 
 
 if not sys.warnoptions:
@@ -36,7 +36,7 @@ if not sys.warnoptions:
 # size = comm.Get_size()
 # rank = comm.Get_rank()
 
-from LSSutils import CurrentMPIComm
+from lssutils import CurrentMPIComm
 comm = CurrentMPIComm.get()
 rank = comm.rank
 size = comm.size

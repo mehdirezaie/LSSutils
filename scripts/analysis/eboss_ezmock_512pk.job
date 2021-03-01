@@ -1,0 +1,143 @@
+#PBS -N ezpk512
+#PBS -l nodes=1:ppn=16
+#PBS -l walltime=00:30:00
+#PBS -j oe
+#PBS -A PHS0336 
+
+# submit with 'qsub [name of the script]'
+# find out start time with 'showstart [job id]'
+# find stats of the queue with 'qstat -u medirz90'
+# delete job with 'qdel [job id]'
+# or with 'qstop [job id]'  
+# see the balance with 'OSCusage'
+
+
+#--- notes
+# aug 27: only main and known
+# run with 'qsub -t 1-9 -v iscont=1 eboss_ezmock_512.job'
+#---- environment variables and activation
+#set -x
+
+
+# manually add the path, later we will install the pipeline with `pip`
+source ${HOME}/.bashrc
+
+export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
+export NUMEXPR_MAX_THREADS=2
+source activate sysnet
+
+cd ${HOME}/github/LSSutils/scripts/analysis
+
+#mockid=0101
+#iscont=0
+printf -v mockid "%04d" $PBS_ARRAYID
+#iscont=$2 # use -v variable=value instead, see https://www.osc.edu/supercomputing/batch-processing-at-osc/job-submission
+
+# NOTE:in case some of jobs array failed
+# have the indices in indices.txt
+# PBS_ARRAYID=5 # uncomment for test
+#mockid=$(sed "$PBS_ARRAYID"'q;d' indices.txt)
+#printf -v mockid "%04d" ${mockid}
+
+echo ${mockid} ${iscont}
+
+#---- path to the codes
+pk=${HOME}/github/LSSutils/scripts/analysis/run_pk2.py
+
+#---- path to the data
+nside=512
+dk=0.01
+cosmology="boss2"
+version="v7" # real data was v7_2
+release="1.0"
+release2="2.0"
+caps="NGC" # mocks do not have SGC
+slices="main" # low mid z1 z2 z3" # ezmocks do not have highz
+maps="all"  # known all
+table_name="ngal_eboss"
+data_dir=/fs/ess/PHS0336
+templates="${data_dir}/data/templates/SDSS_WISE_HI_imageprop_nside${nside}.h5"
+eboss_dir="${data_dir}/data/${version}/"
+
+do_pk=true    # 4 min
+do_default=false
+
+#---- functions
+function get_datran(){
+    if [ $1 = 0 ]
+    then
+        dat=${eboss_dir}catalogs_raw/null/EZmock_eBOSS_QSO_${caps}_v7_noweight_${mockid}.dat.fits
+        ran=${dat/.dat./.ran.}
+    else
+	dat=${eboss_dir}catalogs_raw/contaminated/EZmock_eBOSS_QSO_${caps}_v7_${mockid}.dat.fits
+        ran=${dat/.dat./.ran.}
+    fi
+    echo ${dat} ${ran}
+}
+
+
+function get_zlim(){
+    
+    if [ $1 = main ]
+    then
+        zlim='0.8 2.2'
+    elif [ $1 = highz ]
+    then
+        zlim='2.2 3.5'
+    fi
+    echo $zlim
+}
+
+
+
+if [ "${do_pk}" = true ]
+then
+    for cap in ${caps}
+    do
+        for zrange in main # highz  # mocks do not have highz
+        do
+            zlim=$(get_zlim ${zrange})
+            
+            if [ "${do_default}" = true ]
+            then
+		    # default
+		    input_dir=${eboss_dir}
+		    output_dir=${eboss_dir}${release2}/measurements/spectra/
+
+		    read dat ran < <(get_datran $iscont)
+
+		    out=${output_dir}spectra_${cap}_knownsystot_mainhighz_512_v7_${iscont}_${mockid}_${zrange}.json
+		    du -h $dat $ran
+		    echo ${out} ${zlim}
+		    
+		    mpiexec -ppn 8 python ${pk} -g $dat -r $ran -o $out --use_systot --zlim ${zlim} --dk ${dk} --cosmo ${cosmology} 
+		    if [ $iscont = 1 ]
+		    then
+			out=${output_dir}spectra_${cap}_noweight_mainhighz_512_v7_${iscont}_${mockid}_${zrange}.json
+			echo ${out}
+			mpiexec -ppn 8 python ${pk} -g $dat -r $ran -o $out --zlim ${zlim} --dk ${dk} --cosmo ${cosmology} 
+
+		    fi
+            fi 
+             
+            for map in ${maps}
+            do
+                # EZmock_eBOSS_QSO_NGC_known_mainhighz_512_v7_0_0001.dat.fits
+                input_dir=${eboss_dir}${release}/catalogs/
+                output_dir=${eboss_dir}${release2}/measurements/spectra/
+
+                for sample in mainhighz
+                do
+                    dat=${input_dir}EZmock_eBOSS_QSO_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}.dat.fits
+                    ran=${dat/.dat./.ran.}
+                    out=${output_dir}spectra_${cap}_${map}_${sample}_${nside}_v7_${iscont}_${mockid}_${zrange}.json
+                    du -h $dat $ran
+                    echo ${out}
+
+                    mpiexec -ppn 8 python ${pk} -g $dat -r $ran -o $out --use_systot --zlim ${zlim} --dk ${dk} --cosmo ${cosmology} 
+
+                done
+            done
+        done
+    done
+fi
