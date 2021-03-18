@@ -11,10 +11,11 @@ make_maps=${HOME}/github/LSSutils/scripts/systematic_maps/make_sysmaps.py
 combine_fits=${HOME}/github/LSSutils/scripts/systematic_maps/combine_fits.py
 
 dr=$1
+nside=1024
 
 
-do_maps=false
-do_combine=true
+do_maps=true
+do_combine=false
 
 
 if [ $do_maps = true ]
@@ -22,7 +23,7 @@ then
     if [ $dr = "dr8" ]
     then
         # enter the address to write the maps
-        address=/Volumes/TimeMachine/data/DR8/
+        #address=/Volumes/TimeMachine/data/DR8/
         
         #
         # First two loops took 1143m55.753s 
@@ -31,27 +32,31 @@ then
         # we create separate maps for debugging purposes
         # took 150 min
 
-        for DR in dr8_combined decam-dr8
-          do 
-             #du -h /Volumes/TimeMachine/data/DR8/ccds/ccds-annotated-${DR}.fits
-             time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 128
-             time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 256
-             time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 512
-        done
+        #for DR in dr8_combined decam-dr8
+        #  do 
+        #     #du -h /Volumes/TimeMachine/data/DR8/ccds/ccds-annotated-${DR}.fits
+        #     time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 128
+        #     time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 256
+        #     time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 512
+        #done
 
-        for DR in 90prime-new
-          do 
-             time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 128 --bands r g
-             time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 256 --bands r g
-             time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 512 --bands r g
-        done
+        #for DR in 90prime-new
+        #  do 
+        #     time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 128 --bands r g
+        #     time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 256 --bands r g
+        #     time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 512 --bands r g
+        #done
 
-        for DR in mosaic-dr8
-          do 
-             time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 128 --bands z
-             time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 256 --bands z
-             time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 512 --bands z
-        done
+        #for DR in mosaic-dr8
+        #  do 
+        #     time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 128 --bands z
+        #     time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 256 --bands z
+        #     time python $make_maps --survey DECaLS --dr ${DR} --localdir $address --nside 512 --bands z
+        #done
+        input=/home/mehdi/data/templates/ccds/dr8/ccds-annotated-dr8_combined.fits
+        output=/home/mehdi/data/templates/dr8/
+        time python $make_maps -i $input -o $output -n $nside --name dr8m
+
     elif [ $dr = "dr9" ]
     then
         address=/home/mehdi/data/templates/dr9/

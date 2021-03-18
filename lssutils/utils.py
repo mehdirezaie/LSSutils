@@ -1986,6 +1986,93 @@ def split_jackknife_strip(hpix, weight, njack=20):
     return hpix_L, w_L, remainder      
         
 
+def split_continuous(hpix, weight, label, features, njack=20):
+    '''
+        split_jackknife(hpix, weight, label, features, njack=20)
+        split healpix-format data into k equi-area regions
+        hpix: healpix index shape = (N,)
+        weight: weight associated to each hpix
+        label: label associated to each hpix
+        features: features associate to each pixel shape=(N,M)
+    '''
+    f = weight.sum() // njack
+    hpix_L = []
+    hpix_l = []
+    frac_L = []
+    frac    = 0
+    label_L = []
+    label_l = []
+    features_L = []
+    features_l = []
+    w_L = []
+    w_l = []
+    #
+    #
+    for i in range(hpix.size):
+        frac += weight[i]
+        hpix_l.append(hpix[i])
+        label_l.append(label[i])
+        w_l.append(weight[i])
+        features_l.append(features[i])
+        #
+        #
+        if frac >= f:
+            hpix_L.append(hpix_l)
+            frac_L.append(frac)
+            label_L.append(label_l)
+            w_L.append(w_l)
+            features_L.append(features_l)
+            frac    = 0
+            features_l  = []
+            w_l     = []
+            hpix_l = []
+            label_l = []
+        elif (i == hpix.size-1) and (frac > 0.9*f):
+            hpix_L.append(hpix_l)
+            frac_L.append(frac)
+            label_L.append(label_l)
+            w_L.append(w_l)
+            features_L.append(features_l)
+    return hpix_L, w_L, label_L, features_L #, frac_L
+
+def concatenate(A, ID):
+    # combine A[i] regions for i in ID
+    AA = [A[i] for i in ID]
+    return np.concatenate(AA)
+
+def combine(hpix, fracgood, label, features, DTYPE, IDS):
+    # uses concatenate(A,ID) to combine different attributes
+    size = np.sum([len(hpix[i]) for i in IDS])
+    zeros = np.zeros(size, dtype=DTYPE)
+    zeros['hpix']     = concatenate(hpix, IDS)
+    zeros['fracgood'] = concatenate(fracgood, IDS)
+    zeros['features'] = concatenate(features, IDS)
+    zeros['label']    = concatenate(label, IDS)
+    return zeros
+
+
+def split2KfoldsSpatially(data, k=5, shuffle=True, random_seed=42):
+    '''
+        split data into k contiguous regions
+        for training, validation and testing
+    '''
+    P, W, L, F = split_continuous(data['hpix'],data['fracgood'],
+                                data['label'], data['features'],
+                                 njack=k)
+    DTYPE = data.dtype
+    np.random.seed(random_seed)
+    kfold = KFold(k, shuffle=shuffle, random_state=random_seed)
+    index = np.arange(k)
+    kfold_data = {'test':{}, 'train':{}, 'validation':{}}
+    arrs = P, W, L, F, DTYPE
+    for i, (nontestID, testID) in enumerate(kfold.split(index)):
+        foldname = 'fold'+str(i)
+        validID  = np.random.choice(nontestID, size=testID.size, replace=False)
+        trainID  = np.setdiff1d(nontestID, validID)
+        kfold_data['test'][foldname]       = combine(*arrs, testID)
+        kfold_data['train'][foldname]      = combine(*arrs, trainID)
+        kfold_data['validation'][foldname] = combine(*arrs, validID)
+    return kfold_data
 
 class DR8templates:
     
@@ -2596,93 +2683,7 @@ class EbossCatalogOld:
 
 
 
-# def split_jackknife(hpix, weight, label, features, njack=20):
-#     '''
-#         split_jackknife(hpix, weight, label, features, njack=20)
-#         split healpix-format data into k equi-area regions
-#         hpix: healpix index shape = (N,)
-#         weight: weight associated to each hpix
-#         label: label associated to each hpix
-#         features: features associate to each pixel shape=(N,M)
-#     '''
-#     f = weight.sum() // njack
-#     hpix_L = []
-#     hpix_l = []
-#     frac_L = []
-#     frac    = 0
-#     label_L = []
-#     label_l = []
-#     features_L = []
-#     features_l = []
-#     w_L = []
-#     w_l = []
-#     #
-#     #
-#     for i in range(hpix.size):
-#         frac += weight[i]
-#         hpix_l.append(hpix[i])
-#         label_l.append(label[i])
-#         w_l.append(weight[i])
-#         features_l.append(features[i])
-#         #
-#         #
-#         if frac >= f:
-#             hpix_L.append(hpix_l)
-#             frac_L.append(frac)
-#             label_L.append(label_l)
-#             w_L.append(w_l)
-#             features_L.append(features_l)
-#             frac    = 0
-#             features_l  = []
-#             w_l     = []
-#             hpix_l = []
-#             label_l = []
-#         elif (i == hpix.size-1) and (frac > 0.9*f):
-#             hpix_L.append(hpix_l)
-#             frac_L.append(frac)
-#             label_L.append(label_l)
-#             w_L.append(w_l)
-#             features_L.append(features_l)
-#     return hpix_L, w_L, label_L, features_L #, frac_L
 
-# def concatenate(A, ID):
-#     # combine A[i] regions for i in ID
-#     AA = [A[i] for i in ID]
-#     return np.concatenate(AA)
-
-# def combine(hpix, fracgood, label, features, DTYPE, IDS):
-#     # uses concatenate(A,ID) to combine different attributes
-#     size = np.sum([len(hpix[i]) for i in IDS])
-#     zeros = np.zeros(size, dtype=DTYPE)
-#     zeros['hpix']     = concatenate(hpix, IDS)
-#     zeros['fracgood'] = concatenate(fracgood, IDS)
-#     zeros['features'] = concatenate(features, IDS)
-#     zeros['label']    = concatenate(label, IDS)
-#     return zeros
-
-
-# def split2KfoldsSpatially(data, k=5, shuffle=True, random_seed=123):
-#     '''
-#         split data into k contiguous regions
-#         for training, validation and testing
-#     '''
-#     P, W, L, F = split_jackknife(data['hpix'],data['fracgood'],
-#                                 data['label'], data['features'],
-#                                  njack=k)
-#     DTYPE = data.dtype
-#     np.random.seed(random_seed)
-#     kfold = KFold(k, shuffle=shuffle, random_state=random_seed)
-#     index = np.arange(k)
-#     kfold_data = {'test':{}, 'train':{}, 'validation':{}}
-#     arrs = P, W, L, F, DTYPE
-#     for i, (nontestID, testID) in enumerate(kfold.split(index)):
-#         foldname = 'fold'+str(i)
-#         validID  = np.random.choice(nontestID, size=testID.size, replace=False)
-#         trainID  = np.setdiff1d(nontestID, validID)
-#         kfold_data['test'][foldname]       = combine(*arrs, testID)
-#         kfold_data['train'][foldname]      = combine(*arrs, trainID)
-#         kfold_data['validation'][foldname] = combine(*arrs, validID)
-#     return kfold_data
 
 
 

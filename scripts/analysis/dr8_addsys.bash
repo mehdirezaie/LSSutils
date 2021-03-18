@@ -17,12 +17,12 @@ axes=({0..26})
 #  'mjd_r_min', 'mjd_g_min', 'mjd_z_min', 
 # 'galdepth_g','galdepth_r', 'galdepth_z', 
 # 'psfsize_g', 'psfsize_r', 'psfsize_z'
-nchains=1  # 25 for NN-MSE, 1 NN-MSE-snapshot / NN-Jackknife
-nepochs=125 # 70 for NN-MSE/NN-Jackknife, 125 for NN-MSE-snapshot
+nchains=25  # 25 for NN-MSE, 1 NN-MSE-snapshot / NN-Jackknife
+nepochs=70 # 70 for NN-MSE/NN-Jackknife, 125 for NN-MSE-snapshot
 lr=0.2  # NN-MSE
 #lr=0.7   # Lin-MSE
 etamin=0.001
-input_path=/home/mehdi/data/tanveer/dr8_elg_0.32.0_256.fits
+#input_path=/home/mehdi/data/tanveer/dr8_elg_0.32.0_256.fits
 #input_dir=/home/mehdi/data/tanveer/jackknife/25/
 
 #output_path=/home/mehdi/data/tanveer/elg_mse/
@@ -33,7 +33,7 @@ output_path=/home/mehdi/data/tanveer/elg_mse_snapshots_bc/
 find_lr=false
 find_st=false
 find_ne=false
-do_nnfit=true
+do_nnfit=false
 
 
 #---- path to the codes
@@ -53,8 +53,8 @@ then
     du -h ${input_path}
     output_path=${output_path}hp/
     echo ${output_path}
-    #python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -fl 
-    python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model lin --loss mse -fl 
+    python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -fl 
+    #python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model lin --loss mse -fl 
 fi
 
 if [ "${find_st}" = true ]
@@ -96,4 +96,13 @@ then
 #         python $nnfit -i ${input_path} -o ${output_path_jk} -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k -bs 5000
 #     done
 fi
+
+
+
+#python $nnfit -i /home/mehdi/data/tanveer/test_split/dr8split_continous.npy -o /home/mehdi/data/tanveer/test_split/continous/ -ax ${axes[@]} --model dnn --loss mse -fl
+#python $nnfit -i /home/mehdi/data/tanveer/test_split/dr8split_random.npy -o /home/mehdi/data/tanveer/test_split/random/ -ax ${axes[@]} --model dnn --loss mse -fl
+
+
+python $nnfit -i /home/mehdi/data/tanveer/test_split/dr8split_continous.npy -o /home/mehdi/data/tanveer/test_split/continous/ -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k
+python $nnfit -i /home/mehdi/data/tanveer/test_split/dr8split_random.npy -o /home/mehdi/data/tanveer/test_split/random/ -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k
 
