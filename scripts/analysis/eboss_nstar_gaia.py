@@ -9,7 +9,7 @@ import healpy as hp
 
 
 
-from lssutils.extrn.GalacticForegrounds.hpmaps import Gaia
+from lssutils.extrn.galactic.hpmaps import Gaia
 ns = Gaia(nside_out=512)
 nstarg = ns.nstar
 

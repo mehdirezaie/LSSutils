@@ -27,7 +27,14 @@ from matplotlib.colors import ListedColormap
 
 #from .utils import binit, binit_jac, radec2hpix
 
-
+def setup_color():
+    from cycler import cycler
+    colors = ['#377eb8', '#ff7f00', '#4daf4a',
+              '#f781bf', '#a65628', '#984ea3',
+              '#999999', '#e41a1c']
+    styles = 2*['-', '--', '-.', ':']
+    plt.rc('axes', prop_cycle=(cycler('color', colors)+cycler('linestyle', styles)))
+    
 def shiftedColorMap(cmap, start=0, midpoint=0.5, stop=1.0, name='shiftedcmap'):
     '''
     credit: https://stackoverflow.com/a/20528097

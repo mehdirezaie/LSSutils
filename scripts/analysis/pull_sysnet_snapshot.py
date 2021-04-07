@@ -10,12 +10,13 @@ import numpy as np
 from astropy.table import Table
 from glob import glob
 
-templates = ft.read(f'/home/mehdi/data/tanveer/dr8_elg_0.32.0_256.fits')
+#templates = ft.read(f'/home/mehdi/data/tanveer/dr8_elg_0.32.0_256.fits')
+templates = ft.read(f'/home/mehdi/data/tanveer/dr8_elg_ccd_1024.fits')   # nside=1024
 
 
 nfolds = 5 
-num_features = 27
-nnstruct = (4, 20)
+num_features = 21 # nside=1024, 27 for nside=256
+nnstruct = (3, 20)
 
 
 nnw = []
@@ -29,12 +30,12 @@ for p in range(nfolds):
 
     img_data = ImagingData(templates, stats[p])
     dataloader = DataLoader(MyDataSet(img_data.x, img_data.y, img_data.p, img_data.w),
-                             batch_size=4098,
+                             batch_size=100000,
                              shuffle=False,
-                             num_workers=0)
+                             num_workers=4)
 
     chcks = glob(f'/home/mehdi/data/tanveer/elg_mse_snapshots/model_{p}_*/snapshot_*.pth.tar')
-    #print(chcks[:2], len(chcks), p)
+    print(chcks[:2], len(chcks), p)
     for chck in chcks:        
         model = DNN(*nnstruct, input_dim=num_features)
         checkpoint = load_checkpoint(chck, model)

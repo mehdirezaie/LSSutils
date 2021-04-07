@@ -470,7 +470,8 @@ def nbar_covmax(fig_path, cap='NGC', nside=512):
 def nnbarchi2pdf_mocks_data(fig_path, cap='NGC', 
                             xlim1=(40., 300.), xlim2=(2400., 2800.),
                             xticks2=[2500, 2700],
-                            ix=None):
+                            ix=None,
+                           add_text=False):
     from glob import glob
     from matplotlib.gridspec import GridSpec
     from scipy.special import gamma
@@ -502,9 +503,9 @@ def nnbarchi2pdf_mocks_data(fig_path, cap='NGC',
         nnbar_ = read_nnbar(path, ix)
         return chi2_fn(nnbar_, invcov)
         
-    def get_chi2t_mocks(nside, cap, ix):
+    def get_chi2t_mocks(nside, cap, ix, method, iscont):
         path_ = '/home/mehdi/data/eboss/mocks/1.0/measurements/nnbar/'
-        mocks = glob(f'{path_}nnbar_{cap}_knownsystot_mainhighz_512_v7_0_*_main_{nside}.npy')
+        mocks = glob(f'{path_}nnbar_{cap}_{method}_mainhighz_512_v7_{iscont}_*_main_{nside}.npy')
         print('len(nbars):', len(mocks), cap)
         nmocks = len(mocks)
         err_tot = []
@@ -536,14 +537,20 @@ def nnbarchi2pdf_mocks_data(fig_path, cap='NGC',
         return np.array(chi2s), invcov_
 
     # read covariance matrix
-    chi2mocks, invcov = get_chi2t_mocks('512', cap, ix)
-    print(np.percentile(chi2mocks, [0, 1, 5, 95, 99, 100]))
+    chi2mocks = {}
+    chi2mocks['Null (Truth)'], invcov = get_chi2t_mocks('512', cap, ix, 'knownsystot', '0')
+    chi2mocks['Null after NN'] = get_chi2t_mocks('512', cap, ix, 'known', '0')[0]
+    chi2mocks['Cont'] = get_chi2t_mocks('512', cap, ix, 'noweight', '1')[0]
+    chi2mocks['Cont after NN'] = get_chi2t_mocks('512', cap, ix, 'known', '1')[0]
+    chi2mocks['Cont after Standard'] = get_chi2t_mocks('512', cap, ix, 'knownsystot', '1')[0]
+    
+    print(np.percentile(chi2mocks['Null (Truth)'], [0, 1, 5, 95, 99, 100]))
     
     path = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/nnbar/'
     chi2d = {}
-    chi2d['noweight'] = get_chi2t(f'{path}nnbar_{cap}_noweight_mainhighz_512_v7_2_main_512.npy', ix, invcov)
-    chi2d['standard'] = get_chi2t(f'{path}nnbar_{cap}_knownsystot_mainhighz_512_v7_2_main_512.npy', ix, invcov)
-    chi2d['nn'] = get_chi2t(f'{path}nnbar_{cap}_known_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['Data before treatment'] = get_chi2t(f'{path}nnbar_{cap}_noweight_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['Data after Standard'] = get_chi2t(f'{path}nnbar_{cap}_knownsystot_mainhighz_512_v7_2_main_512.npy', ix, invcov)
+    chi2d['Data after NN'] = get_chi2t(f'{path}nnbar_{cap}_known_mainhighz_512_v7_2_main_512.npy', ix, invcov)
     print(chi2d)
     
     fig = plt.figure(figsize=(8, 5))
@@ -561,48 +568,75 @@ def nnbarchi2pdf_mocks_data(fig_path, cap='NGC',
     ax2.set(xlim=xlim2, ylim=(0., 200.), xticks=xticks2)
     ax2.set_yticks([])
 
-    mu, std = np.mean(chi2mocks), np.std(chi2mocks)
+    mu, std = np.mean(chi2mocks['Null (Truth)']), np.std(chi2mocks['Null (Truth)'])
     print(f'{mu:.1f} +- {std:.1f}')
 
-    vmin, vmax = 0.9*min(chi2mocks), 1.1*max(chi2mocks)
-    bin_width = 3.5*std / np.power(len(chi2mocks), 1./3.) # Scott 1979
+
+    bin_width = 3.5*std / np.power(len(chi2mocks['Null (Truth)']), 1./3.) # Scott 1979
     print(bin_width)
-
-
+    vmin, vmax = 1.0e8, 0.0
+    
+    for n, chi2_v in chi2mocks.items():
+        vmin_ = min(chi2_v)
+        vmax_ = max(chi2_v)
+        print(n, vmin_, vmax_)
+        if vmin_ < vmin:
+            vmin = vmin_
+        if vmax_ > vmax:
+            vmax = vmax_
+        
     bins = np.arange(vmin, vmax, bin_width)
     #x_ = np.linspace(vmin, vmax, 200)
     #pdf = (1./np.sqrt(2*np.pi)/std)*np.exp(-0.5*((x_-mu)/std)**2)
     #pdf = chi2_pdf(x_, np.floor(mu))*bin_width*len(chi2mocks) 
     
     #ax1.plot(x_, pdf, 'b-')
-    ax1.hist(chi2mocks, bins=bins, 
-             alpha=0.3, color='b', label=f'{len(chi2mocks)} Null EZMocks', 
-             zorder=-10)
-
+    for n,v in chi2mocks.items():
+        ax1.hist(v, bins=bins, alpha=0.5, label=n)
+        
     kw2 = dict(rotation=90, fontsize=12)# fontsize, fontweight='bold'
     ls = ['--', '-.', ':']
+    vlines = []
+    lgnds = []
     for i, (n,v) in enumerate(chi2d.items()):    
-        ax_ = ax2 if n=='noweight' else ax1
-        ax_.axvline(v, zorder=-1, color='k', 
-                   ls=ls[i], alpha=0.5, lw=1) # label='Data %s'%n,
+        ax_ = ax2 if n=='Data before treatment' else ax1
+        vl = ax_.axvline(v, color='k', ls=ls[i], alpha=0.5, lw=1) # label='Data %s'%n,
+        vlines.append(vl)
+        
+        pval = 100*(chi2mocks['Null (Truth)'] > v).mean()
+        lgn =  fr'{n} = {v:.1f} ({pval:.1f}%)'
+        lgnds.append(lgn)
+        if add_text:ax_.text(1.001*v, 10, lgn, **kw2)
+        
+    if not add_text:    
+        leg2 = ax1.legend(vlines, lgnds, 
+                         loc='upper right', frameon=False, fontsize=12)
+        ax1.add_artist(leg2)    
+        
+        
+    lgnarg = dict(ncol=3,frameon=False,
+                 bbox_to_anchor=(0, 1.02, 1.35, 0.4), loc="lower left",
+                mode="expand", borderaxespad=0, fontsize=13)
 
-        pval = 100*(chi2mocks > v).mean()
-        ax_.text(1.001*v, 10, fr'Data ({n.upper()}) = {v:.1f} ({pval:.1f}%)', **kw2)
-
-    ax1.legend(loc='upper left', frameon=False)
+    leg = ax1.legend(**lgnarg)
+    for lh in leg.legendHandles: 
+        lh.set_alpha(1)
+    ax1.add_artist(leg)
 
     d = 0.01
     kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
     ax1.plot((1 - d/2, 1 + d/2), (-d, +d), **kwargs)  # bottom-left diagonal
+    ax1.plot((1 - d/2, 1 + d/2), (1-d, 1+d), **kwargs)  # bottom-left diagonal
     kwargs.update(transform=ax2.transAxes)            # switch to the bottom axes
     ax2.plot((-d/2, +d/2), (-d, +d), **kwargs)        # top-left diagonal
+    ax2.plot((-d/2, +d/2), (1-d, 1+d), **kwargs)        # top-left diagonal
     fig.savefig(fig_path, bbox_inches='tight')
 
 
 def cellchi2pdf_mocks_data(fig_path, cap='NGC', 
                             xlim1=(0., 1000.), xlim2=(2400., 2800.),
                             xticks2=[2500, 2700],
-                            ix=None):
+                            ix=None, add_text=False):
     from glob import glob
     from matplotlib.gridspec import GridSpec
     from scipy.special import gamma
@@ -645,49 +679,61 @@ def cellchi2pdf_mocks_data(fig_path, cap='NGC',
 
         return l_[:colmax], np.array(cl_cross)
     
+    def get_chi2mocks(cap, method, iscont, cl_sys):
+
+        # mocks
+        p = '/home/mehdi/data/eboss/mocks/1.0/measurements/cl/'
+        mocks = glob(f'{p}cl_{cap}_{method}_mainhighz_512_v7_{iscont}_*')
+        print(len(mocks))
+
+        clmocks = []
+        for mock_i in mocks:
+            clmock_ = read_clmocks(mock_i, cl_sys, colmax=4)[1]
+            clmocks.append(clmock_.flatten())
+        err_tot = np.array(clmocks)
+        nmocks, nbins = err_tot.shape
+        hartlapf = (nmocks-1. - 1.) / (nmocks-1. - nbins - 2.)
+        indices = [i for i in range(nmocks)]
+
+        # chi2 of mocks
+        chi2s = []
+        for i in range(nmocks):
+            indices_ = indices.copy()    
+            indices_.pop(i)
+
+            nbar_ = err_tot[i, :]
+            err_ = err_tot[indices_, :]    
+            covmax_ = np.cov(err_, rowvar=False)
+            invcov_ = np.linalg.inv(covmax_*hartlapf)
+
+            chi2_ = chi2_fn(nbar_, invcov_)
+            chi2s.append(chi2_)  
+        chi2mocks = np.array(chi2s)        
+        print(np.percentile(chi2mocks, [0, 1, 5, 95, 99, 100]))
+
+        # chi2 of data    
+        covmax_ = np.cov(err_tot, rowvar=False)
+        hartlapf = (nmocks - 1.) / (nmocks - nbins - 2.)
+        invcov_ = np.linalg.inv(covmax_*hartlapf)       
+        return chi2mocks, invcov_
+    
     # data
     p = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/cl/'
     cl = {}
-    cl['noweight'] = read_cl(f'{p}cl_{cap}_noweight_mainhighz_512_v7_2_main_512.npy', colmax=4)
-    cl['standard'] = read_cl(f'{p}cl_{cap}_knownsystot_mainhighz_512_v7_2_main_512.npy', colmax=4)
-    cl['nn'] = read_cl(f'{p}cl_{cap}_known_mainhighz_512_v7_2_main_512.npy', colmax=4)    
+    cl['Data before treatment'] = read_cl(f'{p}cl_{cap}_noweight_mainhighz_512_v7_2_main_512.npy', colmax=4)
+    cl['Data after Standard'] = read_cl(f'{p}cl_{cap}_knownsystot_mainhighz_512_v7_2_main_512.npy', colmax=4)
+    cl['Data after NN'] = read_cl(f'{p}cl_{cap}_known_mainhighz_512_v7_2_main_512.npy', colmax=4)    
     
-    print('ell=', cl['nn'][0])
-    # mocks
-    p = '/home/mehdi/data/eboss/mocks/1.0/measurements/cl/'
-    mocks = glob(f'{p}cl_{cap}_knownsystot_mainhighz_512_v7_0_*')
-    print(len(mocks))
+    print('ell=', cl['Data after NN'][0])
     
-    clmocks = []
-    for mock_i in mocks:
-        clmock_ = read_clmocks(mock_i, cl['nn'][2], colmax=4)[1]
-        clmocks.append(clmock_.flatten())        
-    err_tot = np.array(clmocks)
-    nmocks, nbins = err_tot.shape
-    hartlapf = (nmocks-1. - 1.) / (nmocks-1. - nbins - 2.)
-    indices = [i for i in range(nmocks)]
-
-    # chi2 of mocks
-    chi2s = []
-    for i in range(nmocks):
-        indices_ = indices.copy()    
-        indices_.pop(i)
-
-        nbar_ = err_tot[i, :]
-        err_ = err_tot[indices_, :]    
-        covmax_ = np.cov(err_, rowvar=False)
-        invcov_ = np.linalg.inv(covmax_*hartlapf)
-
-        chi2_ = chi2_fn(nbar_, invcov_)
-        chi2s.append(chi2_)  
-    chi2mocks = np.array(chi2s)        
-    print(np.percentile(chi2mocks, [0, 1, 5, 95, 99, 100]))
+    # read covariance matrix
+    chi2mocks = {}
+    chi2mocks['Null (Truth)'], invcov_ = get_chi2mocks(cap, 'knownsystot', '0', cl['Data after NN'][2])
+    chi2mocks['Null after NN'] = get_chi2mocks(cap, 'known', '0', cl['Data after NN'][2])[0]
+    chi2mocks['Cont'] = get_chi2mocks(cap, 'noweight', '1', cl['Data after NN'][2])[0]    
+    chi2mocks['Cont after NN'] = get_chi2mocks(cap, 'known', '1', cl['Data after NN'][2])[0]
+    chi2mocks['Cont after Standard'] = get_chi2mocks(cap, 'knownsystot', '1', cl['Data after NN'][2])[0]
         
-    # chi2 of data    
-    covmax_ = np.cov(err_tot, rowvar=False)
-    hartlapf = (nmocks - 1.) / (nmocks - nbins - 2.)
-    invcov_ = np.linalg.inv(covmax_*hartlapf)
-    
     chi2d = {}
     for i, (name, cl_) in enumerate(cl.items()):
         chi2d[name] = chi2_fn(cl_[1].flatten(), invcov_)
@@ -709,41 +755,69 @@ def cellchi2pdf_mocks_data(fig_path, cap='NGC',
     ax2.tick_params(left=False, which='both')
     ax2.set_yticks([])
 
-    mu, std = np.mean(chi2mocks), np.std(chi2mocks)
+    mu, std = np.mean(chi2mocks['Null (Truth)']), np.std(chi2mocks['Null (Truth)'])
     print(f'{mu:.1f} +- {std:.1f}')
 
-    vmin, vmax = 0.9*min(chi2mocks), 1.1*max(chi2mocks)
-    bin_width = 3.5*std / np.power(len(chi2mocks), 1./3.) # Scott 1979
-    print(bin_width)
 
+    bin_width = 3.5*std / np.power(len(chi2mocks['Null (Truth)']), 1./3.) # Scott 1979
+    print(bin_width)
+    vmin, vmax = 1.0e8, 0.0
+    
+    for n, chi2_v in chi2mocks.items():
+        vmin_ = min(chi2_v)
+        vmax_ = max(chi2_v)
+        print(n, vmin_, vmax_)
+        if vmin_ < vmin:
+            vmin = vmin_
+        if vmax_ > vmax:
+            vmax = vmax_
+        
     bins = np.arange(vmin, vmax, bin_width)
     #x_ = np.linspace(vmin, vmax, 200)
     #pdf = (1./np.sqrt(2*np.pi)/std)*np.exp(-0.5*((x_-mu)/std)**2)
     #pdf = chi2_pdf(x_, np.floor(mu))*bin_width*len(chi2mocks) 
     
-    #ax1.plot(x_, pdf, '-', color='orange')
-    ax1.hist(chi2mocks, bins=bins, 
-             alpha=0.3, color='orange', label=f'{nmocks} Null EZMocks', 
-             zorder=-10)
-
+    #ax1.plot(x_, pdf, 'b-')
+    for n,v in chi2mocks.items():
+        ax1.hist(v, bins=bins, alpha=0.5, label=n)
+        
     kw2 = dict(rotation=90, fontsize=12)# fontsize, fontweight='bold'
     ls = ['--', '-.', ':']
+    vlines = []
+    lgnds = []
     for i, (n,v) in enumerate(chi2d.items()):    
-        ax_ = ax2 if n=='noweight' else ax1
-        ax_.axvline(v, zorder=-1, color='k', 
-                   ls=ls[i], alpha=0.5, lw=1) # label='Data %s'%n,
-        pval = 100*(chi2mocks > v).mean()
-        ax_.text(1.0*v, 1, fr'Data ({n.upper()}) = {v:.1f} ({pval:.1f}%)', **kw2)
+        ax_ = ax2 if n=='Data before treatment' else ax1
+        vl = ax_.axvline(v, color='k', ls=ls[i], alpha=0.5, lw=1) # label='Data %s'%n,
+        vlines.append(vl)
+        
+        pval = 100*(chi2mocks['Null (Truth)'] > v).mean()
+        lgn =  fr'{n} = {v:.1f} ({pval:.1f}%)'
+        lgnds.append(lgn)
+        if add_text:ax_.text(1.0*v, 1, lgn, **kw2)
+        
+    if not add_text:    
+        leg2 = ax1.legend(vlines, lgnds, 
+                         loc='upper right', frameon=False, fontsize=12)
+        ax1.add_artist(leg2)    
+        
+        
+    lgnarg = dict(ncol=3,frameon=False,
+                 bbox_to_anchor=(0, 1.02, 1.35, 0.4), loc="lower left",
+                mode="expand", borderaxespad=0, fontsize=13)
 
-    ax1.legend(loc='upper left', frameon=False)
+    leg = ax1.legend(**lgnarg)
+    for lh in leg.legendHandles: 
+        lh.set_alpha(1)
+    ax1.add_artist(leg)
 
     d = 0.01
     kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
     ax1.plot((1 - d/2, 1 + d/2), (-d, +d), **kwargs)  # bottom-left diagonal
+    ax1.plot((1 - d/2, 1 + d/2), (1-d, 1+d), **kwargs)  # bottom-left diagonal
     kwargs.update(transform=ax2.transAxes)            # switch to the bottom axes
     ax2.plot((-d/2, +d/2), (-d, +d), **kwargs)        # top-left diagonal
+    ax2.plot((-d/2, +d/2), (1-d, 1+d), **kwargs)        # top-left diagonal
     fig.savefig(fig_path, bbox_inches='tight')
-
     
 
 def pcc_wnn_nchains(fig_path, ns='512'):
@@ -789,7 +863,7 @@ def pcc_wnn_nchains(fig_path, ns='512'):
 
         ax.text(0.8, 0.5-j*0.08, f'{cap}', color=c[j], transform=ax.transAxes)
 
-    ax.set(xlabel='Nchains', ylabel=r'PCC', xticks=np.arange(1, 11)) 
+    ax.set(xlabel='Ensemble Size', ylabel=r'PCC', xticks=np.arange(1, 11)) 
     
     lines = ax.get_lines()
     print(len(lines))
@@ -819,13 +893,18 @@ def nbarnstar(ax):
     #d = np.load(f'{p}nnbar_NGC_main_512_nstar.npy', allow_pickle=True).item()
 
     d = {}
-    p = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/nnbar/'
-    d['Standard'] = np.load(f'{p}nnbar_NGC_knownsystot_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    p_ = '/home/mehdi/data/eboss/data/v7_2/3.0/measurements/nnbar/'
+    d['Standard'] = np.load(f'{p_}nnbar_NGC_knownsystot_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    
+    
     p = '/home/mehdi/data/eboss/data/v7_2/1.0/measurements/nnbar/'
     d['NN (known)'] = np.load(f'{p}nnbar_NGC_known_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
-    d['NN (all)'] = np.load(f'{p}nnbar_NGC_all_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
+    d['NN (all sdss)'] = np.load(f'{p}nnbar_NGC_all_mainhighz_512_v7_2_main_512.npy', allow_pickle=True)
     d['NN (known+sdss)'] = np.load(f'{p}nnbar_NGC_known_mainstar_512_v7_2_main_512.npy', allow_pickle=True)
     d['NN (known+gaia)'] = np.load(f'{p}nnbar_NGC_known_mainstarg_512_v7_2_main_512.npy', allow_pickle=True)
+    
+    d['LIN (known+gaia)'] = np.load(f'{p_}nnbar_NGC_known_mainlinstar_512_v7_2_main_512.npy', allow_pickle=True)        
+
     
     
     ls = 4*['-', '--', '-.']
@@ -882,13 +961,15 @@ def p0nstar(ax):
 
     d = {}
     #d['noweight'] = read(f'{p_}spectra_NGC_noweight_mainhighz_512_v7_2_main.json')
-    d['Standard'] = read(f'{p_}spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')          
+    d['Standard'] = read(f'{p_}spectra_NGC_knownsystot_mainhighz_512_v7_2_main.json')
+    
+    
     d['NN (known)'] = read(f'{p}spectra_NGC_known_mainhighz_512_v7_2_main.json')
-    d['NN (all)'] = read(f'{p}spectra_NGC_all_mainhighz_512_v7_2_main.json')    
+    d['NN (all sdss)'] = read(f'{p}spectra_NGC_all_mainhighz_512_v7_2_main.json')    
     d['NN (known+sdss)'] = read(f'{p}spectra_NGC_known_mainstar_512_v7_2_main.json')
     d['NN (known+gaia)'] = read(f'{p}spectra_NGC_known_mainstarg_512_v7_2_main.json')
-
     
+    d['LIN (known+gaia)'] = read(f'{p_}spectra_NGC_known_mainlinstar_512_v7_2_main.json')
     #fig, ax = plt.subplots(figsize=(6, 4), sharey=True)
     #fig.subplots_adjust(wspace=0.0)
 
@@ -1188,12 +1269,15 @@ def table_chi2methods():
     # chi2d['standard1'] = get_chi2t(f'{p}nnbar_NGC_knownsystot_mainhighz_512_v7_2_main_512.npy', ix, invcov)
     chi2d['lin-mse'] = get_chi2t(f'{p}nnbar_NGC_known_mainlinmse_512_v7_2_main_512.npy', ix, invcov)
     chi2d['lin-pnll'] = get_chi2t(f'{p}nnbar_NGC_known_mainlinp_512_v7_2_main_512.npy', ix, invcov)
+
     chi2d['nn-mse'] = get_chi2t(f'{p}nnbar_NGC_known_mainmse_512_v7_2_main_512.npy', ix, invcov)
     chi2d['nn-pnll'] = get_chi2t(f'{p}nnbar_NGC_known_mainhighz_512_v7_2_main_512.npy', ix, invcov)
     chi2d['nn-pnll-wocos'] = get_chi2t(f'{p}nnbar_NGC_known_mainwocos_512_v7_2_main_512.npy', ix, invcov)
     chi2d['nn-pnll-all'] = get_chi2t(f'{p}nnbar_NGC_all_mainhighz_512_v7_2_main_512.npy', ix, invcov)
     chi2d['nn-known+gaia'] = get_chi2t(f'{p}nnbar_NGC_known_mainstarg_512_v7_2_main_512.npy', ix, invcov)
     chi2d['nn-known+sdss'] = get_chi2t(f'{p}nnbar_NGC_known_mainstar_512_v7_2_main_512.npy', ix, invcov)
+
+    chi2d['lin-known+gaia'] = get_chi2t(f'{path}nnbar_NGC_known_mainlinstar_512_v7_2_main_512.npy', ix, invcov)    
     
     for n, v in chi2d.items():
         print(f'{n}, {v:.4f}')

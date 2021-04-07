@@ -15,24 +15,21 @@ for id in dr3 dr3_utah_ngc dr5-eboss dr5-eboss2; do python make_sysmaps.py --sur
 '''
 
 import os
-import lssutils.extrn.quicksip.qsdriver as qsdriver
+import lssutils.lab as make_maps
 from argparse import ArgumentParser
 
-ap = ArgumentParser(description='systematic maps generating routine')
-ap.add_argument('--survey', default='DECaLS')
-ap.add_argument('--dr', default='DR5')
-ap.add_argument('--localdir', default='/global/cscratch1/sd/mehdi/dr5_anand/sysmaps-v2/')
-ap.add_argument('--nside', default=256, type=int)
-ap.add_argument('--bands', nargs='*', type=str, default=['r','g','z'])
+ap = ArgumentParser(description='Systematic Maps Generating Routine')
+ap.add_argument('--name', default='dr8maps')
+ap.add_argument('-i', '--input_ccd', default='/home/mehdi/data/templates/ccds/ccds-annotated-dr8_combined.fits')
+ap.add_argument('-o', '--out_dir', default='./')
+ap.add_argument('-n', '--nside', default=256, type=int)
+ap.add_argument('-b', '--bands', nargs='*', type=str, default=['r','g','z'])
 ns = ap.parse_args()
 
-if not os.path.exists(ns.localdir):
-    os.makedirs(ns.localdir)
-    print(f'created {ns.localdir}')
+locdir = os.path.dirname(ns.out_dir)
+print(f'outputs will be under {locdir}')
+if not os.path.exists(locdir):
+    os.makedirs(locdir)
+    print(f'created {locdir}')
 
-
-verbose=False
-for band in ns.bands:
-    print('running band %s'%band)
-    sample = qsdriver.mysample(ns.survey, ns.dr, band, ns.localdir, verbose, ns.nside)
-    qsdriver.generate_maps(sample)
+make_maps(ns.input_ccd, ns.nside, ns.bands, ns.name, ns.out_dir)

@@ -103,7 +103,7 @@ class Readfits(object):
         self.metadata = pd.DataFrame(metadata)
         
     def _add_foreground(self):
-        from lssutils.extrn.GalacticForegrounds import hpmaps
+        from lssutils.extrn.galactic import hpmaps
         # 
         Gaia    = hpmaps.gaia_dr2(nside=self.nside)
         self.metadata['nstar'] = Gaia.gaia
