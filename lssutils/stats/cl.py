@@ -8,6 +8,43 @@ from lssutils.utils import make_overdensity, KMeansJackknifes
 
 __all__ = ['AnaFast', 'get_cl']
 
+
+
+def gauleg(ndeg, a=-1.0, b=1.0):
+    '''
+       Gauss-Legendre (default interval is [-1, 1])
+    '''
+    x, w = np.polynomial.legendre.leggauss(ndeg)
+    # Translate x values from the interval [-1, 1] to [a, b]
+    t = 0.5*(x + 1)*(b - a) + a
+    w *= 0.5*(b - a)
+    return t, w
+
+def xi2cl(x, w, xi, nlmax):
+    '''
+        calculates Cell from omega
+    '''
+    cl  = []
+    xiw = xi*w
+    for i in range(nlmax+1):
+        Pl    = np.polynomial.Legendre.basis(i)(x)
+        cl.append((xiw * Pl).sum())
+        
+    cl = 2.*np.pi*np.array(cl)
+    return cl
+
+def cl2xi(cell, costheta):
+    '''
+        calculates omega from Cell at Cos(theta)
+    '''
+    ell = np.arange(cell.size)
+    coef = (2*ell+1) * cell / (4.*np.pi)
+    y = np.polynomial.legendre.legval(costheta, c=coef, tensor=False)
+    return y
+
+
+
+
 @CurrentMPIComm.enable
 def get_cl(ngal, nran, mask, selection_fn=None,
            systematics=None, njack=20, nran_bar=None, lmax=None, 

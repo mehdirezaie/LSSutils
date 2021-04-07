@@ -212,6 +212,7 @@ def gaulegf(a, b, n):
     return x, w    
     
 def nside2npix(nside):
+    """ get npix from nside """
     return 12 * nside * nside
 
 def npix2nside(npix):
@@ -225,6 +226,22 @@ def nside2pixarea(nside, degrees=False):
         pixarea = np.rad2deg(np.rad2deg(pixarea))
     
     return pixarea
+
+def rolling(x, y, width=3):
+    """ compute moving average given width """
+    size = y.size
+    assert width%2 != 0, "width must be odd"
+    step = width//2
+
+    x_ = []
+    y_ = []
+    for i in range(step, size-step):
+        
+        x_.append(np.mean(x[i-step:i+step]))
+        y_.append(np.mean(y[i-step:i+step]))
+    
+    return np.array(x_), np.array(y_)
+
 
 def split_NtoM(N, M, rank):
     """
