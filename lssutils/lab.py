@@ -8,6 +8,9 @@ from lssutils.stats.pk import run_ConvolvedFFTPower
 from lssutils.stats.cl import (get_cl)
 from lssutils.utils import (KMeansJackknifes, hpixsum, EbossCat, histogram_cell,
                             z_bins, maps_eboss_v7p2, split_NtoM)
+from lssutils.extrn.quicksip.qsdriver import combine_fits, make_maps
+from lssutils.extrn.galactic.hpmaps import NStarSDSS, SFD98, Gaia, logHI
+
 # from lssutils.nn.regression import *
 # from lssutils.catalogs.combinefits import *
 

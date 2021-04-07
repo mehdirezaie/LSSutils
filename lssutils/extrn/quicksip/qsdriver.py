@@ -6,7 +6,20 @@ import os
 import numpy as np
 import fitsio as ft
 import pandas as pd
+
+from ..galactic.hpmaps import logHI, SFD98, Gaia
 from .quicksip import project_and_write_maps_simp
+
+
+def IvarToDepth(ivar):
+    """ change IVAR to DEPTH """
+    depth = nanomaggiesToMag(5./np.sqrt(ivar))
+    return depth
+
+def nanomaggiesToMag(nm):
+    """ nano maggies to magnitude """
+    return -2.5 * (np.log10(nm) - 9.)
+
 
 def Magtonanomaggies(mag):
     """ Change Mag to nanomaggies """
@@ -162,7 +175,7 @@ def make_hp(nside, hpix, signal):
     return hpmap
 
 
-def combine_fits(input_maps, nside, write_to=None):
+def combine_fits(input_maps, nside, add_galactic=False, write_to=None):
     """ Combine the imaging maps (.fits) into a hdf5 file
     """
     df = {}
@@ -173,10 +186,25 @@ def combine_fits(input_maps, nside, write_to=None):
         dmap_ = ft.read(map_)
         hpmap_ = make_hp(nside, dmap_['PIXEL'], dmap_['SIGNAL'])
 
+        if 'ivar' in sysname:
+            hpmap_ = IvarToDepth(hpmap_)
+            sysname = sysname.replace('ivar', 'depth')
+            print(f'changed {sysname}')
+            
         df[sysname] = hpmap_
         print('.', end='')
         
+    if add_galactic:
+        # add galactic foregrounds
+        gaia = Gaia(nside_out=nside)
+        df['nstar'] = gaia.map
 
+        sfd = SFD98(nside_out=nside)
+        df['ebv'] = sfd.map
+
+        loghi = logHI(nside_out=nside)
+        df['loghi'] = loghi.map    
+        
     df = pd.DataFrame(df)
     
     if write_to is not None:

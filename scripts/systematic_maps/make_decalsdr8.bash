@@ -11,7 +11,7 @@ make_maps=${HOME}/github/LSSutils/scripts/systematic_maps/make_sysmaps.py
 combine_fits=${HOME}/github/LSSutils/scripts/systematic_maps/combine_fits.py
 
 dr=$1
-nside=1024
+nside=2048
 
 
 do_maps=true

@@ -1138,7 +1138,7 @@ def make_sysmaps(ran, path_lenz, path_gaia, nside=256):
     
     
     """
-    from lssutils.extrn.GalacticForegrounds.hpmaps import Gaia, logHI
+    from lssutils.extrn.galactic.hpmaps import Gaia, logHI
     
     maps = {'sky_g':ran['skyflux'][:,1],
             'sky_r':ran['skyflux'][:,2],
@@ -1917,7 +1917,7 @@ class Readfits(object):
         
     def _add_foreground(self, mkwytemp=None):
         # FIXME: 'mkwytemp' will point to the templates 
-        from lssutils.extrn.GalacticForegrounds import hpmaps
+        from lssutils.extrn.galactic import hpmaps
         # 
         Gaia    = hpmaps.gaia_dr2(nside_out=self.nside_out)
         self.metadata['nstar'] = Gaia.gaia

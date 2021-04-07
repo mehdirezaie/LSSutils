@@ -15,7 +15,7 @@ for id in dr3 dr3_utah_ngc dr5-eboss dr5-eboss2; do python make_sysmaps.py --sur
 '''
 
 import os
-import lssutils.extrn.quicksip.qsdriver as qsdriver
+import lssutils.lab as make_maps
 from argparse import ArgumentParser
 
 ap = ArgumentParser(description='Systematic Maps Generating Routine')
@@ -32,4 +32,4 @@ if not os.path.exists(locdir):
     os.makedirs(locdir)
     print(f'created {locdir}')
 
-qsdriver.make_maps(ns.input_ccd, ns.nside, ns.bands, ns.name, ns.out_dir)
+make_maps(ns.input_ccd, ns.nside, ns.bands, ns.name, ns.out_dir)

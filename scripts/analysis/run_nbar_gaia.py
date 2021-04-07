@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from lssutils.stats import nnbar
 from lssutils.utils import EbossCat, nside2pixarea
-from lssutils.extrn.GalacticForegrounds.hpmaps import Gaia
+from lssutils.extrn.galactic.hpmaps import Gaia
 
 
 
