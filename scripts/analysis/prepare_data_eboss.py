@@ -11,15 +11,15 @@ from lssutils import setup_logging
 from lssutils.utils import (EbossCat, HEALPixDataset, 
                             maps_eboss_v7p2, z_bins)
 
-__label__ = 'ngal'
 __zmin__ = 0.8
 __zmax__ = 3.5
 
-output_path_fn = lambda op, sl, ns:os.path.join(op, sl, f'{__label__}_eboss_{sl}_{ns}.fits')            
 
 def prepare_table(config):
     """ prepare the tabulated data for nn regression
     """
+    output_path_fn = lambda op, sl, ns:os.path.join(op, sl, f'{config.label}_eboss_{sl}_{ns}.fits')            
+
     nranbar = hp.nside2pixarea(config.nside, degrees=True)*5000  # 5000 randoms per sq deg
 
     templates = pd.read_hdf(config.templates_path, key='templates')  
@@ -38,7 +38,7 @@ def prepare_table(config):
             
             output_name = output_path_fn(config.output_path, slice_i, config.nside)
             zmin, zmax = z_bins[slice_i]            
-            table = dataset.prepare(config.nside, zmin, zmax, label=__label__, nran_exp=nranbar)
+            table = dataset.prepare(config.nside, zmin, zmax, label=config.label, nran_exp=nranbar)
             save_table(output_name, table)
 
             
@@ -61,7 +61,8 @@ if __name__ == '__main__':
     ap.add_argument('-d', '--data_path', type=str, required=True)
     ap.add_argument('-r', '--randoms_path', type=str, required=True)
     ap.add_argument('-s', '--templates_path', type=str, required=True)
-    ap.add_argument('-o', '--output_path', type=str, required=True)    
+    ap.add_argument('-o', '--output_path', type=str, required=True)
+    ap.add_argument('--label', type=str, default='ngal')
     ap.add_argument('-n', '--nside',  type=int, default=512)
     ap.add_argument('-sl', '--slices', type=str, nargs='*', default=['main', 'highz'])
     
