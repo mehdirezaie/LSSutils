@@ -131,7 +131,7 @@ def get_shotnoise(ngal, weight, mask, estimator='nbar'):
         ngal is the weighted number of galaxies
     '''
     nside = hp.get_nside(ngal)
-    area = hp.nside2pixarea(nside, degrees=True)*weight[mask].sum()*3.0462e-4
+    area = hp.nside2pixarea(nside)*weight[mask].sum()
     nbar = ngal[mask].sum()/area
     if estimator=='nbar':
         return 1./nbar

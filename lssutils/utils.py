@@ -936,11 +936,13 @@ def __histogram_cell(ell, cell, bins=None, return_weights=False, log=True):
     bins_mid = 0.5*(bins[1:]+bins[:-1])
     weights = 2*ell + 1
     
+    ell_weights_bin = binned_statistic(ell, weights*ell, **kwargs)[0] # first output is needed
     cell_weights_bin = binned_statistic(ell, weights*cell, **kwargs)[0] # first output is needed
     weights_bin = binned_statistic(ell, weights, **kwargs)[0]
     cell_bin = cell_weights_bin / weights_bin
+    ell_bin = ell_weights_bin / weights_bin
     
-    ret = (bins_mid, cell_bin, )
+    ret = (ell_bin, cell_bin, )
     
     if return_weights:
         ret += (weights_bin, )
