@@ -1611,9 +1611,9 @@ class HEALPixDataset:
     def prepare(self, nside, zmin, zmax, label='nnbar', frac_min=0, nran_exp=None):        
         assert nside == self.nside, f'template has NSIDE={self.nside}'
                
-        if label=='nnbar':
+        if label=='nnbar': # used in Rezaie et al. (2020) "DECaLS DR7 Galaxies"
             return self.__prep_nnbar(nside, zmin, zmax, frac_min, nran_exp)
-        elif label=='ngal':
+        elif label=='ngal': # used in Rezaie et al. (2021) "eBOSS QSOs"
             return self.__prep_ngal(nside, zmin, zmax, frac_min, nran_exp)
         elif label=='ngalw':
             return self.__prep_ngalw(nside, zmin, zmax, frac_min, nran_exp)
