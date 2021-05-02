@@ -60,10 +60,10 @@ if not os.path.exists(dat_dir):
     os.makedirs(dat_dir)
 
 if os.path.exists(dat_name):
-   raise RuntimeError(f'{dat_name} exists')
+    raise RuntimeError(f'{dat_name} exists')
 
 if os.path.exists(ran_name):
-   raise RuntimeError(f'{ran_name} exists')
+    raise RuntimeError(f'{ran_name} exists')
 
 
 
