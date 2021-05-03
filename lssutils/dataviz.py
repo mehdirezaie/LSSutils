@@ -11,7 +11,7 @@
     
 
 '''
-import matplotlib
+import matplotlib as mpl
 #matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
@@ -34,6 +34,28 @@ def setup_color():
               '#999999', '#e41a1c']
     styles = 2*['-', '--', '-.', ':']
     plt.rc('axes', prop_cycle=(cycler('color', colors)+cycler('linestyle', styles)))
+    
+    mpl.rcParams['xtick.direction'] = 'in'
+    mpl.rcParams['xtick.major.width'] = 2.0
+    mpl.rcParams['xtick.major.pad'] = 5.0
+    mpl.rcParams['xtick.major.size'] = 9.0
+    mpl.rcParams['xtick.minor.width'] = 2.0
+    mpl.rcParams['xtick.minor.pad'] = 5.0
+    mpl.rcParams['xtick.minor.size'] = 6.0
+    mpl.rcParams['ytick.direction'] = 'in'
+    mpl.rcParams['ytick.major.width'] = 2.0
+    mpl.rcParams['ytick.major.pad'] = 5.0
+    mpl.rcParams['ytick.major.size'] = 9.0
+    mpl.rcParams['ytick.minor.width'] = 2.0
+    mpl.rcParams['ytick.minor.pad'] = 5.0
+    mpl.rcParams['ytick.minor.size'] = 6.0
+    mpl.rcParams['ytick.right'] = True
+    mpl.rcParams['xtick.top'] = True
+    mpl.rcParams['font.family'] = 'DejaVu Sans'
+    mpl.rcParams['font.size'] = 18
+    mpl.rcParams['axes.linewidth'] = 2        
+    
+    
     
 def shiftedColorMap(cmap, start=0, midpoint=0.5, stop=1.0, name='shiftedcmap'):
     '''
@@ -82,7 +104,7 @@ def shiftedColorMap(cmap, start=0, midpoint=0.5, stop=1.0, name='shiftedcmap'):
         cdict['blue'].append((si, b, b))
         cdict['alpha'].append((si, a, a))
 
-    newcmap = matplotlib.colors.LinearSegmentedColormap(name, cdict)
+    newcmap = mpl.colors.LinearSegmentedColormap(name, cdict)
     plt.register_cmap(cmap=newcmap)
 
     return newcmap
