@@ -15,7 +15,7 @@ for id in dr3 dr3_utah_ngc dr5-eboss dr5-eboss2; do python make_sysmaps.py --sur
 '''
 
 import os
-import lssutils.lab as make_maps
+from lssutils.lab import make_maps
 from argparse import ArgumentParser
 
 ap = ArgumentParser(description='Systematic Maps Generating Routine')

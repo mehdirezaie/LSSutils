@@ -52,6 +52,22 @@ z_bins = {'main':(0.8, 2.2),
          'z2':(1.3, 1.7),
          'z3':(1.7, 2.2)}
 
+def to_numpy(label, features, frac, hpix):
+
+    dtype = [('features', ('f8', features.shape[1])), 
+             ('label', 'f8'),
+             ('fracgood', 'f8'),
+             ('hpix', 'i8')]    
+
+    d = np.zeros(label.size, dtype=dtype)
+    
+    d['label'] = label
+    d['fracgood'] = frac
+    d['features'] = features
+    d['hpix'] = hpix
+
+    return d    
+
 def D(z, omega0):
     """
         Growth Function

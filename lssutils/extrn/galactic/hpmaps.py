@@ -9,6 +9,7 @@ import numpy  as np
 import fitsio as ft
 import warnings
 
+templ_dir = '/Volumes/TimeMachine/data/templates/'
 
 class NStarSDSS:
     """
@@ -16,7 +17,7 @@ class NStarSDSS:
         
         (c) Ashley Ross
     """    
-    def __init__(self, name='/home/mehdi/data/templates/allstars17.519.9Healpixall256.dat', nside_out=256):
+    def __init__(self, name=f'{templ_dir}allstars17.519.9Healpixall256.dat', nside_out=256):
         self.unit = '# stars'        
         self.nstar = np.loadtxt(name)
         self.map = hp.reorder(self.nstar, n2r=True)
@@ -34,7 +35,7 @@ class SFD98(object):
         self.nside_out    = nside_out
         self.ordering = 'ring'
         self.unit     = 'EBV [SFD 98]'
-        self.name     = '/home/mehdi/data/templates/healSFD_256_fullsky.fits'
+        self.name     = f'{templ_dir}healSFD_256_fullsky.fits'
         self.map      = hp.read_map(self.name, verbose=False)
 
         if nside_out!=256:
@@ -45,7 +46,7 @@ class Gaia(object):
     """
         Read the Gaia DR2 star density catalog (c) Anand Raichoor
     """
-    def __init__(self, path='/home/mehdi/data/templates/Gaia.dr2.bGT10.12g17.hp256.fits', nside_out=256):
+    def __init__(self, path=f'{templ_dir}Gaia.dr2.bGT10.12g17.hp256.fits', nside_out=256):
 
         self.ordering = 'ring'
         self.unit     = 'Gaia DR2'
@@ -74,7 +75,7 @@ def G_to_C(mapi, res_in=1024, res_out=256):
 
 class logHI(object):
     ''' Reads Lenz et. al. HI column density '''
-    def __init__(self, nside_out=256, path='/home/mehdi/data/templates/NHI_HPX.fits'):
+    def __init__(self, nside_out=256, path=f'{templ_dir}NHI_HPX.fits'):
 
         self.nside_out    = nside_out
         nside_in      = 1024
