@@ -19,9 +19,6 @@ from astropy.table import Table
 from glob import glob
 import nbodykit.lab as nb
 
-
-setup_logging('info')
-
 class TrainedModel:
 
     def __init__(self, templates_path, metrics_path):
@@ -83,44 +80,45 @@ class NNWeight(SysWeight):
 
         super(NNWeight, self).__init__(wnn_hp, ismap=True, fix=fix, clip=clip)
 
-
-templates_path = '/home/mehdi/data/eboss/data/v7_2/3.0/NGC/512/main/ngal_eboss_main_512.fits'
-metrics_path = '/home/mehdi/data/eboss/data/v7_2/3.0/NGC/512/main/nn_pnll_known/metrics.npz'
-chck_path = '/home/mehdi/data/eboss/data/v7_2/3.0/NGC/512/main/nn_pnll_known'
-
-
-sys_axes = {'nstar':0}#, 
-            #'ebv':1, 
-            #'skyi':5, 
-            #'depthg':7, 
-            #'psfi':13}
-
-tm = TrainedModel(templates_path, metrics_path)
+if __name__ == '__main__':
+    setup_logging('info')
+    templates_path = '/home/mehdi/data/eboss/data/v7_2/3.0/NGC/512/main/ngal_eboss_main_512.fits'
+    metrics_path = '/home/mehdi/data/eboss/data/v7_2/3.0/NGC/512/main/nn_pnll_known/metrics.npz'
+    chck_path = '/home/mehdi/data/eboss/data/v7_2/3.0/NGC/512/main/nn_pnll_known'
 
 
-# read data, randoms, and prepare mappers
-dat = EbossCat('/home/mehdi/data/eboss/data/v7_2/eBOSS_QSO_full_NGC_v7_2.dat.fits', zmin=0.8, zmax=3.5)
-ran = EbossCat('/home/mehdi/data/eboss/data/v7_2/eBOSS_QSO_full_NGC_v7_2.ran.fits', kind='randoms', zmin=0.8, zmax=3.5)
+    sys_axes = {'nstar':0, 
+                'ebv':1, 
+                'skyi':5, 
+                'depthg':7, 
+                'psfi':13}
 
-for sys_name, sys_axis in sys_axes.items():
-    print(sys_name, sys_axis)
-    for bf in [1.0]:#[2., 2.5, 3., 3.5, 4.]:
-        p = '/home/mehdi/data/eboss/data/v7_2/3.0/catalogs_boosting/'
-        dat_name = f'{p}eBOSS_QSO_known_{sys_name}_{bf:.1f}_NGC_v7_2.dat.fits'
-        out_name = dat_name.replace('.dat.fits', '.pk.json')
-        ran_name = dat_name.replace('.dat.', '.ran.')
-        print(dat_name, out_name)
+    tm = TrainedModel(templates_path, metrics_path)
 
-        t0 = time()
-        dt_0 = tm.run(chck_path, 5, boost_factors=[(sys_axis, bf)])
-        t1 = time()
-        print('forward pass', t1-t0)
 
-        nnwmap = {'main':(z_bins['main'], NNWeight(dt_0, 512))}
-        dat.swap(nnwmap)
-        ran.reassign_zattrs(dat)
-       
-        dat.to_fits(dat_name)
-        ran.to_fits(ran_name)
-        run_ConvolvedFFTPower(dat_name, ran_name, out_name, zmin=0.8, zmax=2.2, 
-                              dk=0.01, boxsize=6600., return_pk=True, poles=[0])
+    # read data, randoms, and prepare mappers
+    dat = EbossCat('/home/mehdi/data/eboss/data/v7_2/eBOSS_QSO_full_NGC_v7_2.dat.fits', zmin=0.8, zmax=3.5)
+    ran = EbossCat('/home/mehdi/data/eboss/data/v7_2/eBOSS_QSO_full_NGC_v7_2.ran.fits', kind='randoms', zmin=0.8, zmax=3.5)
+
+    for sys_name, sys_axis in sys_axes.items():
+        print(sys_name, sys_axis)
+        for bf in [2., 2.5, 3., 3.5, 4.]:
+            p = '/home/mehdi/data/eboss/data/v7_2/3.0/catalogs_boosting/'
+            dat_name = f'{p}eBOSS_QSO_known_{sys_name}_{bf:.1f}_NGC_v7_2.dat.fits'
+            out_name = dat_name.replace('.dat.fits', '.pk.json')
+            ran_name = dat_name.replace('.dat.', '.ran.')
+            print(dat_name, out_name)
+
+            t0 = time()
+            dt_0 = tm.run(chck_path, 5, boost_factors=[(sys_axis, bf)])
+            t1 = time()
+            print('forward pass', t1-t0)
+
+            nnwmap = {'main':(z_bins['main'], NNWeight(dt_0, 512))}
+            dat.swap(nnwmap)
+            ran.reassign_zattrs(dat)
+           
+            dat.to_fits(dat_name)
+            ran.to_fits(ran_name)
+            run_ConvolvedFFTPower(dat_name, ran_name, out_name, zmin=0.8, zmax=2.2, 
+                                  dk=0.01, boxsize=6600., return_pk=True, poles=[0])
