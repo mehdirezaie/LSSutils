@@ -1,8 +1,8 @@
 #!/bin/bash -l
 
 
-. "/Users/rezaie/anaconda3/etc/profile.d/conda.sh"
-#. "/home/mehdi/miniconda3/etc/profile.d/conda.sh"
+#. "/Users/rezaie/anaconda3/etc/profile.d/conda.sh"
+. "/home/mehdi/miniconda3/etc/profile.d/conda.sh"
 export NUMEXPR_MAX_THREADS=2
 export PYTHONPATH=${HOME}/github/LSSutils:${HOME}/github/sysnetdev
 conda activate sysnet
@@ -10,12 +10,12 @@ conda activate sysnet
 makemaps=${HOME}/github/LSSutils/scripts/systematic_maps/make_sysmaps.py
 combine=${HOME}/github/LSSutils/scripts/systematic_maps/combine_fits.py
 
-dr=$1
-nside=512
+dr=dr9
+nside=256
+name=dr9m
 
-
-do_maps=false
-do_comb=true
+do_maps=true
+do_comb=false
 
 
 if [ $do_maps = true ]
@@ -27,17 +27,16 @@ then
         time python $makemaps -i $input -o $output -n $nside --name dr8m
     elif [ $dr = "dr9" ]
     then
-        input=/Volumes/TimeMachine/data/templates/ccds/dr9/ccds-annotated-dr9-combined.fits
-        output=/Volumes/TimeMachine/data/templates/dr9/
-        time python $makemaps -i $input -o $output -n $nside --name dr9m
+        input=/home/mehdi/data/templates/ccds/dr9/ccds-annotated-dr9-combined.fits
+        output=/home/mehdi/data/templates/dr9/
+        time python $makemaps -i $input -o $output -n $nside --name $name
     fi
 fi
 
 
 if [ $do_comb = true ]
 then
-    name=dr9m
-    input=/Volumes/TimeMachine/data/templates/dr9/
-    output=/Volumes/TimeMachine/data/templates/dr9/
+    input=/home/mehdi/data/templates/dr9/
+    output=/home/mehdi/data/templates/dr9/
     time python $combine -n $name --nside $nside -i $input -o $output --add_galactic
 fi

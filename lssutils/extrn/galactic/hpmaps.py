@@ -9,7 +9,8 @@ import numpy  as np
 import fitsio as ft
 import warnings
 
-templ_dir = '/Volumes/TimeMachine/data/templates/'
+#templ_dir = '/Volumes/TimeMachine/data/templates/'
+templ_dir = '/home/mehdi/data/templates/'
 
 class NStarSDSS:
     """

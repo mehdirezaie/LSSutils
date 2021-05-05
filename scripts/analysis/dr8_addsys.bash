@@ -18,7 +18,7 @@ axes=({0..20}) # 28 for 256, 21 for 1024/2048
 # 'galdepth_g','galdepth_r', 'galdepth_z', 
 # 'psfsize_g', 'psfsize_r', 'psfsize_z'
 nchains=1  # 25 for NN-MSE, 1 NN-MSE-snapshot / NN-Jackknife
-nepochs=200 # 70 for NN-MSE/NN-Jackknife, 125 for NN-MSE-snapshot
+nepochs=2000 # 70 for NN-MSE/NN-Jackknife, 125 for NN-MSE-snapshot
 batchs=1024 # batch size
 lr=0.2  # 0.2 for 256, 0.2 for 1024, NN-MSE
 #lr=0.7   # Lin-MSE

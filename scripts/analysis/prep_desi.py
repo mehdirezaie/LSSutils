@@ -12,19 +12,19 @@ target = sys.argv[2] # QSO
 assert region in ['NDECALS', 'SDECALS', 'NBMZLS']
 assert target in ['QSO', 'LRG', 'ELG', 'BGS_ANY']
 
-nside = 512
-dat_path = f'/Volumes/TimeMachine/data/sv3/sv3target_{target}_{region}.fits'
-ran_path = f'/Volumes/TimeMachine/data/sv3/{region}_randoms-1-0x5.fits'
-tem_path = f'/Volumes/TimeMachine/data/templates/dr9/dr9m_nside{nside}.h5'
-
-tab_path = f'/Volumes/TimeMachine/data/sv3nn/tables/sv3tab_{target}_{region}.fits'
+nside = 256
+root_path = '/home/mehdi/data/'
+dat_path = f'{root_path}sv3/sv3target_{target}_{region}.fits'
+ran_path = f'{root_path}sv3/{region}_randoms-1-0x5.fits'
+tem_path = f'{root_path}templates/dr9/dr9m_nside{nside}.h5'
+tab_path = f'{root_path}sv3nn/tables/sv3tab_{target}_{region}_{nside}.fits'
 
 
 tab_dir = os.path.dirname(tab_path)
 if not os.path.exists(tab_dir):
     print(f'Creating {tab_dir}')
+    os.makedirs(tab_dir)
 print(f'Output table will be written in {tab_dir}')
-exit()
 
 
 t0 = time()
@@ -49,8 +49,8 @@ t4 = time()
 print(f'Read imaging maps in {t4-t3:.1f} secs')
 
 columns = ['nstar', 'ebv', 'loghi']\
-          +[f'{s}_{b}' for s in ['ccdskymag_mean', 'fwhm_mean', 'depth_total', 
-                                'mjd_min', 'airmass_mean', 'exptime_total']\
+          +[f'{s}_{b}' for s in ['ccdskymag_mean', 'fwhm_mean', 'fwhm_min', 'fwhm_max', 'depth_total', 
+                                'mjd_mean', 'mjd_min', 'mjd_max', 'airmass_mean', 'exptime_total']\
                       for b in ['g', 'r', 'z']]
 
 tmpl_np = tmpl[columns].values
@@ -62,5 +62,5 @@ print(f'before: {mask.sum()}, after: {mask_t.sum()}')
 
 d = to_numpy(dathp[mask_t], tmpl_np[mask_t], 
              frac[mask_t], np.argwhere(mask_t).flatten())
-
 ft.write(tab_path, d)
+print(f'{tab_path} is written!')
