@@ -80,6 +80,13 @@ class NNWeight(SysWeight):
 
         super(NNWeight, self).__init__(wnn_hp, ismap=True, fix=fix, clip=clip)
 
+def get_boostfactors(sys_name):
+    #if sys_name in ['ebv', 'nstar', 'psfi']:
+    #    boost_factors = [12., 14., 16., 18.]#[2.0, 2.5, 3., 3.5, 4.]
+    #else:
+    #    boost_factors = [1.05, 1.10, 1.20, 1.50, 1.8]
+    return [3.0, 10.]
+
 if __name__ == '__main__':
     setup_logging('info')
     templates_path = '/home/mehdi/data/eboss/data/v7_2/3.0/NGC/512/main/ngal_eboss_main_512.fits'
@@ -87,47 +94,47 @@ if __name__ == '__main__':
     chck_path = '/home/mehdi/data/eboss/data/v7_2/3.0/NGC/512/main/nn_pnll_known'
 
 
-    sys_axes = {'nstar':0}#, 
-               # 'ebv':1, 
-               # 'skyi':5, 
-               # 'depthg':7, 
-               # 'psfi':13}
+    sys_axes = {'ebv':1, 
+                'skyi':5, 
+                'depthg':7, 
+                'psfi':13}
+    #'nstar':0}#, 
 
     tm = TrainedModel(templates_path, metrics_path)
 
 
     # read data, randoms, and prepare mappers
-    dat = EbossCat('/home/mehdi/data/eboss/data/v7_2/eBOSS_QSO_full_NGC_v7_2.dat.fits', zmin=0.8, zmax=3.5)
-    ran = EbossCat('/home/mehdi/data/eboss/data/v7_2/eBOSS_QSO_full_NGC_v7_2.ran.fits', kind='randoms', zmin=0.8, zmax=3.5)
+    dat_org = '/home/mehdi/data/eboss/data/v7_2/eBOSS_QSO_full_NGC_v7_2.dat.fits'
+    dat = EbossCat(dat_org, zmin=0.8, zmax=3.5)
+    ran = EbossCat(dat_org.replace('.dat.', '.ran.'), kind='randoms', zmin=0.8, zmax=3.5)
 
     for sys_name, sys_axis in sys_axes.items():
 
         print(sys_name, sys_axis)
 
-        if sys_name in ['ebv', 'nstar', 'psfi']:
-            boost_factors = [12., 14., 16., 18.]#[2.0, 2.5, 3., 3.5, 4.]
-        else:
-            boost_factors = [1.05, 1.10, 1.20, 1.50, 1.8]
+        boost_factors = get_boostfactors(sys_name)
 
         for bf in boost_factors:
-
+            
             p = '/home/mehdi/data/eboss/data/v7_2/3.0/catalogs_boosting_ran/'
             dat_name = f'{p}eBOSS_QSO_known_{sys_name}_{bf:.1f}_NGC_v7_2.dat.fits'
             out_name = dat_name.replace('.dat.fits', '.pk.json')
             ran_name = dat_name.replace('.dat.', '.ran.')
             print(dat_name, out_name)
+            
+            if not ((bf == 3.0)&(sys_name=='ebv')):
+                t0 = time()
+                dt_0 = tm.run(chck_path, 5, boost_factors=[(sys_axis, bf)])
+                t1 = time()
+                print('forward pass', t1-t0)
 
-            t0 = time()
-            dt_0 = tm.run(chck_path, 5, boost_factors=[(sys_axis, bf)])
-            t1 = time()
-            print('forward pass', t1-t0)
+                nnwmap = {'main':(z_bins['main'], NNWeight(dt_0, 512))}
+                #dat.swap(nnwmap)
+                #ran.reassign_zattrs(dat)
+                ran.swap(nnwmap)
 
-            nnwmap = {'main':(z_bins['main'], NNWeight(dt_0, 512))}
-            #dat.swap(nnwmap)
-            #ran.reassign_zattrs(dat)
-            ran.swap(nnwmap)
-
-            dat.to_fits(dat_name)
-            ran.to_fits(ran_name)
-            run_ConvolvedFFTPower(dat_name, ran_name, out_name, zmin=0.8, zmax=2.2, 
+                #dat.to_fits(dat_name)
+                ran.to_fits(ran_name)
+            
+            run_ConvolvedFFTPower(dat_org, ran_name, out_name, zmin=0.8, zmax=2.2, 
                                   dk=0.01, boxsize=6600., return_pk=True, poles=[0])
