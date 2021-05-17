@@ -14,8 +14,8 @@ dr=dr9
 nside=256
 name=dr9m
 
-do_maps=true
-do_comb=false
+do_maps=false
+do_comb=true
 
 
 if [ $do_maps = true ]

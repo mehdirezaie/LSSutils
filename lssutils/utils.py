@@ -1849,7 +1849,7 @@ class SysWeight(object):
 
             
         assert np.all(wsys > 0.0),f'{(wsys <= 0.0).sum()} weights <= 0.0!' 
-        
+        #return wsys
         return 1./wsys # Systematic weight = 1 / Selection mask
 
     
@@ -1859,7 +1859,10 @@ class NNWeight(SysWeight):
         
         wnn = ft.read(filename)        
         wnn_hp = np.zeros(12*nside*nside)
-        wnn_hp[wnn['hpix']] = wnn['weight'].mean(axis=1)
+        wnn_hp[wnn['hpix']] = np.median(wnn['weight'], axis=1)#.mean(axis=1)
+        
+        self.mask = np.zeros_like(wnn_hp, '?')
+        self.mask[wnn['hpix']] = True
         
         super(NNWeight, self).__init__(wnn_hp, ismap=True, fix=fix, clip=clip)    
     

@@ -87,11 +87,11 @@ if __name__ == '__main__':
     chck_path = '/home/mehdi/data/eboss/data/v7_2/3.0/NGC/512/main/nn_pnll_known'
 
 
-    sys_axes = {'nstar':0, 
-                'ebv':1, 
-                'skyi':5, 
-                'depthg':7, 
-                'psfi':13}
+    sys_axes = {'nstar':0}#, 
+               # 'ebv':1, 
+               # 'skyi':5, 
+               # 'depthg':7, 
+               # 'psfi':13}
 
     tm = TrainedModel(templates_path, metrics_path)
 
@@ -101,9 +101,17 @@ if __name__ == '__main__':
     ran = EbossCat('/home/mehdi/data/eboss/data/v7_2/eBOSS_QSO_full_NGC_v7_2.ran.fits', kind='randoms', zmin=0.8, zmax=3.5)
 
     for sys_name, sys_axis in sys_axes.items():
+
         print(sys_name, sys_axis)
-        for bf in [2., 2.5, 3., 3.5, 4.]:
-            p = '/home/mehdi/data/eboss/data/v7_2/3.0/catalogs_boosting/'
+
+        if sys_name in ['ebv', 'nstar', 'psfi']:
+            boost_factors = [12., 14., 16., 18.]#[2.0, 2.5, 3., 3.5, 4.]
+        else:
+            boost_factors = [1.05, 1.10, 1.20, 1.50, 1.8]
+
+        for bf in boost_factors:
+
+            p = '/home/mehdi/data/eboss/data/v7_2/3.0/catalogs_boosting_ran/'
             dat_name = f'{p}eBOSS_QSO_known_{sys_name}_{bf:.1f}_NGC_v7_2.dat.fits'
             out_name = dat_name.replace('.dat.fits', '.pk.json')
             ran_name = dat_name.replace('.dat.', '.ran.')
@@ -115,9 +123,10 @@ if __name__ == '__main__':
             print('forward pass', t1-t0)
 
             nnwmap = {'main':(z_bins['main'], NNWeight(dt_0, 512))}
-            dat.swap(nnwmap)
-            ran.reassign_zattrs(dat)
-           
+            #dat.swap(nnwmap)
+            #ran.reassign_zattrs(dat)
+            ran.swap(nnwmap)
+
             dat.to_fits(dat_name)
             ran.to_fits(ran_name)
             run_ConvolvedFFTPower(dat_name, ran_name, out_name, zmin=0.8, zmax=2.2, 
