@@ -1784,7 +1784,7 @@ class DR9Data:
         dataset['hpix'] = hpix
         
         return dataset                 
-        
+
 class SysWeight(object):
     '''
     Reads the systematic weights in healpix
@@ -1793,78 +1793,118 @@ class SysWeight(object):
     ex:
         > Mapper = SysWeight('nn-weights.hp256.fits')
         > wsys = Mapper(ra, dec)    
-    '''
-    logger = logging.getLogger('SysWeight')
-    
-    def __init__(self, filename, ismap=False, fix=True, clip=True):
+    '''    
+    def __init__(self, filename, ismap=False):
         if ismap:
             self.wmap  = filename
         else:
-            self.wmap  = hp.read_map(filename, verbose=False)
-            
+            self.wmap  = hp.read_map(filename, verbose=False)            
         self.nside = hp.get_nside(self.wmap)
-        self.fix = fix
-        self.clip = clip
 
     def __call__(self, ra, dec):
-        
-        
+              
         hpix = radec2hpix(self.nside, ra, dec) # HEALPix index from RA and DEC
-        wsys = self.wmap[hpix]                 # Selection mask at the pixel
+        w_ = self.wmap[hpix]                 # Selection mask at the pixel
         
-        if self.fix:
-            
-            NaNs = np.isnan(wsys)                  # check if there is any NaNs
-            self.logger.info(f'# NaNs : {NaNs.sum()}')
-
-            NaNs |= (wsys <= 0.0)                  # negative weights
-            if self.clip:
-                self.logger.info('< or > 2x')
-                
-                NaNs |= (wsys < 0.5) 
-                NaNs |= (wsys > 2.0)
-                
-            self.logger.info(f'# NaNs or lt 0: {NaNs.sum()}')
-
-
-            if NaNs.sum() !=0:
-
-                nan_wsys = np.argwhere(NaNs).flatten()
-                nan_hpix = hpix[nan_wsys]
-
-                # use the average of the neighbors
-                self.logger.info(f'# NaNs (before) : {len(nan_hpix)}')
-                neighbors = hp.get_all_neighbours(self.nside, nan_hpix) 
-                wsys[nan_wsys] = np.nanmean(self.wmap[neighbors], axis=0)
-
-                # 
-                NaNs =  (np.isnan(wsys) | (wsys <= 0.0))
-                NNaNs = NaNs.sum()
-                self.logger.info(f'# NaNs (after)  : {NNaNs}')
-
-                # set weight to 1 if not available
-                if NNaNs != 0:
-                    self.logger.info(f'set {NNaNs} pixels to 1.0 (neighbors did not help)')
-                    wsys[NaNs] = 1.0
-
-            
-        assert np.all(wsys > 0.0),f'{(wsys <= 0.0).sum()} weights <= 0.0!' 
-        #return wsys
-        return 1./wsys # Systematic weight = 1 / Selection mask
-
-    
-class NNWeight(SysWeight):
-    
-    def __init__(self, filename, nside, fix=True, clip=False):
+        w_normed = w_ / np.median(w_)
+        w_normed = w_normed.clip(0.5, 2.0)      
         
-        wnn = ft.read(filename)        
-        wnn_hp = np.zeros(12*nside*nside)
-        wnn_hp[wnn['hpix']] = np.median(wnn['weight'], axis=1)#.mean(axis=1)
+        return 1./w_normed
+        
+class EnsembleWeights(SysWeight):
+    
+    def __init__(self, filename, nside):
+        #
+        wnn = ft.read(filename)  
+        
+        wnn_hp = np.ones(12*nside*nside)
+        wnn_hp[wnn['hpix']] = wnn['weight'].mean(axis=1)
         
         self.mask = np.zeros_like(wnn_hp, '?')
         self.mask[wnn['hpix']] = True
         
-        super(NNWeight, self).__init__(wnn_hp, ismap=True, fix=fix, clip=clip)    
+        super(EnsembleWeights, self).__init__(wnn_hp, ismap=True)       
+        
+# class SysWeight(object):
+#     '''
+#     Reads the systematic weights in healpix
+#     Assigns them to a set of RA and DEC (both in degrees)
+
+#     ex:
+#         > Mapper = SysWeight('nn-weights.hp256.fits')
+#         > wsys = Mapper(ra, dec)    
+#     '''
+#     logger = logging.getLogger('SysWeight')
+    
+#     def __init__(self, filename, ismap=False, fix=True, clip=True):
+#         if ismap:
+#             self.wmap  = filename
+#         else:
+#             self.wmap  = hp.read_map(filename, verbose=False)
+            
+#         self.nside = hp.get_nside(self.wmap)
+#         self.fix = fix
+#         self.clip = clip
+
+#     def __call__(self, ra, dec):
+        
+        
+#         hpix = radec2hpix(self.nside, ra, dec) # HEALPix index from RA and DEC
+#         wsys = self.wmap[hpix]                 # Selection mask at the pixel
+        
+#         if self.fix:
+            
+#             NaNs = np.isnan(wsys)                  # check if there is any NaNs
+#             self.logger.info(f'# NaNs : {NaNs.sum()}')
+
+#             NaNs |= (wsys <= 0.0)                  # negative weights
+#             if self.clip:
+#                 self.logger.info('< or > 2x')
+                
+#                 NaNs |= (wsys < 0.5) 
+#                 NaNs |= (wsys > 2.0)
+                
+#             self.logger.info(f'# NaNs or lt 0: {NaNs.sum()}')
+
+
+#             if NaNs.sum() !=0:
+
+#                 nan_wsys = np.argwhere(NaNs).flatten()
+#                 nan_hpix = hpix[nan_wsys]
+
+#                 # use the average of the neighbors
+#                 self.logger.info(f'# NaNs (before) : {len(nan_hpix)}')
+#                 neighbors = hp.get_all_neighbours(self.nside, nan_hpix) 
+#                 wsys[nan_wsys] = np.nanmean(self.wmap[neighbors], axis=0)
+
+#                 # 
+#                 NaNs =  (np.isnan(wsys) | (wsys <= 0.0))
+#                 NNaNs = NaNs.sum()
+#                 self.logger.info(f'# NaNs (after)  : {NNaNs}')
+
+#                 # set weight to 1 if not available
+#                 if NNaNs != 0:
+#                     self.logger.info(f'set {NNaNs} pixels to 1.0 (neighbors did not help)')
+#                     wsys[NaNs] = 1.0
+
+            
+#         assert np.all(wsys > 0.0),f'{(wsys <= 0.0).sum()} weights <= 0.0!' 
+#         #return wsys
+#         return 1./wsys # Systematic weight = 1 / Selection mask
+
+    
+# class NNWeight(SysWeight):
+    
+#     def __init__(self, filename, nside, fix=True, clip=False):
+        
+#         wnn = ft.read(filename)        
+#         wnn_hp = np.zeros(12*nside*nside)
+#         wnn_hp[wnn['hpix']] = np.median(wnn['weight'], axis=1)#.mean(axis=1)
+        
+#         self.mask = np.zeros_like(wnn_hp, '?')
+#         self.mask[wnn['hpix']] = True
+        
+#         super(NNWeight, self).__init__(wnn_hp, ismap=True, fix=fix, clip=clip)    
     
 def extract_keys_dr9(mapi):
     band = mapi.split('/')[-1].split('_')[3]

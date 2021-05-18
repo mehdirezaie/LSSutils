@@ -13,8 +13,7 @@ from time import time
 import fitsio as ft
 
 from lssutils.lab import (make_overdensity, AnaFast, 
-                          histogram_cell, NNWeight, hpixsum, get_meandensity,
-                          get_meandensity)
+                          histogram_cell, hpixsum, get_meandensity)
 from lssutils.stats.pcc import pcc
 from lssutils.dataviz import setup_color
 import pandas as pd
@@ -32,17 +31,13 @@ class SV3Data:
                             columns=['RA', 'DEC'])
         self.rcat = ft.read(f'{p}{region}_randoms-1-0x2.fits', 
                             columns=['RA', 'DEC'])
-        self.wrf = ft.read(f'{p}sv3target_{target}_{region}.fits_EdWsys/wsys_v0.fits')['wsys']
-        print(f'mean(wnn): {self.wrf.mean():.2f}, {self.wrf.min():.1f} < wrf < {self.wrf.max():.1f}')
-
         
-        p = f'{root_dir}sv3nn_v1/regression/'
-        sw = NNWeight(f'{p}sv3nn_{target}_{region}_256/nn-weights.fits', self.nside)
-        self.mask_ = sw.mask
-        wnn = sw(self.dcat['RA'], self.dcat['DEC'])        
-        self.wnn = wnn / np.median(wnn)
-        self.wnn = self.wnn.clip(0.5, 2.0)
+        self.wrf = ft.read(f'{p}sv3target_{target}_{region}.fits_EdWsys/wsys_v0.fits')['wsys']
+        print(f'mean(wrf): {self.wrf.mean():.2f}, {self.wrf.min():.1f} < wrf < {self.wrf.max():.1f}')
+        
+        self.wnn = ft.read(f'{p}sv3target_{target}_{region}.fits_MrWsys/wsys_v0.fits')['wsys']        
         print(f'mean(wnn): {self.wnn.mean():.2f}, {self.wnn.min():.1f} < wnn < {self.wnn.max():.1f}')
+
         
         self.af = AnaFast()
         
@@ -51,7 +46,7 @@ class SV3Data:
         #              +[f'{s}_{b}' for s in ['ccdskymag_mean', 'fwhm_mean', 'fwhm_min', 'fwhm_max', 'depth_total', 
         #                                'mjd_mean', 'mjd_min', 'mjd_max', 'airmass_mean', 'exptime_total']\
         #                      for b in ['g', 'r', 'z']]
-        self.cols = ['lognstar', 'ebv', 'loghi',
+        self.cols = ['stardens', 'ebv', 'loghi',
                      'psfdepth_g', 'psfdepth_r', 'psfdepth_z',
                      'galdepth_g', 'galdepth_r', 'galdepth_z', 
                      'psfsize_g', 'psfsize_r', 'psfsize_z', 
@@ -66,7 +61,10 @@ class SV3Data:
         nran = hpixsum(self.nside, self.rcat['RA'], self.rcat['DEC'])*1.0
         self.mask = (nran > 0)
         print(f'mask: {self.mask.sum()} pixels')
-        self.mask &= (self.mask_)
+        
+        is_good = np.isfinite(self.tmpl).sum(axis=1) == 14
+        self.mask &= is_good
+        
         print(f'mask: {self.mask.sum()} pixels (with imaging)') 
         self.frac = nran / nran[self.mask].mean()
         
@@ -101,7 +99,7 @@ setup_color()
 region = sys.argv[1] # NDECALS
 target = sys.argv[2] # QSO
 
-assert region in ['NDECALS', 'SDECALS', 'NBMZLS']
+assert region in ['NDECALS', 'SDECALS', 'NBMZLS', 'DES', 'SDECALS_noDES']
 assert target in ['QSO', 'LRG', 'ELG', 'BGS_ANY']
 
 

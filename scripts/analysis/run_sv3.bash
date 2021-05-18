@@ -6,8 +6,9 @@ conda activate sysnet
 
 do_prep=false
 do_lr=false
-do_fit=true
-do_cl=false
+do_fit=false
+do_assign=false
+do_cl=true
 
 
 nside=256
@@ -33,6 +34,7 @@ root_dir=/home/mehdi/data/dr9v0.57.0/sv3nn_${version}
 prep=${HOME}/github/LSSutils/scripts/analysis/prep_desi.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
 svplot=${HOME}/github/LSSutils/scripts/analysis/plot_sv3.py
+assign=${HOME}/github/LSSutils/scripts/analysis/fetch_weights.py
 
 function get_lr(){
     if [ $1 = "LRG" ]
@@ -100,6 +102,22 @@ fi
 
 conda deactivate
 conda activate py3p6
+
+
+if [ "${do_assign}" = true ]
+then
+    for target in ${targets}
+    do
+        for region in ${regions}
+        do
+            lr=$(get_lr ${target})
+            echo ${target} ${region} $lr
+            python $assign ${target} ${region}
+        done
+    done
+fi
+
+
 if [ "${do_cl}" = true ]
 then
     for target in ${targets}
