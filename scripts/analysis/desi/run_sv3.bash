@@ -7,12 +7,13 @@ conda activate sysnet
 do_prep=false
 do_lr=false
 do_fit=false
-do_assign=false
+do_assign=true
 do_cl=true
 
-
+cversion=v1
+mversion=v1
 nside=256
-bsize=500
+bsize=4098 # v1 500
 regions=$1 #NBMZLS
 targets=$2 #'QSO'
 axes=({0..13})
@@ -25,11 +26,10 @@ axes=({0..13})
 model=dnn
 loss=mse
 nns=(4 20)
-nepoch=71
+nepoch=150 # v0 with 71
 nchain=20
-version=v1
 
-root_dir=/home/mehdi/data/dr9v0.57.0/sv3nn_${version}
+root_dir=/home/mehdi/data/dr9v0.57.0/sv3nn_${cversion}
 
 prep=${HOME}/github/LSSutils/scripts/analysis/prep_desi.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
@@ -62,7 +62,7 @@ then
         for region in ${regions}
         do
             echo ${target} ${region}
-            python $prep $region $target
+            python $prep $region $target 
         done
     done
 fi
@@ -76,7 +76,7 @@ then
         do
             echo ${target} ${region}
             input_path=${root_dir}/tables/sv3tab_${target}_${region}_${nside}.fits
-            output_path=${root_dir}/regression/sv3nn_${target}_${region}_${nside}/hp/
+            output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/hp/
             python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -fl
         done
     done
@@ -92,7 +92,7 @@ then
             lr=$(get_lr ${target})
             echo ${target} ${region} $lr
             input_path=${root_dir}/tables/sv3tab_${target}_${region}_${nside}.fits
-            output_path=${root_dir}/regression/sv3nn_${target}_${region}_${nside}/
+            output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/
             du -h $input_path
             python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr -ne $nepoch -k -nc $nchain 
         done
@@ -110,9 +110,8 @@ then
     do
         for region in ${regions}
         do
-            lr=$(get_lr ${target})
-            echo ${target} ${region} $lr
-            python $assign ${target} ${region}
+            echo ${target} ${region} ${mversion}
+            python $assign ${target} ${region} ${mversion}
         done
     done
 fi
@@ -124,7 +123,7 @@ then
     do
         for region in ${regions}
         do
-            python $svplot $region $target
+            python $svplot $region $target ${mversion}
         done
     done
 fi

@@ -3,5 +3,6 @@ __pycache__/
 *.png
 *.npz
 *.npy
+*.pdf
 *.o*
 .DS_Store

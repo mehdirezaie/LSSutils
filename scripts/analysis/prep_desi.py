@@ -6,6 +6,18 @@ import pandas as pd
 from time import time
 from lssutils.lab import hpixsum, to_numpy, make_overdensity
 
+def cutphotmask(aa, bits):
+    print(f'{len(aa)} before imaging veto')
+    
+    keep = (aa['NOBS_G']>0) & (aa['NOBS_R']>0) & (aa['NOBS_Z']>0)
+    for biti in bits:
+        keep &= ((aa['MASKBITS'] & 2**biti)==0)
+    print(f'{keep.sum()} {keep.mean()}after imaging veto')
+    #print(keep)
+    #return keep
+    return aa[keep]
+
+
 region = sys.argv[1] # NDECALS
 target = sys.argv[2] # QSO
 
@@ -19,6 +31,8 @@ dat_path = f'{root_path}dr9v0.57.0/sv3_{version}/sv3target_{target}_{region}.fit
 ran_path = f'{root_path}dr9v0.57.0/sv3_{version}/{region}_randoms-1-0x5.fits'
 tem_path = f'{root_path}templates/dr9/pixweight_dark_dr9m_nside{nside}.h5'
 tab_path = f'{root_path}dr9v0.57.0/sv3nn_{version}/tables/sv3tab_{target}_{region}_{nside}.fits'
+columns = ['RA', 'DEC', 'NOBS_R', 'NOBS_G', 'NOBS_Z', 'MASKBITS']
+bits = [1, 5, 6, 7, 8, 9, 11, 12, 13]  # https://www.legacysurvey.org/dr9/bitmasks/
 
 
 tab_dir = os.path.dirname(tab_path)
@@ -29,10 +43,16 @@ print(f'Output table will be written in {tab_dir}')
 
 
 t0 = time()
-dat = ft.read(dat_path, columns=['RA', 'DEC'])
-ran = ft.read(ran_path, columns=['RA', 'DEC'])
+dat_ = ft.read(dat_path, columns=columns)
+ran_ = ft.read(ran_path, columns=columns)
+dat = cutphotmask(dat_, bits)
+ran = cutphotmask(ran_, bits)
+
 t1 = time()
 print(f'Read the input catalogs in {t1-t0:.1f} secs')
+
+
+
 
 dathp = hpixsum(nside, dat['RA'], dat['DEC'])*1.0
 ranhp = hpixsum(nside, ran['RA'], ran['DEC'])*1.0

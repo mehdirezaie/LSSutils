@@ -206,6 +206,9 @@ class MeanDensity(object):
 
         output['attr'] = attrs
         self.output = output
+        
+    def __getitem__(self, key):
+        return self.output[key]
 
     def save(self, path_output):
         

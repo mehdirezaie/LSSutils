@@ -20,22 +20,44 @@ import pandas as pd
 
 root_dir = '/home/mehdi/data/dr9v0.57.0/'
 
+
+def cutphotmask(aa, bits):
+    print(f'{len(aa)} before imaging veto')
+    
+    keep = (aa['NOBS_G']>0) & (aa['NOBS_R']>0) & (aa['NOBS_Z']>0)
+    for biti in bits:
+        keep &= ((aa['MASKBITS'] & 2**biti)==0)
+    print(f'{keep.sum()} after imaging veto')
+    print(keep)
+    return keep
+
+
 class SV3Data:
     
-    def __init__(self, target, region):
+    def __init__(self, target, region, mversion):
+        columns = ['RA', 'DEC', 'NOBS_R', 'NOBS_G', 'NOBS_Z', 'MASKBITS']
         
+        bits = [1, 5, 6, 7, 8, 9, 11, 12, 13]
         self.nside = 256
         
         p = f'{root_dir}sv3_v1/'
         self.dcat = ft.read(f'{p}sv3target_{target}_{region}.fits', 
-                            columns=['RA', 'DEC'])
+                            columns=columns)
         self.rcat = ft.read(f'{p}{region}_randoms-1-0x2.fits', 
-                            columns=['RA', 'DEC'])
+                            columns=columns)
         
         self.wrf = ft.read(f'{p}sv3target_{target}_{region}.fits_EdWsys/wsys_v0.fits')['wsys']
-        print(f'mean(wrf): {self.wrf.mean():.2f}, {self.wrf.min():.1f} < wrf < {self.wrf.max():.1f}')
+        self.wnn = ft.read(f'{p}sv3target_{target}_{region}.fits_MrWsys/wsys_{mversion}.fits')['wsys']        
         
-        self.wnn = ft.read(f'{p}sv3target_{target}_{region}.fits_MrWsys/wsys_v0.fits')['wsys']        
+        ix_d = cutphotmask(self.dcat, bits)     
+        self.dcat = self.dcat[ix_d]
+        self.wrf = self.wrf[ix_d]
+        self.wnn = self.wnn[ix_d]
+
+        ix_r = cutphotmask(self.rcat, bits)
+        self.rcat = self.rcat[ix_r]
+        
+        print(f'mean(wrf): {self.wrf.mean():.2f}, {self.wrf.min():.1f} < wrf < {self.wrf.max():.1f}')
         print(f'mean(wnn): {self.wnn.mean():.2f}, {self.wnn.min():.1f} < wnn < {self.wnn.max():.1f}')
 
         
@@ -62,11 +84,15 @@ class SV3Data:
         self.mask = (nran > 0)
         print(f'mask: {self.mask.sum()} pixels')
         
-        is_good = np.isfinite(self.tmpl).sum(axis=1) == 14
+        is_good = np.isfinite(self.tmpl).sum(axis=1) == len(self.cols)
         self.mask &= is_good
         
         print(f'mask: {self.mask.sum()} pixels (with imaging)') 
         self.frac = nran / nran[self.mask].mean()
+
+        self.mask &= (self.frac > 0.2)
+        print(f'mask: {self.mask.sum()} pixels (with frac>0.2)') 
+
         
         self.ngal_now = hpixsum(self.nside, self.dcat['RA'], self.dcat['DEC'])*1.0
         self.ngal_rf  = hpixsum(self.nside, self.dcat['RA'], self.dcat['DEC'], weights=self.wrf)
@@ -98,18 +124,19 @@ setup_color()
 
 region = sys.argv[1] # NDECALS
 target = sys.argv[2] # QSO
+mversion = sys.argv[3]
 
-assert region in ['NDECALS', 'SDECALS', 'NBMZLS', 'DES', 'SDECALS_noDES']
+assert region in ['NDECALS', 'SDECALS', 'NBMZLS', 'DES', 'SDECALS_noDES', 'DES_noLMC']
 assert target in ['QSO', 'LRG', 'ELG', 'BGS_ANY']
 
 
-print(f'target: {target}, region: {region}')
+print(f'target: {target}, region: {region}, mversion: {mversion}')
 
-target_region = f'{target}-{region}'
+target_region = f'{target}-{region}-{mversion}'
 
 
 t0 = time()
-sv = SV3Data(target, region)
+sv = SV3Data(target, region, mversion)
 t1 = time()
 print(f'Finished reading in {t1-t0:.1f} sec')
 

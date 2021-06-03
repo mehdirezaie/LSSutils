@@ -243,6 +243,20 @@ def nside2pixarea(nside, degrees=False):
     
     return pixarea
 
+def cutphotmask(aa, bits, return_indices=False):
+    print(f'{len(aa)} before imaging veto')
+    
+    keep = (aa['NOBS_G']>0) & (aa['NOBS_R']>0) & (aa['NOBS_Z']>0)
+    for biti in bits:
+        keep &= ((aa['MASKBITS'] & 2**biti)==0)
+    print(f'{keep.sum()} {keep.mean()} after imaging veto')
+    #print(keep)
+    #return keep
+    if return_indices:
+        return (aa[keep], keep)
+    else:
+        return aa[keep]
+
 def rolling(x, y, width=3):
     """ compute moving average given width """
     size = y.size
@@ -1250,20 +1264,18 @@ def split2kfolds(data, k=5, shuffle=True, seed=42):
     return kfold_data
 
 
-def IvarToDepth(ivar):
+def ivar2depth(ivar):
     """ change IVAR to DEPTH """
-    depth = nanomaggiesToMag(5./np.sqrt(ivar))
+    depth = nmag2mag(5./np.sqrt(ivar))
     return depth
 
+def nmag2mag(nmag):
+    """ nano maggies to magnitude """
+    return -2.5 * (np.log10(nmag) - 9.)
 
-def Magtonanomaggies(m):
+def mag2nmag(m):
     """ Magnitude to nano maggies """
     return 10.**(-m/2.5+9.)
-
-
-def nanomaggiesToMag(nm):
-    """ nano maggies to magnitude """
-    return -2.5 * (np.log10(nm) - 9.)
 
 
 def read_partialmap(filename, nside=256):    
@@ -1813,9 +1825,12 @@ class SysWeight(object):
         
 class EnsembleWeights(SysWeight):
     
-    def __init__(self, filename, nside):
+    def __init__(self, filename, nside, istable=False):
         #
-        wnn = ft.read(filename)  
+        if istable:
+            wnn = filename
+        else:
+            wnn = ft.read(filename)  
         
         wnn_hp = np.ones(12*nside*nside)
         wnn_hp[wnn['hpix']] = wnn['weight'].mean(axis=1)
