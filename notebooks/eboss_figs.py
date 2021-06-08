@@ -278,7 +278,8 @@ def p0_demo(fig_path, cap='NGC', sample='main', method='known', show_nn=False):
 
 
     # theory
-    pk_m_ = glob(f'/home/mehdi/data/eboss/theory/*{cap}*.dat')
+    p = '/home/mehdi/data/eboss/theory/'
+    pk_m_ = [f'{p}eBOSS_QSO_{cap}_nnknown_512_cont_nnknown_512_kmin1_kmax64_fNL{fnl}.dat' for fnl in ['90', '0', '-10']]
     print(pk_m_)
     pk_m = []
     for d_ in pk_m_:
@@ -323,9 +324,9 @@ def p0_demo(fig_path, cap='NGC', sample='main', method='known', show_nn=False):
              color='grey', alpha=0.2, label=r'1$\sigma$ EZmocks')
     #add_pk(*pks['noweight'], ax1, ax2, marker='s', alpha=0.2, label='Before treatment', ls='-', color='k', mfc='w')
     
-    add_pk(*pks['systot'], ax1, ax2, marker='.', alpha=0.5, label='Standard treatment', ls='None', mfc='w', color='C0')
+    add_pk(*pks['systot'], ax1, ax2, marker='.', markersize=10, alpha=0.8, label='Standard treatment', ls='None', mfc='w', color='C0')
     if show_nn:
-        add_pk(*pks['nn'], ax1, ax2, marker='.', alpha=0.9, label='Neural Network treatment', ls='None', color='C1')
+        add_pk(*pks['nn'], ax1, ax2, marker='.', markersize=10, alpha=0.7, label='Neural Network treatment', ls='None', color='C1')
 
 
     # add_pk(pks_mocks[:, 0], pks_mocks[:, 2], ax3, xk=False, ls='-', lw=1, color='k', label='EZMocks')
@@ -341,7 +342,7 @@ def p0_demo(fig_path, cap='NGC', sample='main', method='known', show_nn=False):
     for i, pk_i in enumerate(pk_m):
         fnl_ = pk_m_[i].split('fNL')[1].split('.')[0]
         label = r'f$_{\rm NL}$= %s'%fnl_
-        line = add_pk(pk_i[:, 0], pk_i[:, 1], ax1, ax2, ls=ls[fnl_], color='k', alpha=0.8, zorder=-1)
+        line = add_pk(pk_i[:, 0], pk_i[:, 1], ax1, ax2, ls=ls[fnl_], color='k', alpha=0.8, zorder=-10)
         lines.append(line)
         lgnds.append(label)
         

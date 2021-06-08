@@ -31,10 +31,10 @@ nchain=20
 
 root_dir=/home/mehdi/data/dr9v0.57.0/sv3nn_${cversion}
 
-prep=${HOME}/github/LSSutils/scripts/analysis/prep_desi.py
+prep=${HOME}/github/LSSutils/scripts/analysis/desi/prep_desi.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
-svplot=${HOME}/github/LSSutils/scripts/analysis/plot_sv3.py
-assign=${HOME}/github/LSSutils/scripts/analysis/fetch_weights.py
+svplot=${HOME}/github/LSSutils/scripts/analysis/desi/plot_sv3.py
+assign=${HOME}/github/LSSutils/scripts/analysis/desi/fetch_weights.py
 
 function get_lr(){
     if [ $1 = "LRG" ]

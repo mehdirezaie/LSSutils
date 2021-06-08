@@ -17,22 +17,22 @@ axes=({0..20}) # 28 for 256, 21 for 1024/2048
 #  'mjd_r_min', 'mjd_g_min', 'mjd_z_min', 
 # 'galdepth_g','galdepth_r', 'galdepth_z', 
 # 'psfsize_g', 'psfsize_r', 'psfsize_z'
-nchains=1  # 25 for NN-MSE, 1 NN-MSE-snapshot / NN-Jackknife
-nepochs=2000 # 70 for NN-MSE/NN-Jackknife, 125 for NN-MSE-snapshot
-batchs=1024 # batch size
+nchains=20  # 25 for NN-MSE, 1 NN-MSE-snapshot / NN-Jackknife
+nepochs=300 # 70 for NN-MSE/NN-Jackknife, 125 for NN-MSE-snapshot
+batchs=4098 # batch size
 lr=0.2  # 0.2 for 256, 0.2 for 1024, NN-MSE
 #lr=0.7   # Lin-MSE
 etamin=0.001
-#input_path=/home/mehdi/data/tanveer/dr8_elg_0.32.0_256.fits
-input_path=/home/mehdi/data/tanveer/dr8_elg_ccd_1024_sub.fits
+input_path=/home/mehdi/data/tanveer/dr8_elg_0.32.0_256.fits
+#input_path=/home/mehdi/data/tanveer/dr8_elg_ccd_1024_sub.fits
 
 #input_dir=/home/mehdi/data/tanveer/jackknife/25/
 
-#output_path=/home/mehdi/data/tanveer/elg_mse/
+output_path=/home/mehdi/data/tanveer/elg_mse_test/
 #output_path=/home/mehdi/data/tanveer/elg_lin/
 #output_path=/home/mehdi/data/tanveer/elg_mse_snapshots_bc/
 #output_path=/home/mehdi/data/tanveer/elg_mse_jk/
-output_path=/home/mehdi/data/tanveer/elg_mse_snapshots/
+#output_path=/home/mehdi/data/tanveer/elg_mse_snapshots/
 
 find_lr=false
 find_st=false
@@ -57,7 +57,7 @@ then
     du -h ${input_path}
     output_path=${output_path}hp/
     echo ${output_path}
-    python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -fl -bs $batchs --nn_structure 3 20
+    python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -fl -bs $batchs
     #python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model lin --loss mse -fl 
 fi
 
@@ -85,9 +85,9 @@ then
     # normal
     du -h ${input_path}
     echo ${output_path}
-    #python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k
+    python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k
     #python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} --model lin --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs -nc $nchains -k
-    python $nnfite -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs --snapshot_ensemble -k -bs $batchs --nn_structure 3 20
+    #python $nnfite -i ${input_path} -o ${output_path} -ax ${axes[@]} --model dnn --loss mse -lr ${lr} --eta_min ${etamin} -ne $nepochs --snapshot_ensemble -k -bs $batchs --nn_structure 3 20
     
     # jackknife
 #     for i in {0..24}

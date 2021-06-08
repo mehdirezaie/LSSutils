@@ -21,9 +21,9 @@ nchains=20
 version="v7_2"
 release="3.0" # or 3.0 (w/ Gaia)
 caps="NGC" # "NGC SGC"  # options are "NGC SGC"
-slices="main" #"low mid" #"main highz" # options are "main highz low mid z1 z2 z3"
+slices="main test" #"low mid" #"main highz" # options are "main highz low mid z1 z2 z3"
 maps="known" # options are "all known" but known is enough
-samples="mainhighz" # options are lowmidhighz mainhighz / only 1: mainlinmse mainlinp mainmse mainhighz mainwocos mainstar mainstarg
+samples="maintest" # options are lowmidhighz mainhighz / only 1: mainlinmse mainlinp mainmse mainhighz mainwocos mainstar mainstarg
 table_name="ngal_eboss"
 templates="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside${nside}.h5"
 templates2="/home/mehdi/data/templates/SDSS_WISE_HI_Gaia_imageprop_nside512.h5"
@@ -33,9 +33,9 @@ do_prep=false
 find_lr=false
 find_st=false
 find_ne=false
-do_nnfit=true
-do_swap=false
-do_pk=false
+do_nnfit=false
+do_swap=true
+do_pk=true
 do_nnbar=false
 do_cl=false
 do_xi=false
@@ -45,8 +45,8 @@ do_default=false
 #---- path to the codes
 prep=${HOME}/github/LSSutils/scripts/analysis/prepare_data_eboss.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
-swap=${HOME}/github/LSSutils/scripts/analysis/swap_data_eboss.py
-pk=${HOME}/github/LSSutils/scripts/analysis/run_pk.py
+swap=${HOME}/github/LSSutils/scripts/analysis/eboss/swap_data_eboss.py
+pk=${HOME}/github/LSSutils/scripts/analysis/eboss/run_pk.py
 nnbar=${HOME}/github/LSSutils/scripts/analysis/run_nnbar_eboss.py
 cl=${HOME}/github/LSSutils/scripts/analysis/run_cell_eboss.py
 xi=${HOME}/github/LSSutils/scripts/analysis/run_xi.py
@@ -243,7 +243,7 @@ then
             do
                 
                 axes=$(get_axes ${map})
-                output_path=${input_dir}nn_pnll_test${map}
+                output_path=${input_dir}nn_pnll_test_${map}
                 echo ${output_path} ${lr} ${axes} ${slice}
                 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr ${lr} -bs $batchsize --nn_structure ${nn_structure[@]} -ne $nepoch -nc $nchains -k
             done
@@ -261,7 +261,7 @@ then
         for map in ${maps}
         do
             echo ${cap} ${map} ${release} ${nside} ${slices}
-            python $swap -m ${map} -n ${nside} -s ${slices} -c ${cap} -v ${release} --method nn_pnll # 1+1 z
+            python $swap -m ${map} -n ${nside} -s ${slices} -c ${cap} -v ${release} --method nn_pnll_test # 1+1 z
         done
     done
 fi
@@ -271,7 +271,7 @@ if [ "${do_pk}" = true ]
 then
     for cap in ${caps}
     do
-        for zrange in main highz
+        for zrange in main #highz
         do
             zlim=$(get_zlim ${zrange})
            
@@ -294,7 +294,7 @@ then
                 echo ${out} ${zlim}
                 mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --zlim ${zlim}            
             fi
-            continue
+            
             for map in ${maps}
             do
                 input_dir=${eboss_dir}${release}/catalogs/
