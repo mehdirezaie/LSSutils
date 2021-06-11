@@ -6,30 +6,27 @@ conda activate sysnet
 
 do_prep=false
 do_lr=false
-do_fit=false
-do_assign=true
-do_cl=true
+do_nl=false
+do_fit=true
+do_assign=false
+do_cl=false
 
 cversion=v1
-mversion=v1
+mversion=v2
 nside=256
 bsize=4098 # v1 500
-regions=$1 #NBMZLS
-targets=$2 #'QSO'
-axes=({0..13})
-#'lognstar', 'ebv', 'loghi',
-#'psfdepth_g', 'psfdepth_r', 'psfdepth_z',
-#'galdepth_g', 'galdepth_r', 'galdepth_z', 
-#'psfsize_g', 'psfsize_r', 'psfsize_z', 
-#'psfdepth_w1', 'psfdepth_w2'
-#
+targets=$1 #'QSO'
+regions=$2 #BMZLS
+axes=({0..12})
 model=dnn
 loss=mse
 nns=(4 20)
 nepoch=150 # v0 with 71
 nchain=20
+etamin=0.001
 
-root_dir=/home/mehdi/data/dr9v0.57.0/sv3nn_${cversion}
+#root_dir=/home/mehdi/data/dr9v0.57.0/sv3nn_${cversion}
+root_dir=/home/mehdi/data/rongpu/imaging_sys
 
 prep=${HOME}/github/LSSutils/scripts/analysis/desi/prep_desi.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
@@ -37,7 +34,7 @@ svplot=${HOME}/github/LSSutils/scripts/analysis/desi/plot_sv3.py
 assign=${HOME}/github/LSSutils/scripts/analysis/desi/fetch_weights.py
 
 function get_lr(){
-    if [ $1 = "LRG" ]
+    if [ $1 = "lrg" ]
     then
         lr=0.2
     elif [ $1 = "ELG" ]
@@ -62,7 +59,7 @@ then
         for region in ${regions}
         do
             echo ${target} ${region}
-            python $prep $region $target 
+            python $prep $target $region
         done
     done
 fi
@@ -75,9 +72,24 @@ then
         for region in ${regions}
         do
             echo ${target} ${region}
-            input_path=${root_dir}/tables/sv3tab_${target}_${region}_${nside}.fits
+            input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
             output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/hp/
             python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -fl
+        done
+    done
+fi
+
+if [ "${do_nl}" = true ]
+then
+    for target in ${targets}
+    do
+        for region in ${regions}
+        do
+            lr=$(get_lr ${target})
+            echo ${target} ${region} $lr
+            input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
+            output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/hp/
+            python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss -lr $lr -fs
         done
     done
 fi
@@ -91,10 +103,10 @@ then
         do
             lr=$(get_lr ${target})
             echo ${target} ${region} $lr
-            input_path=${root_dir}/tables/sv3tab_${target}_${region}_${nside}.fits
+            input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
             output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/
             du -h $input_path
-            python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr -ne $nepoch -k -nc $nchain 
+            python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain 
         done
     done
 fi

@@ -47,6 +47,11 @@ maps_dr9sv3 = ['stardens', 'ebv', 'loghi',
            'psfsize_g', 'psfsize_r', 'psfsize_z', 
            'psfdepth_w1', 'psfdepth_w2']
 
+maps_dr9 = ['EBV', 'STARDENS']\
+          + [f'galdepth_{b}mag_ebv' for b in ['r', 'g', 'z']]\
+          + [f'psfdepth_{b}mag_ebv' for b in ['r', 'g', 'z', 'w1', 'w2']] \
+          + [f'PSFSIZE_{b}' for b in ['R', 'G', 'Z']]
+
 
 # z range
 z_bins = {'main':(0.8, 2.2),
@@ -72,6 +77,19 @@ def to_numpy(label, features, frac, hpix):
     d['hpix'] = hpix
 
     return d    
+
+
+def make_hp(nside, hpix, value, fill_nan=False):
+    """ 
+        Create a healpix map given nside, hpix, and value
+        
+    """
+    map_ = np.zeros(12*nside*nside)
+    if fill_nan:
+        map_[:] = np.nan
+    
+    map_[hpix] = value
+    return map_
 
 def D(z, omega0):
     """
@@ -1880,7 +1898,7 @@ class SysWeight(object):
             NaNs |= (wsys <= 0.0)                  # negative weights
             if self.clip:
                 self.logger.info('< or > 2x')
-              
+                assert abs(np.median(wsys)-1.0) < 0.1, 'You should not clip the selection function that is not normalized'
                 NaNs |= (wsys < 0.5) 
                 NaNs |= (wsys > 2.0)
               
@@ -1909,18 +1927,25 @@ class SysWeight(object):
 
           
         assert np.all(wsys > 0.0),f'{(wsys <= 0.0).sum()} weights <= 0.0!' 
-        #return wsys
         return 1./wsys # Systematic weight = 1 / Selection mask
-
-  
+    
+    
 class NNWeight(SysWeight):
   
-    def __init__(self, filename, nside, fix=True, clip=False):
+    def __init__(self, filename, nside, fix=True, clip=False, aggregate='mean', ix=0):
       
         wnn = ft.read(filename)        
         wnn_hp = np.zeros(12*nside*nside)
-        wnn_hp[wnn['hpix']] = wnn['weight'].mean(axis=1)
-      
+        
+        if aggregate == 'mean':
+            wnn_hp[wnn['hpix']] = wnn['weight'].mean(axis=1)
+        elif aggregate == 'median':
+            wnn_hp[wnn['hpix']] = np.median(wnn['weight'], axis=1)
+        else:
+            print(f'use {ix}')
+            wnn_hp[wnn['hpix']] = wnn['weight'][:, ix]
+            #raise ValueError(f'{aggregate} not implemented')
+            
         self.mask = np.zeros_like(wnn_hp, '?')
         self.mask[wnn['hpix']] = True
       

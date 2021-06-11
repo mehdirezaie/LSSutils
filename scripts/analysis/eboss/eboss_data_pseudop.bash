@@ -37,10 +37,10 @@ eboss_dir="/home/mehdi/data/eboss/data/${version}/"
 
 do_prep=false
 find_lr=false
-do_nnfit=false
+do_nnfit=true
 do_swap=false
 do_pk=false
-do_nnbar=true
+do_nnbar=false
 do_cl=false
 do_default=false
 
@@ -150,7 +150,7 @@ then
                 #output_path=${input_dir}nn_pnnl_${map}
                 output_path=${input_dir}nn_dnnps_${map}
                 echo ${output_path}
-                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr ${lr} --nn_structure ${nn_structure[@]} -ne $nepoch -nc $nchains -k --loss pnll --model dnnps
+                python $nnfit -i ${input_path} -o ${output_path} -ax ${axes} -lr ${lr} --nn_structure ${nn_structure[@]} -ne $nepoch -nc $nchains -k --loss pnll --model dnnps -bs 4098
             done
         done
     done

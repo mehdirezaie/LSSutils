@@ -1,95 +1,61 @@
+
+import numpy as np
+import fitsio as ft
+from glob import glob
+from scipy.stats import pearsonr
 import sys
 import os
-import fitsio as ft
-import numpy as np
-import pandas as pd
-from time import time
-from lssutils.lab import hpixsum, to_numpy, make_overdensity
-
-def cutphotmask(aa, bits):
-    print(f'{len(aa)} before imaging veto')
-    
-    keep = (aa['NOBS_G']>0) & (aa['NOBS_R']>0) & (aa['NOBS_Z']>0)
-    for biti in bits:
-        keep &= ((aa['MASKBITS'] & 2**biti)==0)
-    print(f'{keep.sum()} {keep.mean()}after imaging veto')
-    #print(keep)
-    #return keep
-    return aa[keep]
+sys.path.append('/home/mehdi/github/LSSutils')
+import lssutils.utils as ut
 
 
-region = sys.argv[1] # NDECALS
-target = sys.argv[2] # QSO
+kind = sys.argv[1]
+region = sys.argv[2]
+print(kind, region)
 
-assert region in ['NDECALS', 'SDECALS', 'NBMZLS']
-assert target in ['QSO', 'LRG', 'ELG', 'BGS_ANY']
+assert kind in ['lrg'], f'{kind} not implemented'
+assert region in ['bmzls'], f'{region} not implemented'
+
+
 
 nside = 256
-version = 'v1'
-root_path = '/home/mehdi/data/'
-dat_path = f'{root_path}dr9v0.57.0/sv3_{version}/sv3target_{target}_{region}.fits'
-ran_path = f'{root_path}dr9v0.57.0/sv3_{version}/{region}_randoms-1-0x5.fits'
-tem_path = f'{root_path}templates/dr9/pixweight_dark_dr9m_nside{nside}.h5'
-tab_path = f'{root_path}dr9v0.57.0/sv3nn_{version}/tables/sv3tab_{target}_{region}_{nside}.fits'
-columns = ['RA', 'DEC', 'NOBS_R', 'NOBS_G', 'NOBS_Z', 'MASKBITS']
-bits = [1, 5, 6, 7, 8, 9, 11, 12, 13]  # https://www.legacysurvey.org/dr9/bitmasks/
+maskbits = {'lrg':189111213,
+            'elg':np.nan,
+            'qso':np.nan}
+
+tag_d = '0.57.0'
+tag_r = '0.49.0'
+path = '/home/mehdi/data/rongpu/imaging_sys'
+cap = 'north' if region in ['bmzls'] else 'south'
+path_out = os.path.join(path, 'tables', f'n{kind}_features_{region}_{nside}.fits')
+print(path_out)
 
 
-tab_dir = os.path.dirname(tab_path)
-if not os.path.exists(tab_dir):
-    print(f'Creating {tab_dir}')
-    os.makedirs(tab_dir)
-print(f'Output table will be written in {tab_dir}')
+dir_out = os.path.dirname(path_out)
+if not os.path.exists(dir_out):
+    print(f'{dir_out} does not exist')
+    os.makedirs(dir_out)
 
 
-t0 = time()
-dat_ = ft.read(dat_path, columns=columns)
-ran_ = ft.read(ran_path, columns=columns)
-dat = cutphotmask(dat_, bits)
-ran = cutphotmask(ran_, bits)
+mb = maskbits[kind]
+data_ng = ft.read(f'{path}/density_maps/{tag_d}/resolve/density_map_sv3_{kind}_{cap}_nside_{nside}_minobs_1_maskbits_{mb}.fits')
+data_tmp = ft.read(f'{path}/randoms_stats/{tag_r}/resolve/combined/pixmap_{cap}_nside_{nside}_minobs_1_maskbits_{mb}.fits')
 
-t1 = time()
-print(f'Read the input catalogs in {t1-t0:.1f} secs')
+# split south into sdecals and ndecals
 
 
+ngal = ut.make_hp(nside, data_ng['HPXPIXEL'], data_ng['n_targets'])
+hpix = data_tmp['HPXPIXEL']
+fracgood = data_tmp['FRACAREA']
+label = ngal[hpix]
+features = []
+for col in ut.maps_dr9:
+    feat_ = data_tmp[col]
+    features.append(feat_)
+features = np.array(features).T
 
 
-dathp = hpixsum(nside, dat['RA'], dat['DEC'])*1.0
-ranhp = hpixsum(nside, ran['RA'], ran['DEC'])*1.0
-t2 = time()
-print(f'Project data and randoms to hp in {t2-t1:.1f} secs')
-
-mask = ranhp > 0.0
-#columns = ['nstar', 'ebv', 'loghi']\
-#          +[f'{s}_{b}' for s in ['ccdskymag_mean', 'fwhm_mean', 'fwhm_min', 'fwhm_max', 'depth_total', 
-#                                'mjd_mean', 'mjd_min', 'mjd_max', 'airmass_mean', 'exptime_total']\
-#                      for b in ['g', 'r', 'z']]
-columns = ['stardens', 'ebv', 'loghi',
-           'psfdepth_g', 'psfdepth_r', 'psfdepth_z',
-           'galdepth_g', 'galdepth_r', 'galdepth_z', 
-           'psfsize_g', 'psfsize_r', 'psfsize_z', 
-           'psfdepth_w1', 'psfdepth_w2']
-tmpl = pd.read_hdf(tem_path)
-tmpl_np = tmpl[columns].values
-
-t3 = time()
-print(f'Read imaging maps in {t3-t2:.1f} secs')
-
-mask_t = mask.copy()
-for i in range(tmpl_np.shape[1]):
-    mask_t &= np.isfinite(tmpl_np[:, i])
-print(f'before: {mask.sum()}, after: {mask_t.sum()}')
-
-for i, col in enumerate(columns):
-    print(f'{col:10s}: {np.percentile(tmpl_np[mask_t, i], [0, 1, 99, 100])}')
-
-frac = np.zeros_like(ranhp)
-frac[mask_t] = ranhp[mask_t] / ranhp[mask_t].mean()
-t4 = time()
-print(f'Compute pixel completeness in {t4-t3:.1f} secs')
-
-
-d = to_numpy(dathp[mask_t], tmpl_np[mask_t], 
-             frac[mask_t], np.argwhere(mask_t).flatten())
-ft.write(tab_path, d)
-print(f'{tab_path} is written!')
+data_nn = ut.to_numpy(label, features, fracgood, hpix)
+for name in data_nn.dtype.names:
+    assert (~np.isfinite(data_nn[name])).sum() == 0, f'{name} is bad'
+ft.write(path_out, data_nn, clobber=True)
