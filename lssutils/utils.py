@@ -797,6 +797,23 @@ def hpix2radec(nside, hpix):
     theta, phi = hp.pixelfunc.pix2ang(nside, hpix)
     return np.degrees(phi), 90-np.degrees(theta)
 
+
+def select_region(ra, dec, reg):
+    
+    wra = (ra > 100.-dec)
+    wra &= (ra < 280. +dec)
+    
+    if reg == 'ndecals':
+        w = dec < 32.375
+        w &= wra
+    elif reg == 'sdecals':
+        w = ~wra
+        w &= dec > -30.0
+    else:
+        raise ValueError(f'{reg} not implemented')
+    return w
+
+
 def hpix2regions(hpix, nside=256, min_dec_mzls=32.375, min_dec_decals=-30.0):
     """
     Function splits HEALPix indices to DECaLS North, South, and BASS/MzLS

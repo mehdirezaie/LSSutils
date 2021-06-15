@@ -9,6 +9,7 @@ do_lr=false
 do_nl=false
 do_fit=true
 do_assign=false
+do_nbar=false
 do_cl=false
 
 cversion=v1
@@ -31,13 +32,14 @@ root_dir=/home/mehdi/data/rongpu/imaging_sys
 prep=${HOME}/github/LSSutils/scripts/analysis/desi/prep_desi.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
 svplot=${HOME}/github/LSSutils/scripts/analysis/desi/plot_sv3.py
+nbar=${HOME}/github/LSSutils/scripts/analysis/desi/run_nnbar_sv3.py
 assign=${HOME}/github/LSSutils/scripts/analysis/desi/fetch_weights.py
 
 function get_lr(){
     if [ $1 = "lrg" ]
     then
         lr=0.2
-    elif [ $1 = "ELG" ]
+    elif [ $1 = "elg" ]
     then
         lr=0.3
     elif [ $1 = "QSO" ]
@@ -128,6 +130,25 @@ then
     done
 fi
 
+
+if [ "${do_nbar}" = true ]
+then
+    for target in ${targets}
+    do
+        for region in ${regions}
+        do
+            input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
+            output_path=${root_dir}/clustering/${mversion}/nbar_${target}_${region}_${nside}_noweight.npy
+
+            mpirun -np 4 python $nbar -d ${input_path} -o ${output_path}
+            
+            output_path=${root_dir}/clustering/${mversion}/nbar_${target}_${region}_${nside}_nn.npy
+            selection=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/nn-weights.fits
+            mpirun -np 4 python $nbar -d ${input_path} -o ${output_path} -s ${selection}            
+            
+        done
+    done
+fi
 
 if [ "${do_cl}" = true ]
 then

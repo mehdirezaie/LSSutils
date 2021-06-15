@@ -13,14 +13,14 @@ kind = sys.argv[1]
 region = sys.argv[2]
 print(kind, region)
 
-assert kind in ['lrg'], f'{kind} not implemented'
-assert region in ['bmzls'], f'{region} not implemented'
+assert kind in ['lrg', 'elg'], f'{kind} not implemented'
+assert region in ['bmzls', 'ndecals', 'sdecals'], f'{region} not implemented'
 
 
 
 nside = 256
 maskbits = {'lrg':189111213,
-            'elg':np.nan,
+            'elg':1111213,
             'qso':np.nan}
 
 tag_d = '0.57.0'
@@ -42,7 +42,13 @@ data_ng = ft.read(f'{path}/density_maps/{tag_d}/resolve/density_map_sv3_{kind}_{
 data_tmp = ft.read(f'{path}/randoms_stats/{tag_r}/resolve/combined/pixmap_{cap}_nside_{nside}_minobs_1_maskbits_{mb}.fits')
 
 # split south into sdecals and ndecals
-
+if region in ['ndecals', 'sdecals']:
+    is_region = ut.select_region(data_ng['RA'], data_ng['DEC'], region)
+    data_ng = data_ng[is_region]
+    
+    is_region = ut.select_region(data_tmp['RA'], data_tmp['DEC'], region)
+    data_tmp = data_tmp[is_region]
+    
 
 ngal = ut.make_hp(nside, data_ng['HPXPIXEL'], data_ng['n_targets'])
 hpix = data_tmp['HPXPIXEL']

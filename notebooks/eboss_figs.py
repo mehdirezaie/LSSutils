@@ -820,7 +820,7 @@ def nnbarchi2pdf_mocks_data(fig_path, cap='NGC',
     
     #ax1.plot(x_, pdf, 'b-')
     for n,v in chi2mocks.items():
-        ax1.hist(v, bins=bins, alpha=0.5, label=n, histtype='step')
+        ax1.hist(v, bins=bins, alpha=0.9, label=n, histtype='step')
         
     kw2 = dict(rotation=90, fontsize=12)# fontsize, fontweight='bold'
     ls = ['--', '-.', ':']
@@ -1061,7 +1061,7 @@ def cellchi2pdf_mocks_data(fig_path, cap='NGC',
     
     #ax1.plot(x_, pdf, 'b-')
     for n,v in chi2mocks.items():
-        ax1.hist(v, bins=bins, alpha=0.5, label=n, histtype='step')
+        ax1.hist(v, bins=bins, alpha=0.9, label=n, histtype='step')
         
     kw2 = dict(rotation=90, fontsize=12)# fontsize, fontweight='bold'
     ls = ['--', '-.', ':']

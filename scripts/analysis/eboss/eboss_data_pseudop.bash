@@ -7,9 +7,9 @@ conda activate sysnet
 #---- path to the codes
 prep=/home/mehdi/github/LSSutils/scripts/analysis/prepare_data_eboss.py
 nnfit=/home/mehdi/github/sysnetdev/scripts/app.py
-swap=/home/mehdi/github/LSSutils/scripts/analysis/swap_data_eboss.py
-pk=/home/mehdi/github/LSSutils/scripts/analysis/run_pk.py
-nnbar=/home/mehdi/github/LSSutils/scripts/analysis/run_nnbar_eboss.py
+swap=/home/mehdi/github/LSSutils/scripts/analysis/eboss/swap_data_eboss.py
+pk=/home/mehdi/github/LSSutils/scripts/analysis/eboss/run_pk.py
+nnbar=/home/mehdi/github/LSSutils/scripts/analysis/eboss/run_nnbar_eboss.py
 cl=/home/mehdi/github/LSSutils/scripts/analysis/run_cell_eboss.py
 
 #---- path to the data
@@ -37,10 +37,10 @@ eboss_dir="/home/mehdi/data/eboss/data/${version}/"
 
 do_prep=false
 find_lr=false
-do_nnfit=true
+do_nnfit=false
 do_swap=false
 do_pk=false
-do_nnbar=false
+do_nnbar=true
 do_cl=false
 do_default=false
 
