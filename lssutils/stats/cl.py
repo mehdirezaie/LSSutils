@@ -49,7 +49,7 @@ def cl2xi(cell, costheta):
 def get_cl(ngal, nran, mask, selection_fn=None,
            systematics=None, njack=20, nran_bar=None, lmax=None, 
            cache_jackknifes=True, do_jack_sys=False, comm=None,
-	   cross_only=False):
+           cross_only=False):
     
     # initialize AnaFast
     af_kw = {'njack':njack, 'lmax':lmax}

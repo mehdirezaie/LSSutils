@@ -1186,18 +1186,19 @@ def make_overdensity(ngal, nran, mask, selection_fn=None, is_sys=False, nnbar=Fa
     assert np.all(nran[mask]>1.0e-8), "'weight' must be > 0"
     
     delta = np.empty_like(ngal)
-    delta[:] = np.nan
+    delta[:] = np.nan    
+    ngal_ = ngal.copy()
     
     if selection_fn is not None:
         assert np.all(selection_fn[mask]>1.0e-8), "'selection_mask' must be > 0"
-        ngal = ngal / selection_fn
+        ngal_[mask] = ngal_[mask] / selection_fn[mask]
 
     if is_sys:
-        sf = (ngal[mask]*nran[mask]).sum() / nran[mask].sum()
-        delta[mask] = ngal[mask] / sf
+        sf = (ngal_[mask]*nran[mask]).sum() / nran[mask].sum()
+        delta[mask] = ngal_[mask] / sf
     else:
-        sf = ngal[mask].sum()/nran[mask].sum()
-        delta[mask] = ngal[mask]/(nran[mask]*sf)
+        sf = ngal_[mask].sum()/nran[mask].sum()
+        delta[mask] = ngal_[mask]/(nran[mask]*sf)
         
     if not nnbar:
         delta[mask] -= 1.0

@@ -24,8 +24,10 @@ def main(args, comm=None):
         
         if args.selection is not None:
             s_ = ft.read(args.selection)           
-            selection_fn = make_hp(256, s_['hpix'], s_['weight'].mean(axis=1))
+            selection_fn = make_hp(256, s_['hpix'], np.median(s_['weight'], axis=1))#.mean(axis=1))
             selection_fn = selection_fn[data['hpix']]
+            print(np.percentile(selection_fn[mask], [0, 1, 99, 100]))
+
         else:
             selection_fn = None
         
@@ -45,7 +47,7 @@ def main(args, comm=None):
     selection_fn = comm.bcast(selection_fn, root=0)
     
     nnbar_list = get_meandensity(ngal, nran, mask, sysm, 
-                                 columns=columns, selection_fn=selection_fn)
+                                 columns=columns, selection_fn=selection_fn, binning='simple', nbins=30)
     
     if comm.rank == 0:
         output_dir = os.path.dirname(args.output_path)

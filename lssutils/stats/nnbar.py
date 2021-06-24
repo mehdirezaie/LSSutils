@@ -10,7 +10,8 @@ def get_meandensity(ngal, nran, mask, systematics,
                     selection_fn=None,
                     njack=20, nbins=8, 
                     columns=None,
-                    comm=None):
+                    comm=None,
+                    **kwargs):
     
     if columns is None:
         columns = ['sys-%d'%i for i in range(systematics.shape[1])]
@@ -22,8 +23,8 @@ def get_meandensity(ngal, nran, mask, systematics,
     nnbar_list= []
     for i in range(start, stop+1):
         nnbar_i = MeanDensity(ngal, nran, mask, systematics[:,i],
-                              nbins=nbins, selection=selection_fn)
-
+                              nbins=nbins, selection=selection_fn, **kwargs)
+        
         nnbar_i.run(njack=njack)
         nnbar_i.output['sys'] = columns[i] # add the name of the map
         nnbar_list.append(nnbar_i.output)
@@ -58,11 +59,15 @@ class MeanDensity(object):
         #
         # selection on galaxy map
         if selection is not None:
+            assert np.all(selection[mask]>1.0e-8), "'selection_mask' must be > 0"
             if self.comm.rank==0:
                 self.logger.info('apply selection mask on galaxy')
             self.galmap /= selection[mask]
         #
         # digitize
+        if bins is not None:
+            nbins = bins.size-1
+            
         self.sysl = [0 for k in range(3*nbins)]
 
         if binning == 'simple':
