@@ -7,10 +7,10 @@ conda activate sysnet
 do_prep=false
 do_lr=false
 do_nl=false
-do_fit=false
+do_fit=true
 do_assign=false
-do_nbar=true
-do_cl=true
+do_nbar=false
+do_cl=false
 
 cversion=v1
 mversion=v2
@@ -133,7 +133,7 @@ then
             lr=$(get_lr ${target})
             echo ${target} ${region} $lr
             input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
-            output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/
+            output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}_test/
             du -h $input_path
             python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain 
         done

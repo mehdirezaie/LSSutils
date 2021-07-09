@@ -1,0 +1,8 @@
+/home/mehdi/data/DESISV/test_Shadab/ELGAlltiles_N_clustering.dat.fits ELG
+/home/mehdi/data/DESISV/test_Shadab/ELGAlltiles_S_clustering.dat.fits ELG
+/home/mehdi/data/DESISV/test_Shadab/ELG_HIPAlltiles_N_clustering.dat.fits ELG
+/home/mehdi/data/DESISV/test_Shadab/ELG_HIPAlltiles_S_clustering.dat.fits ELG
+/home/mehdi/data/DESISV/test_Shadab/LRGAlltiles_N_clustering.dat.fits LRG
+/home/mehdi/data/DESISV/test_Shadab/LRGAlltiles_S_clustering.dat.fits LRG
+/home/mehdi/data/DESISV/test_Shadab/QSOAlltiles_N_clustering.dat.fits QSO
+/home/mehdi/data/DESISV/test_Shadab/QSOAlltiles_S_clustering.dat.fits QSO
