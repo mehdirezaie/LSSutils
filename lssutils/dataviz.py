@@ -53,7 +53,9 @@ def setup_color():
     mpl.rcParams['xtick.top'] = True
     mpl.rcParams['font.family'] = 'DejaVu Sans'
     mpl.rcParams['font.size'] = 18
-    mpl.rcParams['axes.linewidth'] = 2        
+    mpl.rcParams['axes.linewidth'] = 2       
+    mpl.rcParams['legend.frameon'] = False
+    mpl.rcParams['legend.fontsize'] = 13
     
     
     

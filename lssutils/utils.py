@@ -32,14 +32,12 @@ from scipy import integrate
 ud_grade = hp.ud_grade
 
 # columns
-maps_eboss_v7p2 = [
-    'star_density', 'ebv', 'loghi',
-    'sky_g', 'sky_r', 'sky_i', 'sky_z',
-    'depth_g_minus_ebv','depth_r_minus_ebv', 
-    'depth_i_minus_ebv', 'depth_z_minus_ebv', 
-    'psf_g', 'psf_r', 'psf_i', 'psf_z',
-     'run', 'airmass'
-]
+maps_eboss_v7p2 = ['star_density', 'ebv', 'loghi',
+                'sky_g', 'sky_r', 'sky_i', 'sky_z',
+                'depth_g_minus_ebv','depth_r_minus_ebv', 
+                'depth_i_minus_ebv', 'depth_z_minus_ebv', 
+                'psf_g', 'psf_r', 'psf_i', 'psf_z',
+                 'run', 'airmass']
 
 maps_dr9sv3 = ['stardens', 'ebv', 'loghi',
            'psfdepth_g', 'psfdepth_r', 'psfdepth_z',
