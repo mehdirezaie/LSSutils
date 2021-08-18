@@ -11,17 +11,22 @@ import numpy as np
 @CurrentMPIComm.enable
 def main(args, comm=None):
     
-    if comm.rank == 0:        
+    if comm.rank == 0:       
+        import healpy as hp
         # --- only rank 0        
         # read data, randoms, and templates
         data = ft.read(args.data_path)
         nside = 256
         
-        ngal = data['label']
-        nran = data['fracgood']
-        mask = np.ones_like(ngal, '?')
+        #ngal = data['label']
+        #nran = data['fracgood']
+        nran = np.ones(data['hpix'].size)
+        mask = np.ones(data['hpix'].size, '?')
         sysm = data['features']
         
+        ngal_ = hp.read_map(args.hpmap_path)
+        ngal = ngal_[data['hpix']]
+
         if args.selection is not None:
             s_ = ft.read(args.selection)           
             selection_fn = make_hp(256, s_['hpix'], np.median(s_['weight'], axis=1))#.mean(axis=1))
@@ -71,6 +76,7 @@ if __name__ == '__main__':
         from argparse import ArgumentParser
         ap = ArgumentParser(description='Mean Density')
         ap.add_argument('-d', '--data_path', required=True)
+        ap.add_argument('-m', '--hpmap_path', required=True)
         ap.add_argument('-o', '--output_path', required=True)
         ap.add_argument('-s', '--selection', default=None)
         ns = ap.parse_args()
@@ -81,8 +87,4 @@ if __name__ == '__main__':
         ns = None
         print(f'hey from {comm.rank}')
         
-    main(ns)
-            
-            
-        
-    
+    main(ns) 

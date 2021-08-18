@@ -32,7 +32,7 @@ def setup_color():
     colors = ['#377eb8', '#ff7f00', '#4daf4a',
               '#f781bf', '#a65628', '#984ea3',
               '#999999', '#e41a1c']
-    styles = 2*['-', '--', '-.', ':']
+    styles = ['-', '--', '-.', ':', '--', '-.', ':', '-']
     plt.rc('axes', prop_cycle=(cycler('color', colors)+cycler('linestyle', styles)))
     
     mpl.rcParams['xtick.direction'] = 'in'

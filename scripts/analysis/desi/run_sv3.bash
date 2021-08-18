@@ -7,9 +7,9 @@ conda activate sysnet
 do_prep=false
 do_lr=false
 do_nl=false
-do_fit=true
+do_fit=false
 do_assign=false
-do_nbar=false
+do_nbar=true
 do_cl=false
 
 cversion=v1

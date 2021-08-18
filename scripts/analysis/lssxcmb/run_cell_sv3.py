@@ -1,12 +1,15 @@
 
 import os
-
+import healpy as hp
 from lssutils import setup_logging, CurrentMPIComm
-from lssutils.lab import get_meandensity
+from lssutils.lab import get_cl
 from lssutils.utils import npix2nside, make_hp
 from lssutils.utils import maps_dr9 as columns
 import fitsio as ft
 import numpy as np
+
+    
+    
 
 @CurrentMPIComm.enable
 def main(args, comm=None):
@@ -15,19 +18,21 @@ def main(args, comm=None):
         # --- only rank 0        
         # read data, randoms, and templates
         data = ft.read(args.data_path)
-        nside = 256
+        nside = 1024
         
-        ngal = data['label']
-        nran = data['fracgood']
-        mask = np.ones_like(ngal, '?')
-        sysm = data['features']
+        ngal = make_hp(nside, data['hpix'], data['label'])
+        nran = make_hp(nside, data['hpix'], data['fracgood'])
+        mask = make_hp(nside, data['hpix'], 1.0) > 0.5
+        
+        sysm = np.zeros((12*nside*nside, data['features'].shape[1]))
+        print(sysm.shape)
+        sysm[data['hpix'], :] = data['features']
         
         if args.selection is not None:
-            s_ = ft.read(args.selection)           
-            selection_fn = make_hp(256, s_['hpix'], np.median(s_['weight'], axis=1))#.mean(axis=1))
-            selection_fn = selection_fn[data['hpix']]
+            #s_ = ft.read(args.selection)           
+            #selection_fn = make_hp(nside, s_['hpix'], np.median(s_['weight'], axis=1))#.mean(axis=1))
+            selection_fn = hp.read_map(args.selection)
             print(np.percentile(selection_fn[mask], [0, 1, 99, 100]))
-
         else:
             selection_fn = None
         
@@ -37,28 +42,24 @@ def main(args, comm=None):
         mask = None
         sysm = None
         selection_fn = None
-        
-        
-        
+              
     ngal = comm.bcast(ngal, root=0)
     nran = comm.bcast(nran, root=0)
     mask = comm.bcast(mask, root=0)
     sysm = comm.bcast(sysm, root=0)
-    selection_fn = comm.bcast(selection_fn, root=0)
+    selection_fn = comm.bcast(selection_fn, root=0)        
+ 
     
-    nnbar_list = get_meandensity(ngal, nran, mask, sysm, 
-                                 columns=columns, selection_fn=selection_fn)#, binning='simple', nbins=30)
-    
+    cls_list = get_cl(ngal, nran, mask, selection_fn=selection_fn,
+                       systematics=sysm, njack=0)
+        
     if comm.rank == 0:
         output_dir = os.path.dirname(args.output_path)
         if not os.path.exists(output_dir):
             print(f'creating {output_dir}')
             os.makedirs(output_dir)
        
-        np.save(args.output_path, nnbar_list)
-        
-        
-        
+        np.save(args.output_path, cls_list)
 
 if __name__ == '__main__':
     
@@ -69,7 +70,7 @@ if __name__ == '__main__':
         print(f'hi from {comm.rank}')
         
         from argparse import ArgumentParser
-        ap = ArgumentParser(description='Mean Density')
+        ap = ArgumentParser(description='Angular Clustering')
         ap.add_argument('-d', '--data_path', required=True)
         ap.add_argument('-o', '--output_path', required=True)
         ap.add_argument('-s', '--selection', default=None)
@@ -81,8 +82,7 @@ if __name__ == '__main__':
         ns = None
         print(f'hey from {comm.rank}')
         
-    main(ns)
-            
+    main(ns)            
             
         
     

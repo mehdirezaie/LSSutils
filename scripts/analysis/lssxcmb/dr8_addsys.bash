@@ -28,19 +28,23 @@ lr=0.3  # 0.2 for 256, 0.2 for 1024, NN-MSE
 etamin=0.001
 #input_path=/home/mehdi/data/tanveer/dr8/dr8_elg_0.32.0_256.fits
 #input_path=/home/mehdi/data/tanveer/dr8_elg_ccd_1024_sub.fits
-input_path=/home/mehdi/data/rongpu/imaging_sys/tables/nelg_features_${region}_1024.fits
+input_path=/home/mehdi/data/rongpu/imaging_sys/tables/nelg_features_${region}_256.fits
+#input_path=/home/mehdi/data/rongpu/imaging_sys/tables/nelg_features_${region}_1024.fits
 #input_dir=/home/mehdi/data/tanveer/jackknife/25/
 
 #output_path=/home/mehdi/data/tanveer/elg_mse/
 #output_path=/home/mehdi/data/tanveer/elg_lin/
 #output_path=/home/mehdi/data/tanveer/elg_mse_snapshots_bc/
 #output_path=/home/mehdi/data/tanveer/elg_mse_jk/
-output_path=/home/mehdi/data/tanveer/dr9/elg_mse_snapshots/${region}/
+#output_path=/home/mehdi/data/tanveer/dr9/elg_mse_snapshots/${region}/
+output_path=/home/mehdi/data/tanveer/dr9/elg_mse_snapshots_nl/${region}/
 
 find_lr=false
 find_st=false
 find_ne=false
-do_nnfit=true
+do_nnfit=false
+do_pull=false
+
 
 
 #---- path to the codes
@@ -52,7 +56,7 @@ pk=${HOME}/github/LSSutils/scripts/analysis/run_pk.py
 nnbar=${HOME}/github/LSSutils/scripts/analysis/run_nnbar_eboss.py
 cl=${HOME}/github/LSSutils/scripts/analysis/run_cell_eboss.py
 xi=${HOME}/github/LSSutils/scripts/analysis/run_xi.py
-
+pullens=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/pull_sysnet_snapshot_mpidr9.py
 
 #--- hyper-parameter search
 if [ "${find_lr}" = true ]
@@ -104,7 +108,10 @@ then
 #     done
 fi
 
-
+if [ "${do_pull}" = true ]
+then
+    mpirun -np 10 python $pullens $region
+fi
 
 #python $nnfit -i /home/mehdi/data/tanveer/test_split/dr8split_continous.npy -o /home/mehdi/data/tanveer/test_split/continous/ -ax ${axes[@]} --model dnn --loss mse -fl
 #python $nnfit -i /home/mehdi/data/tanveer/test_split/dr8split_random.npy -o /home/mehdi/data/tanveer/test_split/random/ -ax ${axes[@]} --model dnn --loss mse -fl

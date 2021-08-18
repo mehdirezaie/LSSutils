@@ -37,7 +37,7 @@ def loglike(theta, y, x):
     '''The natural logarithm of the likelihood.'''
     md = model(x, *theta)
     res = y-md
-    err = y+eps  # Poisson error, pick some
+    err = y+eps  # Poisson error, pick some ## NPLL: y - md log(y)
     return -0.5 * (res*res/err).sum()
 
 def logpost(theta, y, x):
@@ -70,7 +70,7 @@ assert np.all((y+eps) > 0)
 #y = y[ix]
 #
 
-
+## --- changing # gal to \delta to work with a Gaussian label
 
 
 # normalize the features

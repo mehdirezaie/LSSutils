@@ -49,7 +49,7 @@ def cl2xi(cell, costheta):
 def get_cl(ngal, nran, mask, selection_fn=None,
            systematics=None, njack=20, nran_bar=None, lmax=None, 
            cache_jackknifes=True, do_jack_sys=False, comm=None,
-           cross_only=False):
+           cross_only=False, is_delta=False):
     
     # initialize AnaFast
     af_kw = {'njack':njack, 'lmax':lmax}
@@ -64,7 +64,11 @@ def get_cl(ngal, nran, mask, selection_fn=None,
     if comm.rank==0:        
         nran_exp = nran_bar if nran_bar is not None else nran[mask].mean()
         weight = nran / nran_exp
-        delta = make_overdensity(ngal, nran, mask, selection_fn=selection_fn)
+
+        if not is_delta:
+            delta = make_overdensity(ngal, nran, mask, selection_fn=selection_fn)
+        else:
+            delta = ngal*1.0
     else:
         delta = None
         weight = None
