@@ -3,8 +3,8 @@
 export NUMEXPR_MAX_THREADS=2
 export PYTHONPATH=${HOME}/github/LSSutils:${HOME}/github/sysnetdev
 
-do_nbar=false
-do_cl=true
+do_nbar=true
+do_cl=false
 
 regions=$1 #BMZLS
 targets="lrg"

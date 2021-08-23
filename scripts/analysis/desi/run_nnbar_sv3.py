@@ -47,7 +47,7 @@ def main(args, comm=None):
     selection_fn = comm.bcast(selection_fn, root=0)
     
     nnbar_list = get_meandensity(ngal, nran, mask, sysm, 
-                                 columns=columns, selection_fn=selection_fn)#, binning='simple', nbins=30)
+                                 columns=columns, selection_fn=selection_fn, binning='simple', percentiles=[1, 99])
     
     if comm.rank == 0:
         output_dir = os.path.dirname(args.output_path)
@@ -81,8 +81,4 @@ if __name__ == '__main__':
         ns = None
         print(f'hey from {comm.rank}')
         
-    main(ns)
-            
-            
-        
-    
+    main(ns)    

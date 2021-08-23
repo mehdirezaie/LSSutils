@@ -100,9 +100,9 @@ class MeanDensity(object):
                 self.logger.info(f'{swtt} randoms (area) in each bin')
             datat = np.zeros(npts, dtype=np.dtype([('ss', 'f8'), ('gs', 'f8'),
                                                    ('ws', 'f8'), ('rid', 'i8')]))
-            datat['ss'] = self.sysmap*1
-            datat['gs'] = self.galmap*1
-            datat['ws'] = self.ranmap*1
+            datat['ss'] = self.sysmap*1.0
+            datat['gs'] = self.galmap*1.0
+            datat['ws'] = self.ranmap*1.0
             np.random.seed(123456)
             datat['rid'] = np.random.permutation(np.arange(npts))
 
