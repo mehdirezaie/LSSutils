@@ -8,7 +8,7 @@ from lssutils.utils import split_NtoM
 @CurrentMPIComm.enable
 def get_meandensity(ngal, nran, mask, systematics,
                     selection_fn=None,
-                    njack=20, nbins=8, 
+                    njack=0, nbins=8, 
                     columns=None,
                     comm=None,
                     **kwargs):
@@ -49,7 +49,7 @@ class MeanDensity(object):
     @CurrentMPIComm.enable
     def __init__(self, galmap, ranmap, mask,
                        sysmap, nbins=8, selection=None, binning='equi-area',
-                       percentiles=[0, 100], bins=None, comm=None):
+                       percentiles=[0, 100], bins=None, global_nbar=False, comm=None):
         #
         # inputs
         self.comm = comm
@@ -138,9 +138,13 @@ class MeanDensity(object):
         else:
             raise ValueError('%s not among [simple, equi-area]'%binning)
 
-        totgal = np.sum([np.sum(self.sysl[i]) for i in np.arange(1,3*nbins, 3)])
-        totran = np.sum([np.sum(self.sysl[i]) for i in np.arange(2,3*nbins, 3)])
-        self.avnden = totgal/totran
+        if global_nbar:
+            self.avnden = self.galmap.sum()/self.ranmap.sum()
+        else:
+            totgal = np.sum([np.sum(self.sysl[i]) for i in np.arange(1,3*nbins, 3)])
+            totran = np.sum([np.sum(self.sysl[i]) for i in np.arange(2,3*nbins, 3)])
+            self.avnden = totgal/totran
+        
         self.bins = bins
         if self.comm.rank==0:
             self.logger.info(f'mean nbar {self.avnden}')

@@ -52,7 +52,8 @@ def main(args, comm=None):
     selection_fn = comm.bcast(selection_fn, root=0)
     
     nnbar_list = get_meandensity(ngal, nran, mask, sysm, 
-                                 columns=columns, selection_fn=selection_fn, binning='simple', percentiles=[1, 99])
+                                 columns=columns, selection_fn=selection_fn, binning='simple', percentiles=[1, 99],
+                                 global_nbar=True)
     
     if comm.rank == 0:
         output_dir = os.path.dirname(args.output_path)
