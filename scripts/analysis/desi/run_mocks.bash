@@ -60,9 +60,10 @@ then
                 input_map=${root_dir}/lrg-${mockid}-f1z1.fits
                 output_path=${root_dir}/clustering/nbarmock_${mockid}_${target}_${region}_${nside}_noweight.npy
                 
-                du -h $input_map $input_path
-                echo $output_path
-                mpirun -np 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
+                #du -h $input_map $input_path
+                #echo $output_path
+                #mpirun -np 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
+                python ./run_nmocks.py -d ${input_path} -m ${input_map} -o ${output_path}
             done
         done
     done
