@@ -294,7 +294,7 @@ then
                 echo ${out} ${zlim}
                 mpirun -np 8 python ${pk} -g $dat -r $ran -o $out --zlim ${zlim}            
             fi
-            continue
+            
             for map in ${maps}
             do
                 input_dir=${eboss_dir}${release}/catalogs/
@@ -342,7 +342,7 @@ then
                 mpirun -np 8 python ${nnbar} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
             fi
 
-            continue
+            
             for map in ${maps}
             do
                 input_dir=${eboss_dir}${release}/catalogs/
@@ -389,7 +389,7 @@ then
                 echo ${out} ${zlim}
                 mpirun -np 8 python ${cl} -d $dat -r $ran -o $out -t ${templates2} --use_systot --zlim ${zlim}
             fi
-            continue 
+            
             for map in ${maps}
             do
                 input_dir=${eboss_dir}${release}/catalogs/
