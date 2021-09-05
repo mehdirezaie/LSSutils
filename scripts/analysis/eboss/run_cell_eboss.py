@@ -137,15 +137,15 @@ if __name__ == '__main__':
         
         from argparse import ArgumentParser
         ap = ArgumentParser(description='Angular Power Spectrum Cell')
-        ap.add_argument('-d', '--data_path', required=True)
-        ap.add_argument('-r', '--randoms_path', required=True)
-        ap.add_argument('-t', '--templates_path', required=True)
-        ap.add_argument('-o', '--output_path', required=True)
-        ap.add_argument('-z', '--zlim', nargs='*', type=float, default=[0.8, 2.2]) 
-        ap.add_argument('-n', '--nside', type=int, default=None)
-        ap.add_argument('--use_systot', action='store_true')
-        ap.add_argument('--auto_only', action='store_true')
-        ap.add_argument('--cross_only', action='store_true')
+        ap.add_argument('-d', '--data_path', required=True)              # path to data
+        ap.add_argument('-r', '--randoms_path', required=True)           # path to randoms
+        ap.add_argument('-t', '--templates_path', required=True)         # path to imaging templates
+        ap.add_argument('-o', '--output_path', required=True)            # path to output (.npy)
+        ap.add_argument('-z', '--zlim', nargs='*', type=float, default=[0.8, 2.2]) # desired redshift cut
+        ap.add_argument('-n', '--nside', type=int, default=None)         # healpix nside (if not given, it'll be taken from imaging maps)
+        ap.add_argument('--use_systot', action='store_true')             # whether or not include imaging systot weights
+        ap.add_argument('--auto_only', action='store_true')              # whether or not compute cross power between galaxy and imaging
+        ap.add_argument('--cross_only', action='store_true')             # whether or not compute auto power of imaging
         ns = ap.parse_args()
 
         for (key, value) in ns.__dict__.items():
