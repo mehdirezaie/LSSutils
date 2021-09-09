@@ -61,15 +61,15 @@ z_bins = {'main':(0.8, 2.2),
          'z3':(1.7, 2.2)}
 
 
-def chi2_fn(y, invcov):
-    return np.dot(y, np.dot(invcov, y))  
+def chi2_fn(residual, invcov):
+    return np.dot(residual, np.dot(invcov, residual))  
 
 
-def get_inv(err_mat, return_cov=False):
-    nmocks, nbins = err_mat.shape
-
+def get_inv(err_tot, return_cov=False):
+    
+    nmocks, nbins = err_tot.shape
     hartlapf = (nmocks - 1.) / (nmocks - nbins - 2.)
-    covmax = np.cov(err_mat, rowvar=False)*hartlapf
+    covmax = np.cov(err_tot, rowvar=False)*hartlapf
     invcov = np.linalg.inv(covmax)
     
     ret = (invcov, )
@@ -84,7 +84,7 @@ def get_inv(err_mat, return_cov=False):
 def get_chi2pdf(err_tot):
     
     nmocks, nbins = err_tot.shape
-    hartlapf = (nmocks-1. - 1.) / (nmocks-1. - nbins - 2.)
+    hartlapf = (nmocks-1. - 1.) / (nmocks-1. - nbins - 2.) # leave-one-out
     print(f'nmocks: {nmocks}, nbins: {nbins}')
     
     indices = np.arange(nmocks).tolist()
