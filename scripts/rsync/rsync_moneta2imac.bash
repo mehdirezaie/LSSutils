@@ -1,6 +1,6 @@
 
 # directories to sync
-a='alternative dr9v0.57.0 eboss rongpu tanveer templates formehdi lognormal'
+a='alternative dr9v0.57.0 eboss rongpu tanveer templates formehdi lognormal mocksys'
 b=' '
 for ai in $a;do b=${b}' '/home/mehdi/data/${ai};done
 echo ${b}
