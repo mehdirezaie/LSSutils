@@ -17,7 +17,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy  as np
 import healpy as hp
-import seaborn as sns
+#import seaborn as sns
 
 
 from matplotlib.gridspec import GridSpec
@@ -150,6 +150,7 @@ def plot_corrmax(corrmatrix, title, xlabels, pdfname):
         pdfname = f'pcorr_{region}.pdf'    
         lab.dataviz.plot_corrmax(corr_reg, cbar_label[region], xlabels, pdfname)
     '''
+    raise NotImplemented("Seaborn is not installed")
     params = {
     'axes.spines.right':False,
     'axes.spines.top':False,
@@ -656,7 +657,7 @@ def ablation_plot(filename,
                   hold=False,
                   saveto=None,
                   ax=None):    
-    
+    raise NotImplemented("Seaborn support removed")
     matric, FEAT = read_ablation_file(filename, allow_pickle=allow_pickle)
     
     matric *= 1.e4

@@ -1,22 +1,51 @@
+#!/bin/bash
+#SBATCH --job-name=lnprep
+#SBATCH --account=PHS0336 
+#SBATCH --time=00:10:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=mr095415@ohio.edu
 
-. "/home/mehdi/miniconda3/etc/profile.d/conda.sh"
+# manually add the path, later we will install the pipeline with `pip`
+source ${HOME}/.bashrc
+
+export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
 export NUMEXPR_MAX_THREADS=2
-export PYTHONPATH=${HOME}/github/LSSutils:${HOME}/github/sysnetdev
+source activate sysnet
 
-do_nbar=true
+cd ${HOME}/github/LSSutils/scripts/analysis/desi
+
+do_prep=true
+do_nn=false     # 20 h
+do_assign=false
+do_nbar=false    # 10 m
 do_cl=false
 
-regions=$1 #BMZLS
+#mockid=1
+printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
+echo ${mockid}
+bsize=4098
+regions=$1
 targets="lrg"
 ver=v0
-root_dir=/home/mehdi/data/lognormal/${ver}
-root_dir2=/home/mehdi/data/rongpu/imaging_sys/tables
+root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
+root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys/tables
 nside=256
+axes=({0..12})
+model=dnn
+loss=mse
+nns=(4 20)
+nepoch=70 # or 150
+nchain=20
+etamin=0.001
+lr=0.2
 
 
-
+prep=${HOME}/github/LSSutils/scripts/analysis/desi/prep_mocks.py
 cl=${HOME}/github/LSSutils/scripts/analysis/desi/run_cell_mocks.py
 nbar=${HOME}/github/LSSutils/scripts/analysis/desi/run_nnbar_mocks.py
+nnfit=${HOME}/github/sysnetdev/scripts/app.py
 
 
 function get_reg(){
@@ -43,10 +72,34 @@ function get_reg(){
 }
 
 
+if [ "${do_prep}" = true ]
+then
+    for region in ${regions}
+    do
+        echo $region
+        input_path=${root_dir}/lrg-${mockid}-f1z1.fits
+        output_path=${root_dir}/tables/${region}/nlrg-${mockid}-${region}.fits
 
-conda activate py3p6
+        du -h $input_path
+        echo $output_path
+        srun -n 1 python $prep $input_path $output_path ${region}
+    done
+fi
 
-# bash run_sv3.bash 'LRG ELG BGS_ANY' 'NBMZLS NDECALS SDECALS SDECALS_noDES DES'
+
+if [ "${do_nn}" = true ]
+then
+    for region in ${regions}
+    do
+        input_path=${root_dir}/tables/bmzls/nlrg-${mockid}-${region}.fits
+        output_path=${root_dir}/regression/${mockid}/${region}/
+        du -h $input_path
+        echo $output_path	
+        srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain --do_tar -k
+    done
+fi
+
+
 
 if [ "${do_nbar}" = true ]
 then
@@ -54,17 +107,25 @@ then
     do
         for region in ${regions}
         do
-            for mockid in {1..1000}
-            do
+            #for mockid in {1..1000} ##--- no need to do this with slurm array
+            #do
+                echo $target $region
+                # no weight
                 input_path=${root_dir2}/n${target}_features_${region}_${nside}.fits
                 input_map=${root_dir}/lrg-${mockid}-f1z1.fits
-                output_path=${root_dir}/clustering/nbarmock_${mockid}_${target}_${region}_${nside}_noweight.npy
-                
-                #du -h $input_map $input_path
+                du -h $input_map $input_path
+
+                #output_path=${root_dir}/clustering/nbarmock_${mockid}_${target}_${region}_${nside}_noweight.npy                
                 #echo $output_path
-                #mpirun -np 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
-                python ./run_nmocks.py -d ${input_path} -m ${input_map} -o ${output_path}
-            done
+                #srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
+                #python ./run_nmocks.py -d ${input_path} -m ${input_map} -o ${output_path} # find num. of mock gal in each catalog
+
+                # nn weight
+                input_wsys=${root_dir}/regression/${mockid}/${region}/nn-weights.fits
+                output_path=${root_dir}/clustering/nbarmock_${mockid}_${target}_${region}_${nside}_nn.npy
+                echo $output_path
+                srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
+            #done
         done
     done
 fi

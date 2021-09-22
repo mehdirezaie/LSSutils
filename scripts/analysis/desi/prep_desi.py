@@ -5,7 +5,6 @@ from glob import glob
 from scipy.stats import pearsonr
 import sys
 import os
-sys.path.append('/home/mehdi/github/LSSutils')
 import lssutils.utils as ut
 
 
