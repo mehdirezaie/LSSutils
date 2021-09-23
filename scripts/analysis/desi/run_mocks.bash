@@ -1,11 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=lnprep
+#SBATCH --job-name=lnnbar
 #SBATCH --account=PHS0336 
 #SBATCH --time=00:10:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=mr095415@ohio.edu
+
+## run with
+# sbatch --array=1-100 run_mocks.bash ndecals
 
 # manually add the path, later we will install the pipeline with `pip`
 source ${HOME}/.bashrc
@@ -16,10 +19,10 @@ source activate sysnet
 
 cd ${HOME}/github/LSSutils/scripts/analysis/desi
 
-do_prep=true
+do_prep=false
 do_nn=false     # 20 h
 do_assign=false
-do_nbar=false    # 10 m
+do_nbar=true    # 10 m
 do_cl=false
 
 #mockid=1
@@ -91,7 +94,7 @@ if [ "${do_nn}" = true ]
 then
     for region in ${regions}
     do
-        input_path=${root_dir}/tables/bmzls/nlrg-${mockid}-${region}.fits
+        input_path=${root_dir}/tables/${region}/nlrg-${mockid}-${region}.fits
         output_path=${root_dir}/regression/${mockid}/${region}/
         du -h $input_path
         echo $output_path	
@@ -110,13 +113,13 @@ then
             #for mockid in {1..1000} ##--- no need to do this with slurm array
             #do
                 echo $target $region
-                # no weight
                 input_path=${root_dir2}/n${target}_features_${region}_${nside}.fits
-                input_map=${root_dir}/lrg-${mockid}-f1z1.fits
+                input_map=${root_dir}/${target}-${mockid}-f1z1.fits
                 du -h $input_map $input_path
 
-                #output_path=${root_dir}/clustering/nbarmock_${mockid}_${target}_${region}_${nside}_noweight.npy                
-                #echo $output_path
+		# no weight
+                output_path=${root_dir}/clustering/nbarmock_${mockid}_${target}_${region}_${nside}_noweight.npy                
+                echo $output_path
                 #srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
                 #python ./run_nmocks.py -d ${input_path} -m ${input_map} -o ${output_path} # find num. of mock gal in each catalog
 
@@ -136,8 +139,8 @@ then
     do
         for region in ${regions}
         do
-            for mockid in {1..1000}
-            do
+            #for mockid in {1..1000}
+            #do
                 input_path=${root_dir2}/n${target}_features_${region}_${nside}.fits
                 input_map=${root_dir}/lrg-${mockid}-f1z1.fits
                 output_path=${root_dir}/clustering/clmock_${mockid}_${target}_${region}_${nside}_noweight.npy
@@ -145,7 +148,7 @@ then
                 du -h $input_map $input_path
                 echo $output_path
                 mpirun -np 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path}
-            done
+            #done
         done
     done
 fi
