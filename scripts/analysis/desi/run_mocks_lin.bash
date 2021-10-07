@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=lncl
+#SBATCH --job-name=lnlincl
 #SBATCH --account=PHS0336 
 #SBATCH --time=00:10:00
 #SBATCH --nodes=1
@@ -36,13 +36,13 @@ root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
 root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys/tables
 nside=256
 axes=({0..12})
-model=dnn
+model=lin
 loss=mse
 nns=(4 20)
-nepoch=70 # or 150
+nepoch=150 # or 150
 nchain=20
 etamin=0.001
-lr=0.2
+lr=0.6
 
 
 prep=${HOME}/github/LSSutils/scripts/analysis/desi/prep_mocks.py
@@ -95,7 +95,7 @@ then
     for region in ${regions}
     do
         input_path=${root_dir}/tables/${region}/nlrg-${mockid}-${region}.fits
-        output_path=${root_dir}/regression/${mockid}/${region}/nn/
+        output_path=${root_dir}/regression/${mockid}/${region}/lin/
         du -h $input_path
         echo $output_path	
         srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain --do_tar -k
@@ -124,8 +124,8 @@ then
                 #python ./run_nmocks.py -d ${input_path} -m ${input_map} -o ${output_path} # find num. of mock gal in each catalog
 
                 # nn weight
-                input_wsys=${root_dir}/regression/${mockid}/${region}/nn/nn-weights.fits
-                output_path=${root_dir}/clustering/nbarmock_${mockid}_${target}_${region}_${nside}_nn.npy
+                input_wsys=${root_dir}/regression/${mockid}/${region}/lin/nn-weights.fits
+                output_path=${root_dir}/clustering/nbarmock_${mockid}_${target}_${region}_${nside}_lin.npy
                 echo $output_path
                 srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
             #done
@@ -147,11 +147,11 @@ then
                 
                 du -h $input_map $input_path
                 #echo $output_path
-                #srun -np 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path}
+                #srun -n 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path}
 
-                # nn weight
-                input_wsys=${root_dir}/regression/${mockid}/${region}/nn/nn-weights.fits
-                output_path=${root_dir}/clustering/clmock_${mockid}_${target}_${region}_${nside}_nn.npy
+                # lin weight
+                input_wsys=${root_dir}/regression/${mockid}/${region}/lin/nn-weights.fits
+                output_path=${root_dir}/clustering/clmock_${mockid}_${target}_${region}_${nside}_lin.npy
                 du -h $input_wsys
 		echo $output_path
 		srun -n 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}

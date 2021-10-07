@@ -24,7 +24,7 @@ def main(args, comm=None):
         
         if args.selection is not None:
             s_ = ft.read(args.selection)           
-            selection_fn = make_hp(256, s_['hpix'], np.median(s_['weight'], axis=1))#.mean(axis=1))
+            selection_fn = make_hp(nside, s_['hpix'], np.median(s_['weight'], axis=1))#.mean(axis=1))
             selection_fn = selection_fn[data['hpix']]
             print(np.percentile(selection_fn[mask], [0, 1, 99, 100]))
 

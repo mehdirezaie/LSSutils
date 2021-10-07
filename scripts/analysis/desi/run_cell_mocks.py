@@ -18,7 +18,7 @@ def main(args, comm=None):
         data = ft.read(args.data_path)
         nside = 256
         
-        ngal = hp.read_map(args.hpmap_path)   
+        ngal = hp.read_map(args.hpmap_path, verbose=False, dtype=np.float64)   
         nran = make_hp(nside, data['hpix'], 1.0) # mocks do not have completeness
         mask = make_hp(nside, data['hpix'], 1.0) > 0.5
        

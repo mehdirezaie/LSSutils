@@ -29,9 +29,9 @@ from matplotlib.colors import ListedColormap
 
 def setup_color():
     from cycler import cycler
-    colors = ['#000000', '#377eb8', '#ff7f00', '#4daf4a',
+    colors = ['#000000', '#e41a1c', '#377eb8', '#ff7f00', '#4daf4a',
               '#f781bf', '#a65628', '#984ea3',
-              '#999999', '#e41a1c']
+              '#999999']
     styles = ['-', '--', '-.', ':', '--', '-.', ':', '-', '--']
     plt.rc('axes', prop_cycle=(cycler('color', colors)+cycler('linestyle', styles)))
     

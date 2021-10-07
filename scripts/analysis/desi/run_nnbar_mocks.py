@@ -24,7 +24,7 @@ def main(args, comm=None):
         mask = np.ones(data['hpix'].size, '?')
         sysm = data['features']
         
-        ngal_ = hp.read_map(args.hpmap_path, verbose=False)
+        ngal_ = hp.read_map(args.hpmap_path, verbose=False, dtype=np.float64)
         ngal = ngal_[data['hpix']]
 
         if args.selection is not None:
