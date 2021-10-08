@@ -6,7 +6,6 @@ import os
 import sys
 import fitsio as ft
 import numpy as np
-import zeus
 import emcee
 from scipy.optimize import curve_fit
 
@@ -33,25 +32,24 @@ def logprior(theta):
     lp = lp.sum()
     return lp
 
-def loglike(theta, y, x):
+def loglike(theta, y, x, w):
     '''The natural logarithm of the likelihood.'''
     md = model(x, *theta)
-    res = y-md
-    err = y+eps  # Poisson error, pick some ## NPLL: y - md log(y)
-    return -0.5 * (res*res/err).sum()
+    res = w*(y-md)
+    return -0.5 * (res*res).sum()
 
-def logpost(theta, y, x):
+def logpost(theta, y, x, w):
     '''The natural logarithm of the posterior.'''
-    return logprior(theta) + loglike(theta, y, x)
+    return logprior(theta) + loglike(theta, y, x, w)
 
-region = sys.argv[1]
-ndim = 14     # Number of parameters/dimensions (e.g. m and c)
+data_path = sys.argv[1]   #'/home/mehdi/data/rongpu/imaging_sys/tables/nelg_features_{region}_1024.fits'
+output_path = sys.argv[1] #f'/home/mehdi/data/tanveer/dr9/elg_linear/mcmc_{region}_poissonerr.npz'
+
+
+ndim = 14     # Number of parameters/dimensions (e.g. m and c) +1 for bias
 nwalkers = 400 # 400-500 walkers? Number of walkers to use. It should be at least twice the number of dimensions.
 nsteps = 1000 # Number of steps/iterations.
 
-#data_path = '/home/mehdi/data/tanveer/dr8/dr8_elg_ccd_1024_sub.fits'
-data_path = f'/home/mehdi/data/rongpu/imaging_sys/tables/nelg_features_{region}_1024.fits'
-output_path = f'/home/mehdi/data/tanveer/dr9/elg_linear/mcmc_{region}_poissonerr.npz'
 output_dir = os.path.dirname(output_path)
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -62,16 +60,15 @@ print(f'chains will be written on {output_path}')
 data = ft.read(data_path)
 x = data['features']
 y = data['label']
+w = data['fracgood']
 print(f'# of features: {x.shape}')
-assert np.all((y+eps) > 0)
+#assert np.all((y+eps) > 0)
 # sub-sample
 #ix = np.random.choice(np.arange(y.size), size=sub_size, replace=False)
 #x = x[ix]
 #y = y[ix]
-#
 
 ## --- changing # gal to \delta to work with a Gaussian label
-
 
 # normalize the features
 xmean = np.mean(x, axis=0)
@@ -90,7 +87,7 @@ print('curve_fit:', results[0])
 start = results[0] + 0.1*np.random.randn(nwalkers, ndim) # Initial positions of the walkers.
 print(f'initial guess: {start[0]}')
 
-sampler = emcee.EnsembleSampler(nwalkers, ndim, logpost, args=[ys, xs]) # Initialise the sampler
+sampler = emcee.EnsembleSampler(nwalkers, ndim, logpost, args=[ys, xs, w]) # Initialise the sampler
 sampler.run_mcmc(start, nsteps, progress=True) # Run sampling
 #print(sampler.summary) # Print summary diagnostics
 print("Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction)))

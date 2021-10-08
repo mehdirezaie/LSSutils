@@ -1,18 +1,44 @@
-. "/home/mehdi/miniconda3/etc/profile.d/conda.sh"
-export NUMEXPR_MAX_THREADS=2
-export PYTHONPATH=${HOME}/github/LSSutils:${HOME}/github/sysnetdev
-conda activate sysnet
+#!/bin/bash
+#SBATCH --job-name=dr9lin
+#SBATCH --account=PHS0336 
+#SBATCH --time=20:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=mr095415@ohio.edu
 
-do_cl=true
+# manually add the path, later we will install the pipeline with `pip`
+source ${HOME}/.bashrc
+
+export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
+export NUMEXPR_MAX_THREADS=2
+source activate sysnet
+
+cd ${HOME}/github/LSSutils/scripts/analysis/lssxcmb/
+
+
+do_linfit=true
+do_cl=false
 
 target=elg
 region=bmzls
 nside=1024
 mversion=v2
 
+linfit=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_linear_mcmc.py
 cl=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_cell_sv3.py
-root_dir=/home/mehdi/data/rongpu/imaging_sys
 
+root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
+
+
+if [ "${do_linfit}" = true ]
+then
+    input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/elg_linear/mcmc_${region}_${nside}.npz
+    du -h $input_path
+    echo $output_path
+    srun -n 1 python $linfit $input_path $output_path
+fi
 
 
 if [ "${do_cl}" = true ]
@@ -29,6 +55,3 @@ then
     du -h $selection
     mpirun -np 4 python $cl -d ${input_path} -o ${output_path} -s ${selection}            
 fi
-
-
-
