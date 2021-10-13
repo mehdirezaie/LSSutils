@@ -20,7 +20,7 @@ from lssutils.extrn.fftlog import fftlog
 def dNdz_model(sample='qso', z_low=0.1, kind=1):
     
     if sample=='qso':
-        dNdz, z = np.loadtxt('/home/mehdi/data/dr9v0.57.0/p38fnl/RF_g.txt').T
+        dNdz, z = np.loadtxt(f'/fs/ess/PHS0336/data/dr9v0.57.0/p38fnl/RF_g.txt').T
         dNdz_interp = IUS(z, dNdz)
         dNdz_interp.set_smoothing_factor(2.0)
 
@@ -41,7 +41,7 @@ def dNdz_model(sample='qso', z_low=0.1, kind=1):
         return z_g, dNdz_g
     
     elif sample == 'lrg':
-        zmin, zmax, dNdz = np.loadtxt('/home/mehdi/data/rongpu/sv3_lrg_dndz_denali.txt', 
+        zmin, zmax, dNdz = np.loadtxt('/fs/ess/PHS0336/data/rongpu/sv3_lrg_dndz_denali.txt', 
                                       usecols=(0, 1, 2), unpack=True)        
         zmid = 0.5*(zmin+zmax)
         dNdz_interp = IUS(zmid, dNdz, ext=1)

@@ -18,29 +18,12 @@ class WindowSHT:
 
         self.x, self.w = gauleg(ngauss)
         self.xi_mask = self.cl2xi(cl_['l'], cl_['cl']) / xi_zero
+        self.cl_mask = cl_['cl']
                 
         self.Pl = []
         for ell in self.ell_ob:
             self.Pl.append(np.polynomial.Legendre.basis(ell)(self.x))
-            
-            
-#     def read_rr(self, rr_file, ntot, npix):
-        
-#         area = ntot / npix
-        
-#         raw_data = np.load(rr_file, allow_pickle=True)
-#         sep = raw_data[0][::-1]           # in radians
-#         rr_counts = raw_data[1][::-1]*2.0 # paircount uses symmetry
-
-#         sep_mid = 0.5*(sep[1:]+sep[:-1])
-#         dsep = np.diff(sep)        
-#         window = rr_counts / (dsep*np.sin(sep_mid)) * (2./(npix*npix*area))   
-#         self.window_spl = interp1d(np.cos(sep_mid), window, fill_value="extrapolate")
-
-#         small_scale = self.x < -0.5735764363510458 # i.e., cos(x) < cos(125)
-#         self.xi_mask = self.xi_mask_ * 1.0
-#         self.xi_mask[small_scale] = self.window_spl(self.x[small_scale])
-    
+                
 
     def convolve(self, el_model, cl_model):
         
