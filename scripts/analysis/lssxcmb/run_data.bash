@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=dr9lin
 #SBATCH --account=PHS0336 
-#SBATCH --time=20:00:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=FAIL
@@ -17,7 +17,8 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/scripts/analysis/lssxcmb/
 
 
-do_linfit=true
+do_linfit=false
+do_wlinfit=true
 do_cl=false
 
 target=elg
@@ -26,6 +27,7 @@ nside=1024
 mversion=v2
 
 linfit=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_linear_mcmc.py
+wlinfit=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_wlinear_mcmc.py
 cl=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_cell_sv3.py
 
 root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
@@ -38,6 +40,16 @@ then
     du -h $input_path
     echo $output_path
     srun -n 1 python $linfit $input_path $output_path
+fi
+
+if [ "${do_wlinfit}" = true ]
+then
+    input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
+    #output_path=/fs/ess/PHS0336/data/tanveer/dr9/elg_linear/mcmc_${region}_${nside}wfrac.npz
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/elg_linear/mcmc_${region}_${nside}wfracsq.npz
+    du -h $input_path
+    echo $output_path
+    srun -n 1 python $wlinfit $input_path $output_path
 fi
 
 

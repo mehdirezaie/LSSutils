@@ -60,7 +60,8 @@ print(f'chains will be written on {output_path}')
 data = ft.read(data_path)
 x = data['features']
 y = data['label']
-w = 1.0 #data['fracgood']
+#w = data['fracgood']
+w = data['fracgood']**0.5
 print(f'# of features: {x.shape}')
 #assert np.all((y+eps) > 0)
 # sub-sample
