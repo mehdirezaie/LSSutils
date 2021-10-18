@@ -1,23 +1,40 @@
+#!/bin/bash
+#SBATCH --job-name=dr9nn
+#SBATCH --account=PHS0336 
+#SBATCH --time=24:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=mr095415@ohio.edu
 
-. "/home/mehdi/miniconda3/etc/profile.d/conda.sh"
+# run with
+# sbatch run_sv3.bash lrg "bmzls ndecals sdecals" 256
+# or
+# sbatch run_sv3.bash elg "bmzls ndecals sdecals" 1024
+
+
+# manually add the path, later we will install the pipeline with `pip`
+source ${HOME}/.bashrc
+
+export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
 export NUMEXPR_MAX_THREADS=2
-export PYTHONPATH=${HOME}/github/LSSutils:${HOME}/github/sysnetdev
-conda activate sysnet
+source activate sysnet
 
-do_prep=false
-do_lr=false
-do_nl=false
-do_fit=false
+cd ${HOME}/github/LSSutils/scripts/analysis/desi
+
+do_prep=false     # 20 min x 1 tpn
+do_lr=false       # 20 min x 1 tpn
+do_fit=true       # 24 h x 1 tpn
 do_assign=false
-do_nbar=true
-do_cl=false
+do_nbar=false
+do_cl=false       # 20 min x 4 tpn
 
 cversion=v1
-mversion=v2
-nside=256
+mversion=v3
+nside=$3   # lrg=256, elg=1024
 bsize=4098 # v1 500
 targets=$1 #'QSO'
-regions=$2 #BMZLS
+regions=$2 # BMZLS
 axes=({0..12})
 model=dnn
 loss=mse
@@ -27,7 +44,7 @@ nchain=20
 etamin=0.001
 
 #root_dir=/home/mehdi/data/dr9v0.57.0/sv3nn_${cversion}
-root_dir=/home/mehdi/data/rongpu/imaging_sys
+root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
 
 prep=${HOME}/github/LSSutils/scripts/analysis/desi/prep_desi.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
@@ -87,8 +104,8 @@ then
     do
         for region in ${regions}
         do
-            echo ${target} ${region}
-            python $prep $target $region
+            echo ${target} ${region} ${nside} ${root_dir} $mversion
+            srun -n 1 python $prep $target $region $nside $root_dir $mversion
         done
     done
 fi
@@ -101,24 +118,12 @@ then
         for region in ${regions}
         do
             echo ${target} ${region}
-            input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
+            input_path=${root_dir}/tables/${mversion}/n${target}_features_${region}_${nside}.fits
             output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/hp/
-            python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -fl
-        done
-    done
-fi
-
-if [ "${do_nl}" = true ]
-then
-    for target in ${targets}
-    do
-        for region in ${regions}
-        do
-            lr=$(get_lr ${target})
-            echo ${target} ${region} $lr
-            input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
-            output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/hp/
-            python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss -lr $lr -fs
+            
+	    du -h $input_path
+            echo $output_path
+	    srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -fl
         done
     done
 fi
@@ -132,17 +137,14 @@ then
         do
             lr=$(get_lr ${target})
             echo ${target} ${region} $lr
-            input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
+            input_path=${root_dir}/tables/${mversion}/n${target}_features_${region}_${nside}.fits
             output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/
             du -h $input_path
-            python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain 
+            srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain 
         done
     done
 fi
 
-
-conda deactivate
-conda activate py3p6
 
 # bash run_sv3.bash 'LRG ELG BGS_ANY' 'NBMZLS NDECALS SDECALS SDECALS_noDES DES'
 if [ "${do_assign}" = true ]

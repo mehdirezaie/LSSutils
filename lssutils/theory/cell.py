@@ -1,12 +1,4 @@
 
-
-# root = '/home/mehdi/'
-
-# import sys
-# sys.path.append(f'{root}github/FFTLog-and-beyond/python')
-# sys.path.append(f'{root}github/LSSutils')
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as IUS

@@ -10,15 +10,18 @@ import lssutils.utils as ut
 
 kind = sys.argv[1]
 region = sys.argv[2]
-print(kind, region)
+nside = int(sys.argv[3])
+path = sys.argv[4] #'/fs/ess/PHS0336/data/rongpu/imaging_sys'
+version = sys.argv[5]
+
+print(kind, region, nside, version)
 
 assert kind in ['lrg', 'elg', 'bgs_any', 'bgs_bright'], f'{kind} not implemented'
 assert region in ['bmzls', 'ndecals', 'sdecals'], f'{region} not implemented'
 
 
 
-nside = 256
-maskbits = {'lrg':189111213,
+maskbits = {'lrg':'_lrgmask_v1', #old:'lrg':189111213,
             'elg':1111213,
             'qso':np.nan,
             'bgs_any':113,
@@ -26,9 +29,10 @@ maskbits = {'lrg':189111213,
 
 tag_d = '0.57.0'
 tag_r = '0.49.0'
-path = '/home/mehdi/data/rongpu/imaging_sys'
+
+
 cap = 'north' if region in ['bmzls'] else 'south'
-path_out = os.path.join(path, 'tables', f'n{kind}_features_{region}_{nside}.fits')
+path_out = os.path.join(path, 'tables', version, f'n{kind}_features_{region}_{nside}.fits')
 print(path_out)
 
 

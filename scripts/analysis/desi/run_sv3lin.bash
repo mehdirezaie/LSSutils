@@ -1,11 +1,17 @@
 #!/bin/bash
 #SBATCH --job-name=dr9lin
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:20:00
+#SBATCH --time=24:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=mr095415@ohio.edu
+
+# run with
+# sbatch run_sv3.bash lrg "bmzls ndecals sdecals" 256
+# or
+# sbatch run_sv3.bash elg "bmzls ndecals sdecals" 1024
+
 
 # manually add the path, later we will install the pipeline with `pip`
 source ${HOME}/.bashrc
@@ -16,25 +22,25 @@ source activate sysnet
 
 cd ${HOME}/github/LSSutils/scripts/analysis/desi
 
-do_prep=false
-do_lr=false
-do_fit=false
+do_prep=false     # 20 min x 1 tpn
+do_lr=false       # 20 min x 1 tpn
+do_fit=true       # 24 h x 1 tpn
 do_assign=false
 do_nbar=false
-do_cl=true
+do_cl=false       # 20 min x 4 tpn
 
 cversion=v1
-mversion=v2
-nside=256
+mversion=v3
+nside=$3   # lrg=256, elg=1024
 bsize=4098 # v1 500
-targets='lrg' #'QSO'
-regions=$1 #BMZLS
+targets=$1 #'QSO'
+regions=$2 # BMZLS
 axes=({0..12})
 model=lin
 loss=mse
 nns=(4 20)
-nepoch=150 # 150
-nchain=20 # 20
+nepoch=150 # v0 with 71
+nchain=20
 etamin=0.001
 
 #root_dir=/home/mehdi/data/dr9v0.57.0/sv3nn_${cversion}
@@ -91,7 +97,6 @@ function get_reg(){
 }
 
 
-
 if [ "${do_lr}" = true ]
 then
     for target in ${targets}
@@ -99,9 +104,12 @@ then
         for region in ${regions}
         do
             echo ${target} ${region}
-            input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
+            input_path=${root_dir}/tables/${mversion}/n${target}_features_${region}_${nside}.fits
             output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}_lin/hp/
-            srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -fl
+            
+	    du -h $input_path
+            echo $output_path
+	    srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -fl
         done
     done
 fi
@@ -115,7 +123,7 @@ then
         do
             lr=$(get_lr ${target})
             echo ${target} ${region} $lr
-            input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
+            input_path=${root_dir}/tables/${mversion}/n${target}_features_${region}_${nside}.fits
             output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}_lin/
             du -h $input_path
             srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain 
@@ -130,7 +138,7 @@ then
     do
         for region in ${regions}
         do
-            input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
+            input_path=${root_dir}/tables/${mversion}/n${target}_features_${region}_${nside}.fits
             output_path=${root_dir}/clustering/${mversion}/nbar_${target}_${region}_${nside}_noweight.npy
             #srun -n 4 python $nbar -d ${input_path} -o ${output_path}
             
