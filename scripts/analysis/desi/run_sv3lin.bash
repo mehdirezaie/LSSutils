@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=dr9lin
 #SBATCH --account=PHS0336 
-#SBATCH --time=24:00:00
+#SBATCH --time=00:20:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -24,10 +24,10 @@ cd ${HOME}/github/LSSutils/scripts/analysis/desi
 
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
-do_fit=true       # 24 h x 1 tpn
+do_fit=false       # 24 h x 1 tpn
 do_assign=false
-do_nbar=false
-do_cl=false       # 20 min x 4 tpn
+do_nbar=true     
+do_cl=true       # 20 min x 4 tpn
 
 cversion=v1
 mversion=v3
@@ -157,7 +157,7 @@ then
     do
         for region in ${regions}
         do
-            input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
+            input_path=${root_dir}/tables/${mversion}/n${target}_features_${region}_${nside}.fits
             output_path=${root_dir}/clustering/${mversion}/cl_${target}_${region}_${nside}_noweight.npy
             du -h $input_path
 	    #srun -n 4 python $cl -d ${input_path} -o ${output_path}
