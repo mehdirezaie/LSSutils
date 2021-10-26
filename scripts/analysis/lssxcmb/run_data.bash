@@ -17,17 +17,15 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/scripts/analysis/lssxcmb/
 
 
-do_linfit=false
-do_wlinfit=true
+do_linfit=true   # 10 h
 do_cl=false
 
 target=elg
-region=bmzls
+region=$1   # options are bmzls, ndecals, sdecals
 nside=1024
-mversion=v2
+version=v3
 
-linfit=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_linear_mcmc.py
-wlinfit=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_wlinear_mcmc.py
+linfit=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_wlinear_mcmc.py
 cl=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_cell_sv3.py
 
 root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
@@ -35,21 +33,11 @@ root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
 
 if [ "${do_linfit}" = true ]
 then
-    input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
-    output_path=/fs/ess/PHS0336/data/tanveer/dr9/elg_linear/mcmc_${region}_${nside}.npz
+    input_path=${root_dir}/tables/${version}/n${target}_features_${region}_${nside}.fits
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/elg_linear/mcmc_${region}_${nside}.npz
     du -h $input_path
     echo $output_path
     srun -n 1 python $linfit $input_path $output_path
-fi
-
-if [ "${do_wlinfit}" = true ]
-then
-    input_path=${root_dir}/tables/n${target}_features_${region}_${nside}.fits
-    #output_path=/fs/ess/PHS0336/data/tanveer/dr9/elg_linear/mcmc_${region}_${nside}wfrac.npz
-    output_path=/fs/ess/PHS0336/data/tanveer/dr9/elg_linear/mcmc_${region}_${nside}wfracsq.npz
-    du -h $input_path
-    echo $output_path
-    srun -n 1 python $wlinfit $input_path $output_path
 fi
 
 

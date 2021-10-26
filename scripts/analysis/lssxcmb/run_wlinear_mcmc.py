@@ -19,36 +19,30 @@ def model(x, *theta):
 
 def logprior(theta):
     ''' The natural logarithm of the prior probability. '''
-    lp = 0.
-
     ## Gaussian prior on ?
     mmu = 0.0     # mean of the Gaussian prior
     msigma = 1.0 # standard deviation of the Gaussian prior
     
-    #for theta_i in theta:
-    #    lp -= 0.5*((theta_i - mmu)/msigma)**2
-
     lp = -0.5*((np.array(theta)-mmu)/msigma)**2
     lp = lp.sum()
     return lp
 
 def loglike(theta, y, x, w):
-    '''The natural logarithm of the likelihood.'''
+    '''The natural logarithm of the (Gaussian) likelihood.'''
     md = model(x, *theta)
-    res = w*(y-md)
-    return -0.5 * (res*res).sum()
+    res = (y-w*md)
+    return -0.5 * (w*res*res).sum()
 
 def logpost(theta, y, x, w):
     '''The natural logarithm of the posterior.'''
     return logprior(theta) + loglike(theta, y, x, w)
 
-data_path = sys.argv[1]   #'/home/mehdi/data/rongpu/imaging_sys/tables/nelg_features_{region}_1024.fits'
-output_path = sys.argv[2] #f'/home/mehdi/data/tanveer/dr9/elg_linear/mcmc_{region}_poissonerr.npz'
+data_path = sys.argv[1]   # '/home/mehdi/data/rongpu/imaging_sys/tables/nelg_features_{region}_1024.fits'
+output_path = sys.argv[2] # f'/home/mehdi/data/tanveer/dr9/elg_linear/mcmc_{region}_poissonerr.npz'
 
-
-ndim = 14      # Number of parameters/dimensions (e.g. m and c) +1 for bias
-nwalkers = 400 # 400-500 walkers? Number of walkers to use. It should be at least twice the number of dimensions.
-nsteps = 1000     # 1000, Number of steps/iterations.
+ndim = 14                 # Number of parameters/dimensions (e.g. m and c) +1 for bias
+nwalkers = 400            # 400-500 walkers? Number of walkers to use. It should be at least twice the number of dimensions.
+nsteps = 1000             # 1000, Number of steps/iterations.
 
 output_dir = os.path.dirname(output_path)
 if not os.path.exists(output_dir):
@@ -56,12 +50,10 @@ if not os.path.exists(output_dir):
 print(f'chains will be written on {output_path}')
 
 
-
 data = ft.read(data_path)
 x = data['features']
 y = data['label']
-#w = data['fracgood']
-w = data['fracgood']**0.5
+w = data['fracgood']
 print(f'# of features: {x.shape}')
 #assert np.all((y+eps) > 0)
 # sub-sample
@@ -69,9 +61,8 @@ print(f'# of features: {x.shape}')
 #x = x[ix]
 #y = y[ix]
 
-## --- changing # gal to \delta to work with a Gaussian label
 
-# normalize the features
+# normalize the features and label
 xmean = np.mean(x, axis=0)
 xstd = np.std(x, axis=0)
 xs = (x - xmean) / xstd
@@ -79,7 +70,6 @@ xs = (x - xmean) / xstd
 ymean = np.mean(y)
 ystd = np.std(y)
 ys = (y - ymean)/ystd
-
 
 p0 = np.zeros(ndim)
 results = curve_fit(model, xs, ys, p0=p0)
@@ -90,9 +80,7 @@ print(f'initial guess: {start[0]}')
 
 sampler = emcee.EnsembleSampler(nwalkers, ndim, logpost, args=[ys, xs, w]) # Initialise the sampler
 sampler.run_mcmc(start, nsteps, progress=True) # Run sampling
-#print(sampler.summary) # Print summary diagnostics
 print("Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction)))
-#print("Mean autocorrelation time: {0:.3f} steps".format(np.mean(sampler.get_autocorr_time())))
 
 chain = sampler.get_chain()
 np.savez(output_path, **{'chain':chain, 'x':(xmean, xstd), 'y':(ymean, ystd)})

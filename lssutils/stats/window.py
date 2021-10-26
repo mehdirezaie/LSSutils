@@ -32,6 +32,10 @@ class WindowSHT:
         cl_thw = self.xi2cl(xi_thw)        
         
         return cl_thw
+    
+    def apply_ic(self, cl_model):
+        lmax = len(cl_model)
+        return cl_model - cl_model[0]*(self.cl_mask[:lmax]/self.cl_mask[0])**2
 
     def xi2cl(self, xi):
         '''
