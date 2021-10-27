@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=dr9nn
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:20:00
+#SBATCH --time=30:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -24,10 +24,10 @@ cd ${HOME}/github/LSSutils/scripts/analysis/desi
 
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
-do_fit=false       # 24 h x 1 tpn
+do_fit=true       # 24 h x 1 tpn
 do_assign=false
-do_nbar=true
-do_cl=true       # 20 min x 4 tpn
+do_nbar=false
+do_cl=false       # 20 min x 4 tpn
 
 cversion=v1
 mversion=v3
@@ -138,7 +138,8 @@ then
             lr=$(get_lr ${target})
             echo ${target} ${region} $lr
             input_path=${root_dir}/tables/${mversion}/n${target}_features_${region}_${nside}.fits
-            output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/
+            #output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/
+            output_path=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}wfpix/
             du -h $input_path
             srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain 
         done

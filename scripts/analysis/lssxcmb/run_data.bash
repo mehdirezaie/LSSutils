@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=dr9lin
+#SBATCH --job-name=dr9nn
 #SBATCH --account=PHS0336 
-#SBATCH --time=10:00:00
+#SBATCH --time=75:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=FAIL
@@ -17,7 +17,8 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/scripts/analysis/lssxcmb/
 
 
-do_linfit=true   # 10 h
+do_linfit=false   # 10 h
+do_nnfit=true    # 10 m lr finder, 75 h fit 
 do_cl=false
 
 target=elg
@@ -25,7 +26,22 @@ region=$1   # options are bmzls, ndecals, sdecals
 nside=1024
 version=v3
 
+# nn parameters
+axes=({0..12})
+nchain=5
+nepoch=200
+nns=(4 20)
+bsize=4098
+lr=0.3
+model=dnn
+loss=mse
+etamin=0.0001
+
+
 linfit=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_wlinear_mcmc.py
+nnfit=${HOME}/github/sysnetdev/scripts/app.py
+nnfite=${HOME}/github/sysnetdev/scripts/appensemble.py
+pullens=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/pull_sysnet_snapshot_mpidr9.py
 cl=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_cell_sv3.py
 
 root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
@@ -34,10 +50,27 @@ root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
 if [ "${do_linfit}" = true ]
 then
     input_path=${root_dir}/tables/${version}/n${target}_features_${region}_${nside}.fits
-    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/elg_linear/mcmc_${region}_${nside}.npz
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_linear/mcmc_${region}_${nside}.npz
     du -h $input_path
     echo $output_path
     srun -n 1 python $linfit $input_path $output_path
+fi
+
+
+if [ "${do_nnfit}" = true ]
+then
+    input_path=${root_dir}/tables/${version}/n${target}_features_${region}_${nside}.fits
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_dnn_$region_$nside/
+    du -h $input_path
+    echo $output_path
+    
+    # find lr
+    #srun -n 1 python $nnfit -i ${input_path} -o ${output_path}hp/ -ax ${axes[@]} -bs ${bsize} \
+    #                  --model $model --loss $loss --nn_structure ${nns[@]} -fl
+
+    srun -n 1 python $nnfite -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} \
+                      --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -nc $nchain \
+                      --snapshot_ensemble -k --no_eval  
 fi
 
 
