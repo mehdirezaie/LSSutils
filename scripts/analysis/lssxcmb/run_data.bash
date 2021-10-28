@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=dr9nn
+#SBATCH --job-name=dr9nn$1
 #SBATCH --account=PHS0336 
 #SBATCH --time=75:00:00
 #SBATCH --nodes=1
@@ -27,7 +27,8 @@ nside=1024
 version=v3
 
 # nn parameters
-axes=({0..12})
+#axes=({0..12})
+axes=(0 1 2 3 4 5 6 7 10 11 12)    # ELG's do not need 8 and 9, which are W1 and W1 bands
 nchain=5
 nepoch=200
 nns=(4 20)
@@ -60,7 +61,7 @@ fi
 if [ "${do_nnfit}" = true ]
 then
     input_path=${root_dir}/tables/${version}/n${target}_features_${region}_${nside}.fits
-    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_dnn_${region}_${nside}/
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_dnn/${region}_${nside}/
     du -h $input_path
     echo $output_path
     
