@@ -60,7 +60,7 @@ fi
 if [ "${do_nnfit}" = true ]
 then
     input_path=${root_dir}/tables/${version}/n${target}_features_${region}_${nside}.fits
-    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_dnn_$region_$nside/
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_dnn_${region}_${nside}/
     du -h $input_path
     echo $output_path
     
