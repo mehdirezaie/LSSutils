@@ -1,6 +1,4 @@
 import sys
-sys.path.insert(0, '/home/mehdi/github/sysnetdev')
-sys.path.insert(0, '/home/mehdi/github/LSSutils')
 import os
 from lssutils.utils import split_NtoM
 from sysnet.sources.train import forward
@@ -16,10 +14,17 @@ from glob import glob
 from mpi4py import MPI
 
 
+def chck2pid(chck):
+    ch_ = chck.split('/')
+    #print(ch_)
+    return '_'.join([ch_[-2], ch_[-1].split('.')[0]])
+
+
 def do_forward(checkpoints, rank, oudir):
 
+    axes = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
     nfolds = 5 
-    num_features = 13 # nside=1024, 27 for nside=256
+    num_features = len(axes) # nside=1024, 27 for nside=256
     nnstruct = (4, 20)
 
     model = DNN(*nnstruct, input_dim=num_features)
@@ -27,7 +32,7 @@ def do_forward(checkpoints, rank, oudir):
 
         t0 = time()
         checkpoint = load_checkpoint(chck, model)
-        img_data = ImagingData(templates, checkpoint['stats'])
+        img_data = ImagingData(templates, checkpoint['stats'], axes=axes)
         dataloader = DataLoader(MyDataSet(img_data.x, img_data.y, img_data.p, img_data.w),
                                  batch_size=2000000,
                                  shuffle=False) # num_workers=4
@@ -37,7 +42,7 @@ def do_forward(checkpoints, rank, oudir):
         nnw = result[1].numpy().flatten()
         hpix = result[0].numpy()
 
-        pid = chck.split('/')[-2].split('_')[1]+'_'+chck.split('/')[-1].split('.')[0]+'_'+chck.split('/')[-2].split('_')[2]
+        pid = chck2pid(chck)
         ouname = f'{oudir}/window_{pid}.fits'
 
         if rank==0:print('finish forward pass ', time()-t0, i)
@@ -54,9 +59,12 @@ rank = comm.Get_rank()
 if rank==0:
     region = sys.argv[1]
     print('region', region)
-    chcks = glob(f'/home/mehdi/data/tanveer/dr9/elg_mse_snapshots/{region}/model_*/snapshot_*.pth.tar')
-    templates = ft.read(f'/home/mehdi/data/rongpu/imaging_sys/tables/nelg_features_{region}_1024.fits')   # nside=1024
-    oudir = f'/home/mehdi/data/tanveer/dr9/elg_mse_snapshots/{region}/windows'
+    
+    chcks = glob(f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnn/{region}_1024/model_*/snapshot_*.pth.tar')
+    templates = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/v3/nelg_features_{region}_1024.fits')    
+
+   # nside=1024
+    oudir = f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnn/{region}_1024/windows/'
     if not os.path.exists(oudir):
         os.makedirs(oudir)
         print('rank 0 creates ', oudir)
@@ -65,9 +73,12 @@ else:
     templates = None
     oudir = None
 
+
 templates = comm.bcast(templates, root=0)
 chcks = comm.bcast(chcks, root=0)
 oudir = comm.bcast(oudir, root=0)
+
+comm.Barrier()
 
 my_i, my_f = split_NtoM(len(chcks), size, rank)
 my_chcks = chcks[my_i:my_f+1]

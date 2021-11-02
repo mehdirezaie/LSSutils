@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=dr9nn$1
+#SBATCH --job-name=linfit
 #SBATCH --account=PHS0336 
-#SBATCH --time=75:00:00
+#SBATCH --time=20:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=FAIL
@@ -17,8 +17,11 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/scripts/analysis/lssxcmb/
 
 
-do_linfit=false   # 10 h
-do_nnfit=true    # 10 m lr finder, 75 h fit 
+do_linfit=true   # 20 h
+do_nnfit=false    # 10 m lr finder, 75 h fit 
+do_linsamp=false   # 1 h
+do_nnsamp=false    # 25hx10tpn
+do_nnpull=false    # 1 h
 do_cl=false
 
 target=elg
@@ -42,7 +45,9 @@ etamin=0.0001
 linfit=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_wlinear_mcmc.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
 nnfite=${HOME}/github/sysnetdev/scripts/appensemble.py
-pullens=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/pull_sysnet_snapshot_mpidr9.py
+nnsamp=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/pull_sysnet_snapshot_mpidr9.py
+nnpull=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/combine_nn_windows.py
+linsamp=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/sample_linear_windows.py
 cl=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_cell_sv3.py
 
 root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
@@ -54,7 +59,7 @@ then
     output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_linear/mcmc_${region}_${nside}.npz
     du -h $input_path
     echo $output_path
-    srun -n 1 python $linfit $input_path $output_path
+    srun -n 1 python $linfit -d $input_path -o $output_path -ax ${axes[@]}
 fi
 
 
@@ -64,14 +69,29 @@ then
     output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_dnn/${region}_${nside}/
     du -h $input_path
     echo $output_path
-    
     # find lr
     #srun -n 1 python $nnfit -i ${input_path} -o ${output_path}hp/ -ax ${axes[@]} -bs ${bsize} \
     #                  --model $model --loss $loss --nn_structure ${nns[@]} -fl
-
     srun -n 1 python $nnfite -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} \
                       --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -nc $nchain \
                       --snapshot_ensemble -k --no_eval  
+fi
+
+if [ "${do_linsamp}" = true ]
+then
+    # will do all regions at once
+    srun -n 1 python $linsamp
+fi
+
+if [ "${do_nnsamp}" = true ]
+then
+    srun -n 10 python $nnsamp $region
+fi
+
+
+if [ "${do_nnpull}" = true ]
+then
+    srun -n 1 python $nnpull
 fi
 
 

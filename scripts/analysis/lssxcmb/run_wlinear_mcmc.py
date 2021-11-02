@@ -37,12 +37,21 @@ def logpost(theta, y, x, w):
     '''The natural logarithm of the posterior.'''
     return logprior(theta) + loglike(theta, y, x, w)
 
-data_path = sys.argv[1]   # '/home/mehdi/data/rongpu/imaging_sys/tables/nelg_features_{region}_1024.fits'
-output_path = sys.argv[2] # f'/home/mehdi/data/tanveer/dr9/elg_linear/mcmc_{region}_poissonerr.npz'
 
-ndim = 14                 # Number of parameters/dimensions (e.g. m and c) +1 for bias
+from argparse import ArgumentParser
+ap = ArgumentParser(description='Linear Regression')
+ap.add_argument('-d', '--data_path', required=True)
+ap.add_argument('-o', '--output_path', required=True)
+ap.add_argument('-ax', '--axes', nargs='*', type=int) 
+ns = ap.parse_args()
+
+data_path = ns.data_path   
+output_path = ns.output_path
+
+ndim = len(ns.axes)+1     # Number of parameters/dimensions (e.g. m and c) +1 for bias
 nwalkers = 400            # 400-500 walkers? Number of walkers to use. It should be at least twice the number of dimensions.
 nsteps = 1000             # 1000, Number of steps/iterations.
+print(f'axes for regression: {ns.axes}')
 
 output_dir = os.path.dirname(output_path)
 if not os.path.exists(output_dir):
@@ -51,7 +60,7 @@ print(f'chains will be written on {output_path}')
 
 
 data = ft.read(data_path)
-x = data['features']
+x = data['features'][:, ns.axes]
 y = data['label']
 w = data['fracgood']
 print(f'# of features: {x.shape}')
