@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=linfit
+#SBATCH --job-name=lincel
 #SBATCH --account=PHS0336 
-#SBATCH --time=20:00:00
+#SBATCH --time=05:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -17,11 +17,13 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/scripts/analysis/lssxcmb/
 
 
-do_linfit=true   # 20 h
-do_nnfit=false    # 10 m lr finder, 75 h fit 
+do_linfit=false    # 20 h
+do_nnfit=false     # 10 m lr finder, 75 h fit 
 do_linsamp=false   # 1 h
 do_nnsamp=false    # 25hx10tpn
 do_nnpull=false    # 1 h
+do_lincell=true    # 5hx14tpn
+do_nncell=false    # 5hx14tpn
 do_cl=false
 
 target=elg
@@ -93,6 +95,27 @@ if [ "${do_nnpull}" = true ]
 then
     srun -n 1 python $nnpull
 fi
+
+
+if [ "${do_nncell}" = true ]
+then
+    input_path=/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/v3/nelg_features_${region}_1024.fits
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnn/windows/cell_${region}.npy
+    wind_dir=/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnn/windows/
+
+    srun -n 14 python run_cell_windows.py -d $input_path  -m $wind_dir -o $output_path
+fi
+
+if [ "${do_lincell}" = true ] 
+then
+    input_path=/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/v3/nelg_features_${region}_1024.fits
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_linear/windows/cell_${region}.npy
+    wind_dir=/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_linear/windows/
+
+    srun -n 14 python run_cell_windows.py -d $input_path  -m $wind_dir -o $output_path
+fi
+
+
 
 
 if [ "${do_cl}" = true ]

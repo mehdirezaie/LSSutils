@@ -4,6 +4,20 @@ import logging
 
 from lssutils import CurrentMPIComm
 from lssutils.utils import split_NtoM
+from scipy.stats import binned_statistic
+
+def hist(ngal, frac, syst, bins):
+    ng,_,_ = binned_statistic(syst, ngal, statistic='sum', bins=bins)
+    nr,_,_ = binned_statistic(syst, frac, statistic='sum', bins=bins)
+    ns,_,_ = binned_statistic(syst, syst, statistic='mean', bins=bins)
+    
+    #nstd,_,_ = binned_statistic(syst, ngal/frac, statistic=np.std, bins=bins)
+    #nmodes,_,_ = binned_statistic(syst, np.ones(syst.size), statistic='count', bins=bins)
+    norm = ng.sum()/nr.sum()
+    mean = ng/(nr*norm)
+    #err = nstd/np.sqrt(nmodes)
+    return (ns, mean)
+
 
 @CurrentMPIComm.enable
 def get_meandensity(ngal, nran, mask, systematics,

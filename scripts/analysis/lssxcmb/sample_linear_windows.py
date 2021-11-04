@@ -2,6 +2,7 @@
     Sample from the posterior distribution of linear models
 
 """
+import os
 import numpy as np
 import fitsio as ft
 import healpy as hp
@@ -17,18 +18,19 @@ class Chains:
         self.chains = chains_['chain']
         self.stats = {'x':chains_['x'], 'y':chains_['y']}
         print(self.chains.shape)
+        self.ndim = self.chains.shape[-1]
         #if plot:
-        #    fg, ax = plt.subplots(nrows=14, figsize=(8, 14*1), sharex=True)#, sharey=True)
+        #    fg, ax = plt.subplots(nrows=12, figsize=(8, 12*1), sharex=True)#, sharey=True)
         #    ax = ax.flatten()
         #    #ax[0].set_ylim(-.5, .5)
-        #    for i, ix in enumerate(range(14)): #[0, 1, 2, 3, 5]):
+        #    for i, ix in enumerate(range(12)): #[0, 1, 2, 3, 5]):
         #        for j in range(400):
         #            ax[i].plot(self.chains[:, j, ix])
         #        ax[i].axhline(0.0, ls=':')    
         #    fg.show()
         
     def get_sample(self, skip_rows=200):
-        return self.chains[skip_rows:, :, :].reshape(-1, 14)
+        return self.chains[skip_rows:, :, :].reshape(-1, self.ndim)
 
 
 #--- read mcmc chains
@@ -66,6 +68,10 @@ for j, i in enumerate(ix):
     print('.', end='')
     if (j+1)%100==0:
         print()
-    hp.write_map(f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_linear/windows/linwindow_{j}.hp{nside}.fits', window_i, dtype=np.float64)
+    output_path = f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_linear/windows/linwindow_{j}.hp{nside}.fits'
+    output_dir = os.path.dirname(output_path)
+    if not os.path.exists(output_dir):
+         os.makedirs(output_dir)
+    hp.write_map(output_path, window_i, dtype=np.float64)
 
 print("done!!!")
