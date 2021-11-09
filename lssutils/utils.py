@@ -859,21 +859,20 @@ def select_region(ra, dec, reg):
     return w
 
 
-def radec2regions(ra, dec, nside=256, min_dec_mzls=32.375, min_dec_decals=-30.0):
+def radec2regions(ra, dec, min_dec_mzls=32.375, min_dec_decals=-30.0):
     """
-    Function splits RA and DEC to DECaLS North, South, and BASS/MzLS
+    Function splits RA and DEC to three boolean masks with size=len(RA) for 
+    DECaLS North, South, and BASS/MzLS, respectively.
 
     parameters
     ----------
-    ra : array_like [in deg]
+    ra : float, array_like [in deg]
     
-    ra : array_like [in deg]
+    ra : float, array_like [in deg]
+        
+    min_dec_mzls : float [in deg]
     
-    nside : int
-    
-    min_dec_mzls : float
-    
-    min_dec_decals : float
+    min_dec_decals : float [in deg]
 
 
     returns
