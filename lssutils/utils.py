@@ -859,6 +859,49 @@ def select_region(ra, dec, reg):
     return w
 
 
+def radec2regions(ra, dec, nside=256, min_dec_mzls=32.375, min_dec_decals=-30.0):
+    """
+    Function splits RA and DEC to DECaLS North, South, and BASS/MzLS
+
+    parameters
+    ----------
+    ra : array_like [in deg]
+    
+    ra : array_like [in deg]
+    
+    nside : int
+    
+    min_dec_mzls : float
+    
+    min_dec_decals : float
+
+
+    returns
+    -------
+    is_decaln : array_like
+    
+    is_decals : array_like
+    
+    is_mzls : array_like
+    
+    
+    examples
+    --------
+    """
+    theta = np.radians(90.-dec)
+    phi = np.radians(ra)      
+    r = hp.Rotator(coord=['C', 'G'])
+    theta_g, phi_g = r(theta, phi)
+
+    is_north  = theta_g < np.pi/2
+    is_mzls   = (dec > min_dec_mzls) & is_north
+    is_decaln = (~is_mzls) & is_north
+    is_decals = (~is_mzls) & (~is_north) & (dec > min_dec_decals)
+    
+    return is_decaln, is_decals, is_mzls
+
+   
+
 def hpix2regions(hpix, nside=256, min_dec_mzls=32.375, min_dec_decals=-30.0):
     """
     Function splits HEALPix indices to DECaLS North, South, and BASS/MzLS
