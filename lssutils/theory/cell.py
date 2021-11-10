@@ -3,9 +3,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as IUS
 from scipy.integrate import romberg, simps
-import nbodykit.cosmology as cosmology
 
+import nbodykit.cosmology as cosmology
 from lssutils.extrn.fftlog import fftlog
+from lssutils.stats.window import WindowSHT
 
 
 
@@ -115,6 +116,7 @@ def init_sample(kind='qso', plot=False):
         # ax2.legend(frameon=False)
         # fg.savefig('sample.png', dpi=300, bbox_inches='tight')        
     return z, b, dNdz
+
 
 class Spectrum:
     """
@@ -246,10 +248,28 @@ class Spectrum:
             res.append(cl_)       
 
         cls = (2./np.pi)*np.array(res)
-        #if self.ell[0] == 0:
-        #    cls[0] = 0.0
-        #cls[1] = 0.0
         return cls
+    
+
+class SurveySpectrum(Spectrum, WindowSHT):
+    el_model = np.arange(2000)
+    
+    def __init__(self, *arrays, **kwargs):
+        Spectrum.__init__(self, *arrays, **kwargs)
+        
+    def prep_window(self, *arrays, **kwargs):
+        WindowSHT.__init__(self, *arrays, **kwargs)
+        
+    def __call__(self, el, fnl=0.0, noise=0.0):
+        
+        cl_ = Spectrum.__call__(self, self.el_model, fnl=fnl)   
+        
+        clm_ = self.convolve(self.el_model, cl_)+noise
+        lmax = max(el)+1
+        clm = self.apply_ic(clm_[:lmax])
+        
+        return clm[el]
+    
 # import healpy as hp
 # import numpy as np
 # import matplotlib.pyplot as plt

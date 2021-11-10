@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=dr9nn
+#SBATCH --job-name=dr9mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=30:00:00
+#SBATCH --time=20:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=FAIL
@@ -18,23 +18,26 @@ source ${HOME}/.bashrc
 
 export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
 export NUMEXPR_MAX_THREADS=2
+export OMP_NUM_THREADS=2
 source activate sysnet
 
 cd ${HOME}/github/LSSutils/scripts/analysis/desi
 
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
-do_fit=true       # 24 h x 1 tpn
+do_fit=false       # 24 h x 1 tpn
 do_assign=false
 do_nbar=false
 do_cl=false       # 20 min x 4 tpn
+do_mcmc=true      # 20 h x 1 tpn
 
 cversion=v1
 mversion=v3
-nside=$3   # lrg=256, elg=1024
-bsize=4098 # v1 500
-targets=$1 #'QSO'
-regions=$2 # BMZLS
+nside=256   # lrg=256, elg=1024
+bsize=4098  # v1 500
+targets=lrg #'QSO'
+regions=$1  # BMZLS
+method=$2   # lin, nn, or noweight
 axes=({0..12})
 model=dnn
 loss=mse
@@ -199,6 +202,21 @@ then
             output_path=${root_dir}/clustering/${mversion}/cl_${target}_${region}_${nside}_nn.npy
             selection=${root_dir}/regression/${mversion}/sv3nn_${target}_${region}_${nside}/nn-weights.fits
             srun -n 4 python $cl -d ${input_path} -o ${output_path} -s ${selection}            
+        done
+    done
+fi
+
+
+if [ "${do_mcmc}" = true ]
+then
+    for target in ${targets}
+    do
+        for region in ${regions}
+        do
+            
+            output_mcmc=${root_dir}/clustering/${mversion}/mcmc_${target}_${region}_${method}.npy
+            echo $target $region $method $output_mcmc
+            srun -n 1 python run_mcmc.py $region $method $output_mcmc
         done
     done
 fi
