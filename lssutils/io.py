@@ -2,6 +2,74 @@
 import numpy as np
 
 
+def read_window(region):
+    """ Return Window, Mask, Noise
+    """
+    from .utils import make_hp
+    import fitsio as ft
+    import healpy as hp
+    
+    # read survey geometry
+    data_path = '/fs/ess/PHS0336/data/'    
+    dt = ft.read(f'{data_path}/rongpu/imaging_sys/tables/v3/nlrg_features_{region}_256.fits')
+    mask_  = make_hp(256, dt['hpix'], 1.0) > 0.5
+    
+    mask   = hp.ud_grade(mask_, 1024)
+    weight = mask * 1.0
+    print(f'read window')
+    
+    return weight, mask
+
+def read_clmocks(region, method, plot_cov=False, bins=None):
+    from .utils import histogram_cell
+    from glob import glob
+    import matplotlib.pyplot as plt
+
+    data_path = '/fs/ess/PHS0336/data/'
+
+    if bins is None:
+        bins = np.array([2*(i+1) for i in range(10)] + [2**i for i in range(5, 9)])
+    
+    # compute covariance
+    cl_list = []
+    for i in range(101, 1001):    
+        cl_i = f'{data_path}lognormal/v0/clustering/clmock_{i}_lrg_{region}_256_noweight.npy'        
+        cl_ = np.load(cl_i, allow_pickle=True).item()['cl_gg']['cl']
+        lb_, clb_ = histogram_cell(cl_, bins=bins)        
+        cl_list.append(clb_)
+        print('.', end='')
+        
+    nmocks, nbins = np.array(cl_list).shape
+    hf = (nmocks - 1.0)/(nmocks - nbins - 2.0)
+    cl_cov = np.cov(cl_list, rowvar=False)*hf / nmocks
+    inv_cov = np.linalg.inv(cl_cov)
+    print(f'Hartlap with #mocks ({nmocks}) and #bins ({nbins}): {hf:.2f}' )
+    
+
+    # compute mean power spectrum
+    cl_list = []
+    for i in range(1, 101):    
+        cl_i = f'{data_path}lognormal/v0/clustering/clmock_{i}_lrg_{region}_256_{method}.npy'        
+        cl_ = np.load(cl_i, allow_pickle=True).item()['cl_gg']['cl']
+        lb_, clb_ = histogram_cell(cl_, bins=bins)        
+        cl_list.append(clb_)
+        print('.', end='')
+        
+    cl_mean = np.mean(cl_list, axis=0)
+
+    if plot_cov:
+        vmin, vmax = np.percentile(cl_cov, [5, 95])
+        lim = np.minimum(abs(vmin), abs(vmax))        
+        plt.imshow(cl_cov, origin='lower', vmin=-1.*lim, vmax=lim, cmap=plt.cm.bwr)
+        plt.show()
+        plt.imshow(cl_cov.dot(inv_cov), origin='lower')
+        plt.show()
+        
+    print(cl_mean.shape, cl_cov.shape, len(cl_list))
+    return (lb_.astype('int'), cl_mean, inv_cov)  
+
+
+
 def read_nnbar(filename):
     
     d_i = np.load(filename, allow_pickle=True)    
