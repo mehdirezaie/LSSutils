@@ -20,7 +20,7 @@ def read_window(region):
     
     return weight, mask
 
-def read_clmocks(region, method, plot_cov=False, bins=None):
+def read_clmocks(region, method, plot_cov=False, bins=None, return_cov=False):
     from .utils import histogram_cell
     from glob import glob
     import matplotlib.pyplot as plt
@@ -35,7 +35,7 @@ def read_clmocks(region, method, plot_cov=False, bins=None):
     for i in range(101, 1001):    
         cl_i = f'{data_path}lognormal/v0/clustering/clmock_{i}_lrg_{region}_256_noweight.npy'        
         cl_ = np.load(cl_i, allow_pickle=True).item()['cl_gg']['cl']
-        lb_, clb_ = histogram_cell(cl_, bins=bins)        
+        lb_, clb_ = histogram_cell(np.arange(cl_.size), cl_, bins=bins)
         cl_list.append(clb_)
         print('.', end='')
         
@@ -44,6 +44,7 @@ def read_clmocks(region, method, plot_cov=False, bins=None):
     cl_cov = np.cov(cl_list, rowvar=False)*hf / nmocks
     inv_cov = np.linalg.inv(cl_cov)
     print(f'Hartlap with #mocks ({nmocks}) and #bins ({nbins}): {hf:.2f}' )
+    print('bins:', lb_)
     
 
     # compute mean power spectrum
@@ -51,7 +52,7 @@ def read_clmocks(region, method, plot_cov=False, bins=None):
     for i in range(1, 101):    
         cl_i = f'{data_path}lognormal/v0/clustering/clmock_{i}_lrg_{region}_256_{method}.npy'        
         cl_ = np.load(cl_i, allow_pickle=True).item()['cl_gg']['cl']
-        lb_, clb_ = histogram_cell(cl_, bins=bins)        
+        lb_, clb_ = histogram_cell(np.arange(cl_.size), cl_, bins=bins)        
         cl_list.append(clb_)
         print('.', end='')
         
@@ -66,7 +67,11 @@ def read_clmocks(region, method, plot_cov=False, bins=None):
         plt.show()
         
     print(cl_mean.shape, cl_cov.shape, len(cl_list))
-    return (lb_.astype('int'), cl_mean, inv_cov)  
+    ret = (lb_, cl_mean, inv_cov)
+    if return_cov:
+        ret += (cl_cov,)
+        
+    return ret  
 
 
 

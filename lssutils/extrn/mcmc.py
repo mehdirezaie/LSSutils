@@ -1,5 +1,5 @@
-
-
+import numpy as np
+from lssutils.utils import histogram_cell
 
 
 class Posterior:
@@ -10,6 +10,7 @@ class Posterior:
         self.y = y
         self.invcov = invcov
         self.x = x
+        self.x_ = np.arange(x.min(), x.max()+1)
 
     def logprior(self, theta):
         ''' The natural logarithm of the prior probability. '''
@@ -41,9 +42,10 @@ class Posterior:
         fnl, noise = theta
         
         # evaluate the model
-        md = self.model(self.x, fnl=fnl, noise=noise)
+        md_ = self.model(self.x_, fnl=fnl, noise=noise)
+        md = histogram_cell(self.x_, md_, bins=self.x)[1]
         # return the log likelihood
-        return -0.5 * (self.y-md).dot(self.invcov.dot(self.y-md))
+        return (self.y-md).dot(self.invcov.dot(self.y-md))
 
     def logpost(self, theta):
         '''The natural logarithm of the posterior.'''

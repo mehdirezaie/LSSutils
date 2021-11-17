@@ -16,55 +16,76 @@ from lssutils.io import read_clmocks, read_window
 from lssutils.extrn.mcmc import Posterior
 
 
-region = sys.argv[1] #'bmzls'
-method = sys.argv[2] #'noweight'
-output = sys.argv[3] #'test_mcmc.npy'
+SEED = 85
+
+def read_inputs():
+    
+    dcl_obs = np.load('/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_fullsky_mean.npz')
+    dclcov_obs = np.load('/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_fullsky_cov.npz')
+    assert np.array_equal(dcl_obs['el_edges'], dclcov_obs['el_edges'])
+    el_edges = dcl_obs['el_edges']
+    cl_obs = dcl_obs['cl']
+    invcov_obs = np.linalg.inv(dclcov_obs['clcov']) 
+    
+    return el_edges, cl_obs, invcov_obs
+
+def read_mask():
+    # full sky mask
+    mask = np.ones(12*256*256, '?')
+    return mask*1.0, mask
+
+    
+
+
+
+output = sys.argv[1]
+nsteps = int(sys.argv[2])
+
+
+ndim     = 2      # Number of parameters/dimensions
+nwalkers = 10     # Number of walkers to use. It should be at least twice the number of dimensions.
+#nsteps   = 1000   # Number of steps/iterations.
 
 if not os.path.exists(os.path.dirname(output)):
     print(f'create {os.path.dirname(output)}')
     os.makedirs(os.path.dirname(output))
 
 
-ndim     = 2      # Number of parameters/dimensions
-nwalkers = 10     # Number of walkers to use. It should be at least twice the number of dimensions.
-nsteps   = 1000   # Number of steps/iterations.
-print(region, method, output)
-
 ncpu = cpu_count()
-print("{0} CPUs".format(ncpu))
+print("{0} CPUs".format(ncpu))    
 
-bins = np.array([2*(i+1) for i in range(10)]+[30+i*50 for i in range(7)])
-print('bins: ', bins)
+# read inputs
+el_edges, cl_obs, invcov_obs = read_inputs()
 
-
-el, cl, invcov = read_clmocks(region, method, bins=bins)
-weight, mask = read_window(region)
-
+# initiate model
+weight, mask = read_mask()
 z, b, dNdz = init_sample(kind='lrg')
-
 model = SurveySpectrum()
 model.add_tracer(z, b, dNdz, p=1.6)
 model.make_kernels(model.el_model)
-model.prep_window(weight, mask, np.arange(2*1024), ngauss=2*1024)
-
+model.prep_window(weight, mask, np.arange(2048), ngauss=2048)  
 
 #--- optimization
-lg = Posterior(model, cl, invcov, el)
+lg = Posterior(model, cl_obs, invcov_obs, el_edges)
 def logpost(foo):
-    return lg.logpost(foo)
-
-# ad hoc optimization
-#for fnl in np.logspace(-3., 3., 5):
-#    for noise in np.linspace(-1.0e-6, 1.0e-6, 4):
-#        print(f'{fnl:5.1f}, {noise:10.4e}, {lg.logpost([fnl, noise], cl, invcov, el):10.4e}')
-
+    return lg.logpost(foo)  
 
 # scipy optimization        
 #res = minimize(lg.logpost, [0., 1.0e-7], args=(cl, invcov, el), )
 #print(res)
 
+for fnl in [-10., 0., 10.]:
+    print(fnl, logpost([fnl, 5.3e-7]))
+
+
+
+
+
 # Initial positions of the walkers. TODO: add res.x
-start = np.array([10.0, 1.0e-5])*np.random.randn(nwalkers, ndim) 
+np.random.seed(85)
+start = np.array([100.0, 1.0e-4])*np.random.randn(10, 2) 
+#start = np.column_stack([np.random.uniform(-1000., 1000., size=nwalkers),
+#                         np.random.uniform(-1.0e-3, 1.0e-3, size=nwalkers)])
 print(f'initial guess: {start[:2]} ... {start[-1]}')
 
 with Pool() as pool:

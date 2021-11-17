@@ -990,7 +990,7 @@ def mask2regions(mask, min_dec_mzls=32.375, min_dec_decals=-30.0):
 
     return ngc, sgc, bmzls
 
-def histogram_cell(cell, return_err=False, method='nmodes', bins=None, fsky=1.0, **kwargs):  
+def histogram_cell(ell, cell, return_err=False, method='nmodes', bins=None, fsky=1.0, **kwargs):  
     """
     Function bins C_ell and estimates the error
     
@@ -1045,7 +1045,6 @@ def histogram_cell(cell, return_err=False, method='nmodes', bins=None, fsky=1.0,
         
         assert isinstance(cell, np.ndarray)
         
-        ell = np.arange(cell.size)
         ell_bin, cell_bin = __histogram_cell(ell, cell, bins=bins, **kwargs)
 
         return ell_bin, cell_bin

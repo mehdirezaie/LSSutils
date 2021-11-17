@@ -1,13 +1,6 @@
 '''
     Data Visualization tools
-
-    > to reset the defaults
     
-    from cycler import cycler
-    default_cycler = (cycler(color=['purple', 'royalblue', 'lime', 'darkorange', 'crimson']) +
-                      cycler(linestyle=['-', '--', ':', '-.', '-']))
-    plt.rc('lines', linewidth=2)
-    plt.rc('axes', prop_cycle=default_cycler)
     
 
 '''
@@ -25,7 +18,31 @@ from matplotlib.projections.geo import GeoAxes
 from matplotlib import cm
 from matplotlib.colors import ListedColormap
 
-#from .utils import binit, binit_jac, radec2hpix
+# import matplotlib.font_manager as fm
+# # Collect all the font names available to matplotlib
+# font_names = [f.name for f in fm.fontManager.ttflist]
+# for i, f in enumerate(font_names):
+#     if 'Sans' in f:print(f)
+# #   if (i+1)%6 == 0:print('')
+
+
+
+
+def add_locators(ax, xmajor=1.0, ymajor=1.0):
+
+    # major and minor ticks of the x and y axes
+    axis_kw = dict(width=2, direction='in', pad=5)
+    ax.xaxis.set_tick_params(which='major', size=9, top=True, **axis_kw)
+    ax.xaxis.set_tick_params(which='minor', size=6, top=True, **axis_kw)
+    ax.yaxis.set_tick_params(which='major', size=9, right=True, **axis_kw)
+    ax.yaxis.set_tick_params(which='minor', size=6, right=True, **axis_kw)
+    ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(xmajor))
+    ax.xaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.2*xmajor))
+    
+    ax.yaxis.set_major_locator(mpl.ticker.MultipleLocator(ymajor))
+    ax.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.2*ymajor))
+    
+
 
 def setup_color():
     from cycler import cycler
@@ -51,12 +68,12 @@ def setup_color():
     mpl.rcParams['ytick.minor.size'] = 6.0
     mpl.rcParams['ytick.right'] = True
     mpl.rcParams['xtick.top'] = True
-    mpl.rcParams['font.family'] = 'DejaVu Sans'
+    mpl.rcParams['font.family'] = "Nimbus Sans Narrow" #'DejaVu Sans'
     mpl.rcParams['font.size'] = 18
     mpl.rcParams['axes.linewidth'] = 2       
     mpl.rcParams['legend.frameon'] = False
     mpl.rcParams['legend.fontsize'] = 13
-    
+    mpl.rcParams['figure.facecolor'] = 'w' 
     
     
 def shiftedColorMap(cmap, start=0, midpoint=0.5, stop=1.0, name='shiftedcmap'):

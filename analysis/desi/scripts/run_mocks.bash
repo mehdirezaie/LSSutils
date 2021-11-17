@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=mocksfnl
+#SBATCH --job-name=mockscl
 #SBATCH --account=PHS0336 
-#SBATCH --time=10:00:00
+#SBATCH --time=30:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=FAIL
@@ -19,20 +19,21 @@ export OMP_NUM_THREADS=2
 
 source activate sysnet
 
-cd ${HOME}/github/LSSutils/scripts/analysis/desi
+cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false
 do_nn=false       # 20 h
 do_assign=false
 do_nbar=false     # 10 m
 do_cl=false       # 10 m
+do_clfull=false   # 10 m x 14
 do_mcmc=true      # 10 h
 
 #mockid=1
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=4098
-regions=$1
+regions="fullsky"
 targets="lrg"
 ver=v0
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
@@ -50,9 +51,11 @@ lr=0.2
 
 prep=${HOME}/github/LSSutils/scripts/analysis/desi/prep_mocks.py
 cl=${HOME}/github/LSSutils/scripts/analysis/desi/run_cell_mocks.py
+clfull=${HOME}/github/LSSutils/analysis/desi/scripts/run_cell_mocks_mpi.py
 nbar=${HOME}/github/LSSutils/scripts/analysis/desi/run_nnbar_mocks.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
 mcmc=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_fast.py
+mcmc2=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_fast2.py
 
 
 
@@ -166,17 +169,23 @@ then
 fi
 
 
+if [ "${do_clfull}" = true ]
+then
+    srun -n 14 python $clfull -m ${root_dir} -o ${root_dir}/clustering/clmock_fullsky.npy
+fi
+
 if [ "${do_mcmc}" = true ]
 then
     for target in ${targets}
     do
         for region in ${regions}
         do       
-            method=$2
-            output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}.npy
-            
-            echo $target $region $method $output_mcmc
-            python $mcmc $region $method $output_mcmc
+            method=noweight
+            nsteps=$1
+            output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_${nsteps}.npy
+            #output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_${nsteps}_gt100.npy
+            echo $target $region $method $output_mcmc $nsteps
+            python $mcmc $output_mcmc $nsteps
         done
     done
 fi
