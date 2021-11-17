@@ -31,7 +31,7 @@ def read_inputs():
 
 def read_mask():
     # full sky mask
-    mask = np.ones(12*256*256, '?')
+    mask = np.ones(12*1024*1024, '?')
     return mask*1.0, mask
 
     
@@ -68,7 +68,7 @@ model.prep_window(weight, mask, np.arange(2048), ngauss=2048)
 #--- optimization
 lg = Posterior(model, cl_obs, invcov_obs, el_edges)
 def logpost(foo):
-    return lg.logpost(foo)  
+    return lg.logpost(foo)
 
 # scipy optimization        
 #res = minimize(lg.logpost, [0., 1.0e-7], args=(cl, invcov, el), )
@@ -82,8 +82,8 @@ for fnl in [-10., 0., 10.]:
 
 
 # Initial positions of the walkers. TODO: add res.x
-np.random.seed(85)
-start = np.array([100.0, 1.0e-4])*np.random.randn(10, 2) 
+np.random.seed(SEED)
+start = np.array([1.0, 1.0e-7])*np.random.randn(10, 2) 
 #start = np.column_stack([np.random.uniform(-1000., 1000., size=nwalkers),
 #                         np.random.uniform(-1.0e-3, 1.0e-3, size=nwalkers)])
 print(f'initial guess: {start[:2]} ... {start[-1]}')

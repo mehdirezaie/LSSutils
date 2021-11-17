@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=mockscl
 #SBATCH --account=PHS0336 
-#SBATCH --time=30:00:00
+#SBATCH --time=05:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=24
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -14,8 +14,8 @@
 source ${HOME}/.bashrc
 
 export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
-export NUMEXPR_MAX_THREADS=2
-export OMP_NUM_THREADS=2
+export NUMEXPR_MAX_THREADS=1
+export OMP_NUM_THREADS=1
 
 source activate sysnet
 

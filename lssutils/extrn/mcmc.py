@@ -45,7 +45,7 @@ class Posterior:
         md_ = self.model(self.x_, fnl=fnl, noise=noise)
         md = histogram_cell(self.x_, md_, bins=self.x)[1]
         # return the log likelihood
-        return (self.y-md).dot(self.invcov.dot(self.y-md))
+        return -0.5*(self.y-md).dot(self.invcov.dot(self.y-md))
 
     def logpost(self, theta):
         '''The natural logarithm of the posterior.'''
