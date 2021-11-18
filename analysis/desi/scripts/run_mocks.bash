@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=mockscl
 #SBATCH --account=PHS0336 
-#SBATCH --time=01:00:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=24
+#SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -14,8 +14,8 @@
 source ${HOME}/.bashrc
 
 export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
-export NUMEXPR_MAX_THREADS=1
-export OMP_NUM_THREADS=1
+export NUMEXPR_MAX_THREADS=2
+export OMP_NUM_THREADS=2
 
 source activate sysnet
 
@@ -27,13 +27,13 @@ do_assign=false
 do_nbar=false     # 10 m
 do_cl=false       # 10 m
 do_clfull=false   # 10 m x 14
-do_mcmc=true      # 10 h
+do_mcmc=true      # 10 h x 14
 
 #mockid=1
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=4098
-regions="fullsky"
+regions=$1
 targets="lrg"
 ver=v0
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
@@ -180,12 +180,14 @@ then
     do
         for region in ${regions}
         do       
-            method=noweight
-            nsteps=$1
-            output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_${nsteps}.npy
-            #output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_${nsteps}_gt100.npy
-            echo $target $region $method $output_mcmc $nsteps
-            python $mcmc $output_mcmc $nsteps
+            method=$2
+            path_cl=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_${method}_mean.npz
+            path_cov=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_noweight_cov.npz   # fix covariance
+            output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_1000.npy
+            
+            du -h $path_cl $path_cov
+            echo $target $region $method $output_mcmc
+            python $mcmc $path_cl $path_cov $region $output_mcmc
         done
     done
 fi
