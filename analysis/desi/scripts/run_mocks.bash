@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=mockscl
 #SBATCH --account=PHS0336 
-#SBATCH --time=05:00:00
+#SBATCH --time=01:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=24
 #SBATCH --mail-type=FAIL
