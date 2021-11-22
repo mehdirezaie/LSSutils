@@ -146,27 +146,29 @@ class Spectrum:
         Plin_ = cosmology.LinearPower(cosmo, redshift, transfer='CLASS') # P(k) in (Mpc/h)^3 
         self.Plin = IUS(k_, Plin_(k_), ext=1)
         Tlin_ = cosmology.transfers.CLASS(cosmo, redshift)  # T(k), normalized to one at k=0
-        is_good = np.isfinite(Tlin_(k_))
-        self.Tlin = IUS(k_[is_good], Tlin_(k_)[is_good], ext=1)
+        tk_ = Tlin_(k_)
+        is_good = np.isfinite(tk_)
+        self.Tlin = IUS(k_[is_good], tk_[is_good], ext=1)
         self.Dlin = cosmo.scale_independent_growth_factor       # D(z), normalized to one at z=0
         self.f = cosmo.scale_independent_growth_rate            # dlnD/dlna
         self.Dc = cosmo.comoving_distance              
         self.h = cosmo.efunc
+        self.inv_pi = 2.0 / np.pi
                  
         # alpha_fnl: equation 2 of Mueller et al 2017    
         self.alpha_fnl  = 3.0*delta_crit*Omega0_m*(DH**2)
         
-    def __call__(self, ell, fnl=0.0, **kwargs):
+    def __call__(self, ell, fnl=0.0, b=1.0, **kwargs):
 
         if not self.kernels_ready:
             print('will create windows')
-            self.make_kernels(ell, **kwargs)
+            self.add_kernels(ell, **kwargs)
             
         elif not np.array_equal(ell, self.ell):
             print('will update windows')            
-            self.make_kernels(ell, **kwargs)
+            self.add_kernels(ell, **kwargs)
                        
-        return self.__integrate_dk(fnl)
+        return self.run(fnl, b)
         
     def add_tracer(self, z, b, dNdz, p=1.6):
         print(f'p = {p:.1f}')
@@ -187,77 +189,122 @@ class Spectrum:
         # prepare kernels
         self.fr_wk = lambda r:r * b_spl(r) * d_spl(r) * (dNdr_spl(r)/dNdr_tot)   # W_ell: r*b*(D(r)/D(0))*dN/dr         
         self.fr_wrk = lambda r:r * f_spl(r) * d_spl(r) * (dNdr_spl(r)/dNdr_tot)  # Wr_ell:r*f*(D(r)/D(0))*dN/dr
-        self.fr_wkfnl = lambda r: r * (b_spl(r)-p) * (dNdr_spl(r)/dNdr_tot) # Wfnl_ell:r*(b-p)*dN/dr   
+        self.fr_wkfnl1 = lambda r: r * b_spl(r) * (dNdr_spl(r)/dNdr_tot) # Wfnl_ell:r*b*dN/dr   
+        self.fr_wkfnl2 = lambda r: r * -p * (dNdr_spl(r)/dNdr_tot) # Wfnl_ell:r*-p*dN/dr   
         self.kernels_ready = False
 
-    def make_kernels(self, ell, logrmin=-10., logrmax=10., num=10000):
-        assert (ell[1:] > ell[:-1]).all(), "ell must be increasing"
+    def add_kernels(self, ell, logrmin=-10., logrmax=10., num=10000):        
+        assert (ell[1:] > ell[:-1]).all(), "ell must be increasing"        
         kw_fft = dict(nu=1.01, N_extrap_low=0, N_extrap_high=0, 
                       c_window_width=0.25, N_pad=0)
         
+        self.ell = ell            
         r = np.logspace(logrmin, logrmax, num=num) # k = (ell+0.5) / r
         
         # w_ell(k)
         fr = self.fr_wk(r)
-        fftl1 = fftlog(r, fr, **kw_fft)
-        self.wk = []
-        for ell_ in ell:
-            kwk_ = fftl1.fftlog(ell_)        
-            self.wk.append(kwk_)
+        self.wk = self.fftlog(0, r, fr, **kw_fft)
              
         # wr_ell(k)        
         fr = self.fr_wrk(r)
-        fftl2 = fftlog(r, fr, **kw_fft)
-        self.wrk = []
-        for ell_ in ell:
-            kwk_ = fftl2.fftlog_ddj(ell_)
-            self.wrk.append(kwk_)                
+        self.wrk = self.fftlog(1, r, fr, **kw_fft)
 
         # wfnl_ell(k)
-        fr = self.fr_wkfnl(r)
-        fftl3 = fftlog(r, fr, **kw_fft)
-        self.wfnlk = []
-        for ell_ in ell:
-            kwk_ = fftl3.fftlog(ell_)
-            self.wfnlk.append(kwk_)
-            
-        self.ell = ell    
+        fr = self.fr_wkfnl1(r)
+        self.wfnlk1 = self.fftlog(0, r, fr, **kw_fft)
+
+        # wfnl_ell(k)
+        fr = self.fr_wkfnl2(r)
+        self.wfnlk2 = self.fftlog(0, r, fr, **kw_fft)
+        
+        self.add_integrals()
         self.kernels_ready = True
         
-    def __integrate_dk(self, fnl):
+    def fftlog(self, n, r, fr, **kw_fft):
+                        
+        wk = []        
+        fftl = fftlog(r, fr, **kw_fft)        
+        if n==0:            
+            for ell_ in self.ell:
+                kwk_ = fftl.fftlog(ell_, )        
+                wk.append(kwk_)
+        else:            
+            for ell_ in self.ell:
+                kwk_ = fftl.fftlog_ddj(ell_, )        
+                wk.append(kwk_)            
+            
+        return wk        
+     
+    def simps(self, intg, lnk):        
+        is_good = np.isfinite(intg)
         
-        res = []
+        return simps(intg[is_good], x=lnk[is_good])        
+        
+    def add_integrals(self):
+        
+        i_gg = []
+        i_rr = []
+        i_f1f1 = []
+        i_f2f2 = []
+        
+        i_gr = []
+        i_gf1 = []
+        i_gf2 = []
+        i_rf1 = []
+        i_rf2 = []
+        i_f1f2 = []
+        
         for i in range(len(self.wk)):
             
-            k, wk_gg = self.wk[i]
-            wk_rsd = self.wrk[i][1]
-            wk_fnl = self.wfnlk[i][1]
-
-            #print(np.percentile(np.log10(k), [0, 100]))
-            wk_t = wk_gg - wk_rsd + fnl*self.alpha_fnl*wk_fnl/(k*k*self.Tlin(k))
-                        
+            k, w_g = self.wk[i]            
+            w_r = self.wrk[i][1]
+            k2 = k*k
+            
+            fnl_f = self.alpha_fnl/(k2*self.Tlin(k))
+            w_f1 = self.wfnlk1[i][1]*fnl_f
+            w_f2 = self.wfnlk2[i][1]*fnl_f
+            
             lnk = np.log(k)
-            intg = k*k*k*self.Plin(k)*wk_t*wk_t
+            k3pk = k2*k*self.Plin(k)
             
-            is_finite = np.isfinite(intg)
-            lnk = lnk[is_finite]
-            intg = intg[is_finite]
+            i_gg.append(self.simps(k3pk*w_g*w_g, lnk))
+            i_rr.append(self.simps(k3pk*w_r*w_r, lnk))
+            i_f1f1.append(self.simps(k3pk*w_f1*w_f1, lnk))
+            i_f2f2.append(self.simps(k3pk*w_f2*w_f2, lnk))
+            i_gr.append(self.simps(k3pk*w_g*w_r, lnk))
+            i_gf1.append(self.simps(k3pk*w_g*w_f1, lnk))
+            i_gf2.append(self.simps(k3pk*w_g*w_f2, lnk))
+            i_rf1.append(self.simps(k3pk*w_r*w_f1, lnk))
+            i_rf2.append(self.simps(k3pk*w_r*w_f2, lnk))
+            i_f1f2.append(self.simps(k3pk*w_f1*w_f2, lnk))
             
-            cl_ = simps(intg, x=lnk)
+        self.i_gg = np.array(i_gg)
+        self.i_rr = np.array(i_rr)
+        self.i_f1f1 = np.array(i_f1f1)
+        self.i_f2f2 = np.array(i_f2f2)
+        
+        self.i_gr = np.array(i_gr)
+        self.i_gf1 = np.array(i_gf1)
+        self.i_gf2 = np.array(i_gf2)
+        self.i_rf1 = np.array(i_rf1)
+        self.i_rf2 = np.array(i_rf2)
+        self.i_f1f2 = np.array(i_f1f2)            
             
-            res.append(cl_)       
-
-        cls = (2./np.pi)*np.array(res)
-        return cls
+            
+    def run(self, fnl, b):
+        #print("fnl, b", fnl, b)
+        return self.inv_pi*(b*b*self.i_gg + self.i_rr + fnl*fnl*b*b*self.i_f1f1 + fnl*fnl*self.i_f2f2 \
+                       - 2*b*self.i_gr + 2*fnl*b*b*self.i_gf1 + 2*fnl*b*(self.i_gf2-self.i_rf1) \
+                       - 2*fnl*self.i_rf2 + 2*fnl*fnl*b*self.i_f1f2)
     
-
+    
 class SurveySpectrum(Spectrum, WindowSHT):
     el_model = np.arange(2000)
     
     def __init__(self, *arrays, **kwargs):
         Spectrum.__init__(self, *arrays, **kwargs)
         
-    def prep_window(self, *arrays, **kwargs):
+    def add_window(self, *arrays, **kwargs):
         WindowSHT.__init__(self, *arrays, **kwargs)
         
     def __call__(self, el, fnl=0.0, noise=0.0):
@@ -269,6 +316,159 @@ class SurveySpectrum(Spectrum, WindowSHT):
         clm = self.apply_ic(clm_[:lmax])
         
         return clm[el]
+    
+
+# class SpectrumOld:
+#     """
+#     Redshift space power spectrum of biased tracers
+#     """    
+#     def __init__(self, h=0.67556, T0_cmb=2.7255, Omega0_b=0.0482754208891869,
+#                  Omega0_cdm=0.26377065934278865, N_ur=None, m_ncdm=[0.06],
+#                  P_k_max=10.0, P_z_max=100.0, sigma8=0.8225, gauge='synchronous',
+#                  n_s=0.9667, nonlinear=False):
+        
+#         # input parameters
+#         kw_cosmo = locals()
+#         kw_cosmo.pop('self')
+#         for kw,val in kw_cosmo.items():
+#             print(f'{kw:10s}: {val}')
+            
+#         sigma8 = kw_cosmo.pop('sigma8')            
+#         cosmo = cosmology.Cosmology(**kw_cosmo).match(sigma8=sigma8) 
+                
+#         # --- cosmology calculators
+#         redshift = 0.0
+#         delta_crit = 1.686      # critical overdensity for collapse from Press-Schechter
+#         DH = (cosmo.H0/cosmo.C) # in units of h/Mpc, eq. 4 https://arxiv.org/pdf/astro-ph/9905116.pdf
+#         Omega0_m = cosmo.Omega0_m
+        
+#         k_ = np.logspace(-10, 10, 10000)
+#         Plin_ = cosmology.LinearPower(cosmo, redshift, transfer='CLASS') # P(k) in (Mpc/h)^3 
+#         self.Plin = IUS(k_, Plin_(k_), ext=1)
+#         Tlin_ = cosmology.transfers.CLASS(cosmo, redshift)  # T(k), normalized to one at k=0
+#         is_good = np.isfinite(Tlin_(k_))
+#         self.Tlin = IUS(k_[is_good], Tlin_(k_)[is_good], ext=1)
+#         self.Dlin = cosmo.scale_independent_growth_factor       # D(z), normalized to one at z=0
+#         self.f = cosmo.scale_independent_growth_rate            # dlnD/dlna
+#         self.Dc = cosmo.comoving_distance              
+#         self.h = cosmo.efunc
+                 
+#         # alpha_fnl: equation 2 of Mueller et al 2017    
+#         self.alpha_fnl  = 3.0*delta_crit*Omega0_m*(DH**2)
+        
+#     def __call__(self, ell, fnl=0.0, **kwargs):
+
+#         if not self.kernels_ready:
+#             print('will create windows')
+#             self.make_kernels(ell, **kwargs)
+            
+#         elif not np.array_equal(ell, self.ell):
+#             print('will update windows')            
+#             self.make_kernels(ell, **kwargs)
+                       
+#         return self.__integrate_dk(fnl)
+        
+#     def add_tracer(self, z, b, dNdz, p=1.6):
+#         print(f'p = {p:.1f}')
+#         # dz/dr
+#         dNdr_spl = IUS(self.Dc(z), dNdz*self.h(z), ext=1) 
+#         dNdr_tot = romberg(dNdr_spl, self.Dc(z.min()), self.Dc(z.max()), divmax=1000)
+#         #print(dNdr_tot)
+        
+#         # bias
+#         b_spl = IUS(self.Dc(z), b, ext=1)
+
+#         # growth
+#         d_spl = IUS(self.Dc(z), self.Dlin(z), ext=1)
+
+#         # growth rate: f = dlnD/dlna
+#         f_spl = IUS(self.Dc(z), self.f(z), ext=1)
+
+#         # prepare kernels
+#         self.fr_wk = lambda r:r * b_spl(r) * d_spl(r) * (dNdr_spl(r)/dNdr_tot)   # W_ell: r*b*(D(r)/D(0))*dN/dr         
+#         self.fr_wrk = lambda r:r * f_spl(r) * d_spl(r) * (dNdr_spl(r)/dNdr_tot)  # Wr_ell:r*f*(D(r)/D(0))*dN/dr
+#         self.fr_wkfnl = lambda r: r * (b_spl(r)-p) * (dNdr_spl(r)/dNdr_tot) # Wfnl_ell:r*(b-p)*dN/dr   
+#         self.kernels_ready = False
+
+#     def make_kernels(self, ell, logrmin=-10., logrmax=10., num=10000):
+#         assert (ell[1:] > ell[:-1]).all(), "ell must be increasing"
+#         kw_fft = dict(nu=1.01, N_extrap_low=0, N_extrap_high=0, 
+#                       c_window_width=0.25, N_pad=0)
+        
+#         r = np.logspace(logrmin, logrmax, num=num) # k = (ell+0.5) / r
+        
+#         # w_ell(k)
+#         fr = self.fr_wk(r)
+#         fftl1 = fftlog(r, fr, **kw_fft)
+#         self.wk = []
+#         for ell_ in ell:
+#             kwk_ = fftl1.fftlog(ell_)        
+#             self.wk.append(kwk_)
+             
+#         # wr_ell(k)        
+#         fr = self.fr_wrk(r)
+#         fftl2 = fftlog(r, fr, **kw_fft)
+#         self.wrk = []
+#         for ell_ in ell:
+#             kwk_ = fftl2.fftlog_ddj(ell_)
+#             self.wrk.append(kwk_)                
+
+#         # wfnl_ell(k)
+#         fr = self.fr_wkfnl(r)
+#         fftl3 = fftlog(r, fr, **kw_fft)
+#         self.wfnlk = []
+#         for ell_ in ell:
+#             kwk_ = fftl3.fftlog(ell_)
+#             self.wfnlk.append(kwk_)
+            
+#         self.ell = ell    
+#         self.kernels_ready = True
+        
+#     def __integrate_dk(self, fnl):
+        
+#         res = []
+#         for i in range(len(self.wk)):
+            
+#             k, wk_gg = self.wk[i]
+#             wk_rsd = self.wrk[i][1]
+#             wk_fnl = self.wfnlk[i][1]
+
+#             #print(np.percentile(np.log10(k), [0, 100]))
+#             wk_t = wk_gg - wk_rsd + fnl*self.alpha_fnl*wk_fnl/(k*k*self.Tlin(k))
+                        
+#             lnk = np.log(k)
+#             intg = k*k*k*self.Plin(k)*wk_t*wk_t
+            
+#             is_finite = np.isfinite(intg)
+#             lnk = lnk[is_finite]
+#             intg = intg[is_finite]
+            
+#             cl_ = simps(intg, x=lnk)
+            
+#             res.append(cl_)       
+
+#         cls = (2./np.pi)*np.array(res)
+#         return cls
+    
+# class SurveySpectrumOld(SpectrumOld, WindowSHT):
+#     el_model = np.arange(2000)
+    
+#     def __init__(self, *arrays, **kwargs):
+#         SpectrumOld.__init__(self, *arrays, **kwargs)
+        
+#     def add_window(self, *arrays, **kwargs):
+#         WindowSHT.__init__(self, *arrays, **kwargs)
+        
+#     def __call__(self, el, fnl=0.0, noise=0.0):
+        
+#         cl_ = SpectrumOld.__call__(self, self.el_model, fnl=fnl)   
+        
+#         clm_ = self.convolve(self.el_model, cl_)+noise
+#         lmax = max(el)+1
+#         clm = self.apply_ic(clm_[:lmax])
+        
+#         return clm[el]
+
     
 # import healpy as hp
 # import numpy as np

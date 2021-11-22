@@ -55,7 +55,7 @@ path_cov = sys.argv[2]
 region   = sys.argv[3]  # for window
 output   = sys.argv[4]
 
-nsteps   = 1000   # int(sys.argv[2])
+nsteps   = 10000   # int(sys.argv[2])
 ndim     = 2      # Number of parameters/dimensions
 nwalkers = 10     # Number of walkers to use. It should be at least twice the number of dimensions.
 
@@ -73,8 +73,8 @@ weight, mask = read_mask(region)
 z, b, dNdz = init_sample(kind='lrg')
 model = SurveySpectrum()
 model.add_tracer(z, b, dNdz, p=1.6)
-model.make_kernels(model.el_model)
-model.prep_window(weight, mask, np.arange(2048), ngauss=2048)  
+model.add_kernels(model.el_model)
+model.add_window(weight, mask, np.arange(2048), ngauss=2048)  
 
 lg = Posterior(model, cl_obs, invcov_obs, el_edges)
 def logpost(foo):
@@ -89,7 +89,7 @@ for fnl in [-10., 0., 10.]:
 
 # Initial positions of the walkers. TODO: add res.x
 np.random.seed(SEED)
-start = np.array([1.0, 1.0e-7])*np.random.randn(nwalkers, ndim) 
+start = np.array([10.0, 1.0e-7])*np.random.randn(nwalkers, ndim) 
 print(f'initial guess: {start[:2]} ... {start[-1]}')
 
 with Pool() as pool:

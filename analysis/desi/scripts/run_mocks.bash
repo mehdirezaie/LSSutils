@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=mockscl
+#SBATCH --job-name=fitfnl
 #SBATCH --account=PHS0336 
-#SBATCH --time=10:00:00
+#SBATCH --time=30:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=FAIL
@@ -27,7 +27,7 @@ do_assign=false
 do_nbar=false     # 10 m
 do_cl=false       # 10 m
 do_clfull=false   # 10 m x 14
-do_mcmc=true      # 10 h x 14
+do_mcmc=true      # 30 h x 14
 
 #mockid=1
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
@@ -183,7 +183,7 @@ then
             method=$2
             path_cl=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_${method}_mean.npz
             path_cov=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_noweight_cov.npz   # fix covariance
-            output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_1000.npy
+            output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_10000.npy
             
             du -h $path_cl $path_cov
             echo $target $region $method $output_mcmc
