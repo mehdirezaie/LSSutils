@@ -183,7 +183,7 @@ then
             method=$2
             path_cl=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_${method}_mean.npz
             path_cov=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_noweight_cov.npz   # fix covariance
-            output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_10000.npy
+            output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_10000_50walkers.npy
             
             du -h $path_cl $path_cov
             echo $target $region $method $output_mcmc

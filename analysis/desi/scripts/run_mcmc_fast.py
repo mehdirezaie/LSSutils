@@ -57,7 +57,7 @@ output   = sys.argv[4]
 
 nsteps   = 10000   # int(sys.argv[2])
 ndim     = 2      # Number of parameters/dimensions
-nwalkers = 10     # Number of walkers to use. It should be at least twice the number of dimensions.
+nwalkers = 50     # Number of walkers to use. It should be at least twice the number of dimensions.
 
 
 ncpu = cpu_count()

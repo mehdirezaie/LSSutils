@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=lincel
 #SBATCH --account=PHS0336 
-#SBATCH --time=05:00:00
+#SBATCH --time=20:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=FAIL
@@ -12,17 +12,19 @@ source ${HOME}/.bashrc
 
 export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
 export NUMEXPR_MAX_THREADS=2
+export OMP_NUM_THREADS=2
+
 source activate sysnet
 
 cd ${HOME}/github/LSSutils/scripts/analysis/lssxcmb/
 
 
-do_linfit=false    # 20 h
+do_linfit=true    # 20 h
 do_nnfit=false     # 10 m lr finder, 75 h fit 
 do_linsamp=false   # 1 h
 do_nnsamp=false    # 25hx10tpn
 do_nnpull=false    # 1 h
-do_lincell=true    # 5hx14tpn
+do_lincell=false    # 5hx14tpn
 do_nncell=false    # 5hx14tpn
 do_cl=false
 
@@ -44,7 +46,7 @@ loss=mse
 etamin=0.0001
 
 
-linfit=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_wlinear_mcmc.py
+linfit=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/run_wlinear_mcmc_p.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
 nnfite=${HOME}/github/sysnetdev/scripts/appensemble.py
 nnsamp=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/pull_sysnet_snapshot_mpidr9.py
@@ -58,10 +60,11 @@ root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
 if [ "${do_linfit}" = true ]
 then
     input_path=${root_dir}/tables/${version}/n${target}_features_${region}_${nside}.fits
-    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_linear/mcmc_${region}_${nside}.npz
+    #output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_linear/mcmc_${region}_${nside}.npz
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_linearp/mcmc_${region}_${nside}.npz
     du -h $input_path
     echo $output_path
-    srun -n 1 python $linfit -d $input_path -o $output_path -ax ${axes[@]}
+    python $linfit -d $input_path -o $output_path -ax ${axes[@]}
 fi
 
 
