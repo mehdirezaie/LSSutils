@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=lincel
+#SBATCH --job-name=nnfit
 #SBATCH --account=PHS0336 
-#SBATCH --time=20:00:00
+#SBATCH --time=80:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
-#SBATCH --mail-type=FAIL
+#SBATCH --ntasks-per-node=1
+#SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
 # manually add the path, later we will install the pipeline with `pip`
@@ -16,13 +16,13 @@ export OMP_NUM_THREADS=2
 
 source activate sysnet
 
-cd ${HOME}/github/LSSutils/scripts/analysis/lssxcmb/
+cd ${HOME}/github/LSSutils/analysis/lssxcmb/scripts/
 
 
-do_linfit=true    # 20 h
-do_nnfit=false     # 10 m lr finder, 75 h fit 
-do_linsamp=false   # 1 h
-do_nnsamp=false    # 25hx10tpn
+do_linfit=false    # 10 h x 14
+do_nnfit=true     # 10 m lr finder, 75 h fit 
+do_linsamp=false   # 1 h x 1
+do_nnsamp=false    # 25h x 10tpn
 do_nnpull=false    # 1 h
 do_lincell=false    # 5hx14tpn
 do_nncell=false    # 5hx14tpn
@@ -40,10 +40,10 @@ nchain=5
 nepoch=200
 nns=(4 20)
 bsize=4098
-lr=0.3
-model=dnn
-loss=mse
-etamin=0.0001
+lr=0.01
+model=dnnp
+loss=pnll
+etamin=0.00001
 
 
 linfit=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/run_wlinear_mcmc_p.py
@@ -51,7 +51,7 @@ nnfit=${HOME}/github/sysnetdev/scripts/app.py
 nnfite=${HOME}/github/sysnetdev/scripts/appensemble.py
 nnsamp=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/pull_sysnet_snapshot_mpidr9.py
 nnpull=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/combine_nn_windows.py
-linsamp=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/sample_linear_windows.py
+linsamp=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/sample_linear_windows.py
 cl=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_cell_sv3.py
 
 root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
@@ -71,7 +71,7 @@ fi
 if [ "${do_nnfit}" = true ]
 then
     input_path=${root_dir}/tables/${version}/n${target}_features_${region}_${nside}.fits
-    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_dnn/${region}_${nside}/
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_dnnp/${region}_${nside}/
     du -h $input_path
     echo $output_path
     # find lr
