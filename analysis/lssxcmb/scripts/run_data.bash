@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=nnfit
+#SBATCH --job-name=nncl
 #SBATCH --account=PHS0336 
-#SBATCH --time=80:00:00
+#SBATCH --time=05:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -11,8 +11,8 @@
 source ${HOME}/.bashrc
 
 export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
-export NUMEXPR_MAX_THREADS=2
-export OMP_NUM_THREADS=2
+export NUMEXPR_MAX_THREADS=1
+export OMP_NUM_THREADS=1
 
 source activate sysnet
 
@@ -20,12 +20,12 @@ cd ${HOME}/github/LSSutils/analysis/lssxcmb/scripts/
 
 
 do_linfit=false    # 10 h x 14
-do_nnfit=true     # 10 m lr finder, 75 h fit 
-do_linsamp=false   # 1 h x 1
-do_nnsamp=false    # 25h x 10tpn
+do_nnfit=false     # 10 m lr finder, 120 h fit 
+do_linsamp=false    # 1 h x 1
+do_nnsamp=false    # 3h x 10tpn
 do_nnpull=false    # 1 h
-do_lincell=false    # 5hx14tpn
-do_nncell=false    # 5hx14tpn
+do_lincell=false   # 5hx14tpn
+do_nncell=true    # 5hx14tpn
 do_cl=false
 
 target=elg
@@ -40,7 +40,7 @@ nchain=5
 nepoch=200
 nns=(4 20)
 bsize=4098
-lr=0.01
+lr=0.008
 model=dnnp
 loss=pnll
 etamin=0.00001
@@ -49,10 +49,10 @@ etamin=0.00001
 linfit=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/run_wlinear_mcmc_p.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
 nnfite=${HOME}/github/sysnetdev/scripts/appensemble.py
-nnsamp=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/pull_sysnet_snapshot_mpidr9.py
-nnpull=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/combine_nn_windows.py
+nnsamp=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/pull_sysnet_snapshot_mpidr9.py
+nnpull=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/combine_nn_windows.py
 linsamp=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/sample_linear_windows.py
-cl=${HOME}/github/LSSutils/scripts/analysis/lssxcmb/run_cell_sv3.py
+cl=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/run_cell_sv3.py
 
 root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
 
@@ -75,7 +75,7 @@ then
     du -h $input_path
     echo $output_path
     # find lr
-    #srun -n 1 python $nnfit -i ${input_path} -o ${output_path}hp/ -ax ${axes[@]} -bs ${bsize} \
+    #srun -n 1 python $nnfite -i ${input_path} -o ${output_path}hp/ -ax ${axes[@]} -bs ${bsize} \
     #                  --model $model --loss $loss --nn_structure ${nns[@]} -fl
     srun -n 1 python $nnfite -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} \
                       --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -nc $nchain \
@@ -103,9 +103,12 @@ fi
 if [ "${do_nncell}" = true ]
 then
     input_path=/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/v3/nelg_features_${region}_1024.fits
-    output_path=/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnn/windows/cell_${region}.npy
-    wind_dir=/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnn/windows/
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnnp/windows/cell_${region}.npy
+    wind_dir=/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnnp/windows/
 
+    du -h $input_path 
+    echo $output_path
+    #ls $wind_dir
     srun -n 14 python run_cell_windows.py -d $input_path  -m $wind_dir -o $output_path
 fi
 

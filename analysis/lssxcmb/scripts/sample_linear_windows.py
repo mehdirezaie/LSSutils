@@ -11,10 +11,14 @@ def model(x, theta):
     """ Linear model """
     return x.dot(theta[1:]) + theta[0]
 
-def modelp(x, theta):
+def modelp(x, theta, threshold=20.):
     """ Linear model Poisson """
-    return np.log(1.+np.exp(x.dot(theta[1:]) + theta[0]))
-
+    u = x.dot(theta[1:]) + theta[0]
+    is_inf = u > threshold
+    res = np.log(1.+np.exp(u))
+    if is_inf.sum() != 0:
+        res[is_inf] = u[is_inf]
+    return res
 
 class Chains:
     def __init__(self, filename, plot=False):    
@@ -40,7 +44,6 @@ class Chains:
 #--- read mcmc chains
 np.random.seed(85)
 nside = 1024     #
-npoints = 240000 # 600x400
 nwindows = 1000  # 
 regions = ['bmzls', 'ndecals', 'sdecals']
 axes = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
@@ -57,10 +60,14 @@ for region in regions:
     stats[region] = ch1.stats
     features[region] = (df['features'][:, axes] - ch1.stats['x'][0]) / ch1.stats['x'][1]
     hpix[region] = df['hpix']
-    
+
+npoints = params['bmzls'].shape[0]
+print(f'# points: {npoints}')
 ix = np.random.choice(np.arange(npoints), size=nwindows, replace=False)
 for j, i in enumerate(ix):
     window_i = np.zeros(12*nside*nside)
+    count_i = np.zeros_like(window_i)
+
     for region in regions:
         
         #n_mu, n_std = stats[region]['y']
@@ -69,10 +76,12 @@ for j, i in enumerate(ix):
         # Poisson
         wind_ = modelp(features[region], params[region][i, :])
         window_i[hpix[region]] += wind_
+        count_i[hpix[region]] += 1.0
         #if j == 0:
         #    hp.mollview(window_i, rot=-90, cmap=plt.cm.jet, max=10)
         #    plt.show()
         
+
     print('.', end='')
     if (j+1)%100==0:
         print()
@@ -80,6 +89,10 @@ for j, i in enumerate(ix):
     output_dir = os.path.dirname(output_path)
     if not os.path.exists(output_dir):
          os.makedirs(output_dir)
-    hp.write_map(output_path, window_i, dtype=np.float64, fits_IDL=False)
+
+    is_good = count_i > 0.0
+    window_i[is_good] = window_i[is_good] / count_i[is_good]
+    window_i[~is_good] = hp.UNSEEN
+    hp.write_map(output_path, window_i, dtype=np.float64, fits_IDL=False, overwrite=True)
 
 print("done!!!")

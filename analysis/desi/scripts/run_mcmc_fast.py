@@ -9,7 +9,7 @@ import numpy as np
 
 from multiprocessing import cpu_count, Pool
 
-#from scipy.optimize import minimize
+from scipy.optimize import minimize
 from time import time
 from lssutils.theory.cell import dNdz_model, init_sample, SurveySpectrum
 from lssutils.extrn.mcmc import Posterior
@@ -43,7 +43,7 @@ def read_mask(region):
         mask   = hp.ud_grade(mask_, 1024)
     else:
         # full sky
-        mask = np.ones(12*1024*1024)
+        mask = np.ones(12*1024*1024, '?')
 
     return mask*1.0, mask
 
@@ -58,7 +58,7 @@ output   = sys.argv[4]
 nsteps   = 10000   # int(sys.argv[2])
 ndim     = 2      # Number of parameters/dimensions
 nwalkers = 50     # Number of walkers to use. It should be at least twice the number of dimensions.
-
+assert nwalkers > 2*ndim
 
 ncpu = cpu_count()
 print("{0} CPUs".format(ncpu))    
@@ -77,23 +77,27 @@ model.add_kernels(model.el_model)
 model.add_window(weight, mask, np.arange(2048), ngauss=2048)  
 
 lg = Posterior(model, cl_obs, invcov_obs, el_edges)
-def logpost(foo):
-    return lg.logpost(foo)
+def logpost(params):
+    return lg.logpost(params)
+def neglogpost(params):
+    return -lg.logpost(params)
 
 # scipy optimization        
-#res = minimize(lg.logpost, [0., 1.0e-7], args=(cl, invcov, el), )
-#print(res)
-for fnl in [-10., 0., 10.]:
-    print(fnl, logpost([fnl, 5.3e-7]))
-
-
-# Initial positions of the walkers. TODO: add res.x
 np.random.seed(SEED)
-start = np.array([10.0, 1.0e-7])*np.random.randn(nwalkers, ndim) 
+res = minimize(neglogpost, [1.0, 1.0e-7], method='Powell')
+
+# Initial positions of the walkers.
+start = res.x *(1.+0.01*np.random.randn(nwalkers, ndim))
+print(f'scipy opt: {res}')
 print(f'initial guess: {start[:2]} ... {start[-1]}')
 
 with Pool() as pool:
     sampler = emcee.EnsembleSampler(nwalkers, ndim, logpost, pool=pool)
     sampler.run_mcmc(start, nsteps, progress=True)
 
-np.save(output, sampler.get_chain(), allow_pickle=False)
+np.savez(output, **{'chain':sampler.get_chain(), 
+                    'log_prob':sampler.get_log_prob(), 
+                    'best_fit':res.x,
+                    'best_fit_logprob':res.fun,
+                    '#data':cl_obs.size,
+                    '#params':ndim})

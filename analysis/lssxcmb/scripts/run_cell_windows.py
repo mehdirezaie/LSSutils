@@ -46,8 +46,8 @@ def main(ns, comm=None):
 
         t0 = time()
         w_i = hp.read_map(windows[i], verbose=False, dtype=np.float64)
-        w_i = w_i / np.median(w_i[mask])
-        w_i = w_i.clip(0.5, 2.0)
+        #w_i = w_i / np.mean(w_i[mask])
+        #w_i = w_i.clip(0.5, 2.0)
         w_i = (w_i / w_i[mask].mean()) - 1.0
         cl_i = anafast(w_i, frac, mask)['cl'] 
         t1 = time()
@@ -60,9 +60,10 @@ def main(ns, comm=None):
     
     if comm.rank==0:
         cl = np.array(cl)
+        print(cl.shape)
         lmax = cl.shape[-1]
-        cl = cl.reshape(-1, lmax)
-        np.save(ns.output_path, cl)
+        cl = np.concatenate(cl.reshape(-1, lmax).flatten())
+        np.save(ns.output_path, cl, allow_pickle=False)
     
 if __name__ == '__main__':
 
@@ -81,5 +82,5 @@ if __name__ == '__main__':
         ns = None
         print(f'hey from {comm.rank}')
         
-    main(ns)            
+    main(ns)
 

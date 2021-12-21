@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=fitfnl
 #SBATCH --account=PHS0336 
-#SBATCH --time=30:00:00
+#SBATCH --time=03:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=14
-#SBATCH --mail-type=FAIL
+#SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
 ## run with
@@ -14,8 +14,8 @@
 source ${HOME}/.bashrc
 
 export PYTHONPATH=${HOME}/github/sysnetdev:${HOME}/github/LSSutils:${PYTHONPATH}
-export NUMEXPR_MAX_THREADS=2
-export OMP_NUM_THREADS=2
+export NUMEXPR_MAX_THREADS=1
+export OMP_NUM_THREADS=1
 
 source activate sysnet
 
@@ -27,7 +27,8 @@ do_assign=false
 do_nbar=false     # 10 m
 do_cl=false       # 10 m
 do_clfull=false   # 10 m x 14
-do_mcmc=true      # 30 h x 14
+do_mcmc=true      # 3 h x 14
+do_mcmc_full=false # 3 h x 14
 
 #mockid=1
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
@@ -183,11 +184,29 @@ then
             method=$2
             path_cl=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_${method}_mean.npz
             path_cov=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_noweight_cov.npz   # fix covariance
-            output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_10000_50walkers.npy
+            output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_steps10000_walkers50.npz
             
             du -h $path_cl $path_cov
             echo $target $region $method $output_mcmc
             python $mcmc $path_cl $path_cov $region $output_mcmc
         done
+    done
+fi
+
+
+if [ "${do_mcmc_full}" = true ]
+then
+    for target in ${targets}
+    do
+        # full sky
+        region=fullsky
+        method=noweight
+        path_cl=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_fullsky_mean.npz
+        path_cov=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_fullsky_cov.npz   # fix covariance
+        output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_steps10000_walkers50.npz
+
+        du -h $path_cl $path_cov
+        echo $target $region $method $output_mcmc
+        python $mcmc $path_cl $path_cov $region $output_mcmc        
     done
 fi

@@ -12,9 +12,10 @@ kind = sys.argv[1]
 region = sys.argv[2]
 nside = int(sys.argv[3])
 path = sys.argv[4] #'/fs/ess/PHS0336/data/rongpu/imaging_sys'
-version = sys.argv[5]
+tag_d = sys.argv[5]
 
-print(kind, region, nside, version)
+assert tag_d in ['0.57.0', '1.0.0'], "data version not supported"
+print(kind, region, nside, tag_d)
 
 assert kind in ['lrg', 'elg', 'bgs_any', 'bgs_bright'], f'{kind} not implemented'
 assert region in ['bmzls', 'ndecals', 'sdecals'], f'{region} not implemented'
@@ -27,12 +28,12 @@ maskbits = {'lrg':'_lrgmask_v1', #old:'lrg':189111213,
             'bgs_any':113,
             'bgs_bright':113}
 
-tag_d = '0.57.0'
+#tag_d = '0.57.0'
 tag_r = '0.49.0'
 
 
 cap = 'north' if region in ['bmzls'] else 'south'
-path_out = os.path.join(path, 'tables', version, f'n{kind}_features_{region}_{nside}.fits')
+path_out = os.path.join(path, 'tables', tag_d, f'n{kind}_features_{region}_{nside}.fits')
 print(path_out)
 
 
@@ -43,7 +44,12 @@ if not os.path.exists(dir_out):
 
 
 mb = maskbits[kind]
-data_ng = ft.read(f'{path}/density_maps/{tag_d}/resolve/density_map_sv3_{kind}_{cap}_nside_{nside}_minobs_1_maskbits_{mb}.fits')
+
+if tag_d=='0.57.0':
+    data_ng = ft.read(f'{path}/density_maps/{tag_d}/resolve/density_map_sv3_{kind}_{cap}_nside_{nside}_minobs_1_maskbits_{mb}.fits')
+elif tag_d=='1.0.0':
+    data_ng = ft.read(f'{path}/density_maps/{tag_d}/resolve/density_map_{kind}_{cap}_nside_{nside}_minobs_1_maskbits_{mb}.fits')
+
 data_tmp = ft.read(f'{path}/randoms_stats/{tag_r}/resolve/combined/pixmap_{cap}_nside_{nside}_minobs_1_maskbits_{mb}.fits')
 
 # split south into sdecals and ndecals

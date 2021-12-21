@@ -1,6 +1,6 @@
 import sys
-sys.path.insert(0, '/home/mehdi/github/sysnetdev')
-sys.path.insert(0, '/home/mehdi/github/LSSutils')
+#sys.path.insert(0, '/home/mehdi/github/sysnetdev')
+#sys.path.insert(0, '/home/mehdi/github/LSSutils')
 
 from lssutils.utils import split_NtoM
 from sysnet.sources.train import forward

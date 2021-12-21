@@ -2,7 +2,7 @@ import sys
 import os
 from lssutils.utils import split_NtoM
 from sysnet.sources.train import forward
-from sysnet.sources.models import DNN
+from sysnet.sources.models import DNNPoisson
 from sysnet.sources.io import load_checkpoint, ImagingData, MyDataSet, DataLoader
 
 from time import time
@@ -27,7 +27,7 @@ def do_forward(checkpoints, rank, oudir):
     num_features = len(axes) # nside=1024, 27 for nside=256
     nnstruct = (4, 20)
 
-    model = DNN(*nnstruct, input_dim=num_features)
+    model = DNNPoisson(*nnstruct, input_dim=num_features)
     for i, chck in enumerate(checkpoints):        
 
         t0 = time()
@@ -60,11 +60,11 @@ if rank==0:
     region = sys.argv[1]
     print('region', region)
     
-    chcks = glob(f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnn/{region}_1024/model_*/snapshot_*.pth.tar')
+    chcks = glob(f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnnp/{region}_1024/model_*/snapshot_*.pth.tar')
     templates = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/v3/nelg_features_{region}_1024.fits')    
 
    # nside=1024
-    oudir = f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnn/{region}_1024/windows/'
+    oudir = f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnnp/{region}_1024/windows/'
     if not os.path.exists(oudir):
         os.makedirs(oudir)
         print('rank 0 creates ', oudir)
