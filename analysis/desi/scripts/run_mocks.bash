@@ -22,13 +22,13 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false
-do_nn=false       # 20 h
+do_nn=false     # 20 h
 do_assign=false
-do_nbar=false     # 10 m
-do_cl=false       # 10 m
-do_clfull=false   # 10 m x 14
-do_mcmc=true      # 3 h x 14
-do_mcmc_full=false # 3 h x 14
+do_nbar=false   # 10 m
+do_cl=false     # 10 m
+do_clfull=false # 10 m x 14
+do_mcmc=false   #  3 h x 14
+do_bfit=true    #  3 h x 14
 
 #mockid=1
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
@@ -56,7 +56,7 @@ clfull=${HOME}/github/LSSutils/analysis/desi/scripts/run_cell_mocks_mpi.py
 nbar=${HOME}/github/LSSutils/scripts/analysis/desi/run_nnbar_mocks.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
 mcmc=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_fast.py
-mcmc2=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_fast2.py
+bfit=${HOME}/github/LSSutils/analysis/desi/scripts/run_best_fit.py
 
 
 
@@ -179,34 +179,31 @@ if [ "${do_mcmc}" = true ]
 then
     for target in ${targets}
     do
-        for region in ${regions}
-        do       
-            method=$2
-            path_cl=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_${method}_mean.npz
-            path_cov=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_noweight_cov.npz   # fix covariance
-            output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_steps10000_walkers50.npz
+        region=$1
+        method=noweight
+
+        if [ "${region}" != "fullsky" ]
+        then
+            path_cl=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_${method}_mean_fine.npz
+            path_cov=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_noweight_cov_fine.npz   # fix covariance
+        else
+            path_cl=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_fullsky_mean_fine.npz
+            path_cov=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_fullsky_cov_fine.npz   # fix covariance
+        fi
+
+        
+        output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_steps10000_walkers50.npz
             
-            du -h $path_cl $path_cov
-            echo $target $region $method $output_mcmc
-            python $mcmc $path_cl $path_cov $region $output_mcmc
-        done
+        du -h $path_cl $path_cov
+        echo $target $region $method $output_mcmc
+        python $mcmc $path_cl $path_cov $region $output_mcmc
     done
 fi
 
 
-if [ "${do_mcmc_full}" = true ]
+if [ "${do_bfit}" = true ]
 then
-    for target in ${targets}
-    do
-        # full sky
-        region=fullsky
-        method=noweight
-        path_cl=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_fullsky_mean.npz
-        path_cov=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_fullsky_cov.npz   # fix covariance
-        output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_steps10000_walkers50.npz
-
-        du -h $path_cl $path_cov
-        echo $target $region $method $output_mcmc
-        python $mcmc $path_cl $path_cov $region $output_mcmc        
-    done
+    # options are fullsky, bmzls, ndecals, sdecals
+    region=$1
+    srun -n 14 python $bfit $region
 fi

@@ -13,6 +13,7 @@ from lssutils.stats.window import WindowSHT
 def dNdz_model(sample='qso', z_low=0.1, kind=1):
     
     if sample=='qso':
+        
         dNdz, z = np.loadtxt(f'/fs/ess/PHS0336/data/dr9v0.57.0/p38fnl/RF_g.txt').T
         dNdz_interp = IUS(z, dNdz)
         dNdz_interp.set_smoothing_factor(2.0)
@@ -23,7 +24,6 @@ def dNdz_model(sample='qso', z_low=0.1, kind=1):
 
         z_g = np.linspace(0.0, 10.0, 500)
         dNdz_g = dNdz_interp(z_g)
-
         dNdz_g[(z_g<z_low)] = nz_low(z_g[z_g<z_low])
         dNdz_g[(z_g>z_high)] = nz_high(z_g[z_g>z_high])
 
@@ -34,23 +34,23 @@ def dNdz_model(sample='qso', z_low=0.1, kind=1):
         return z_g, dNdz_g
     
     elif sample == 'lrg':
+        
         zmin, zmax, dNdz = np.loadtxt('/fs/ess/PHS0336/data/rongpu/sv3_lrg_dndz_denali.txt', 
                                       usecols=(0, 1, 2), unpack=True)        
         zmid = 0.5*(zmin+zmax)
         dNdz_interp = IUS(zmid, dNdz, ext=1)
         dNdz_interp.set_smoothing_factor(2.0)
-
-
         z_g = np.linspace(0.0, 5.0, 500)
         dNdz_g = dNdz_interp(z_g)
+        
         return z_g, dNdz_g
         
     
     elif sample == 'mock':
+        
         z = np.arange(0.0, 3.0, 0.001)
         i_lim = 26.                          # Limiting i-band magnitude
         z0 = 0.0417*i_lim - 0.744
-
         Ngal = 46. * 100.31 * (i_lim - 25.)            # Normalisation, galaxies/arcmin^2
         pz = 1./(2.*z0) * (z / z0)**2. * np.exp(-z/z0)  # Redshift distribution, p(z)
         dNdz = Ngal * pz                               # Number density distribution
@@ -64,7 +64,7 @@ def bias_model_lrg(z):
     
     
     """
-    cste = 1.4262343145500318 # used to be 1.42 (Rongpu suggestion)
+    cste = 1.0 ## 1.4262343145500318 was used to generate mocks. 1.42 (Rongpu suggestion)
     kw_cosmo = dict(h=0.67556, T0_cmb=2.7255, Omega0_b=0.0482754208891869,
                     Omega0_cdm=0.26377065934278865, N_ur=None, m_ncdm=[0.06],
                     P_k_max=10.0, P_z_max=100.0, sigma8=0.8225, gauge='synchronous',
@@ -158,7 +158,7 @@ class Spectrum:
         # alpha_fnl: equation 2 of Mueller et al 2017    
         self.alpha_fnl  = 3.0*delta_crit*Omega0_m*(DH**2)
         
-    def __call__(self, ell, fnl=0.0, b=1.0, **kwargs):
+    def __call__(self, ell, fnl=0.0, b=1.0, noise=0.0, **kwargs):
 
         if not self.kernels_ready:
             print('will create windows')
@@ -168,7 +168,7 @@ class Spectrum:
             print('will update windows')            
             self.add_kernels(ell, **kwargs)
                        
-        return self.run(fnl, b)
+        return self.run(fnl, b, noise)
         
     def add_tracer(self, z, b, dNdz, p=1.6):
         print(f'p = {p:.1f}')
@@ -291,11 +291,11 @@ class Spectrum:
         self.i_f1f2 = np.array(i_f1f2)            
             
             
-    def run(self, fnl, b):
+    def run(self, fnl, b, noise):
         #print("fnl, b", fnl, b)
         return self.inv_pi*(b*b*self.i_gg + self.i_rr + fnl*fnl*b*b*self.i_f1f1 + fnl*fnl*self.i_f2f2 \
                        - 2*b*self.i_gr + 2*fnl*b*b*self.i_gf1 + 2*fnl*b*(self.i_gf2-self.i_rf1) \
-                       - 2*fnl*self.i_rf2 + 2*fnl*fnl*b*self.i_f1f2)
+                       - 2*fnl*self.i_rf2 + 2*fnl*fnl*b*self.i_f1f2) + noise
     
     
 class SurveySpectrum(Spectrum, WindowSHT):
@@ -307,11 +307,11 @@ class SurveySpectrum(Spectrum, WindowSHT):
     def add_window(self, *arrays, **kwargs):
         WindowSHT.__init__(self, *arrays, **kwargs)
         
-    def __call__(self, el, fnl=0.0, noise=0.0):
+    def __call__(self, el, fnl=0.0, b=1.0, noise=0.0):
         
-        cl_ = Spectrum.__call__(self, self.el_model, fnl=fnl)   
+        cl_ = Spectrum.__call__(self, self.el_model, fnl=fnl, b=b, noise=noise)   
         
-        clm_ = self.convolve(self.el_model, cl_)+noise
+        clm_ = self.convolve(self.el_model, cl_)
         lmax = max(el)+1
         clm = self.apply_ic(clm_[:lmax])
         

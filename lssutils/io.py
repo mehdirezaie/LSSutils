@@ -2,6 +2,25 @@
 import numpy as np
 
 
+def read_chain(chain_filename, skip=5000, ndim=3, ifnl=0):
+    
+    ch_ = np.load(chain_filename)
+    
+    chain = ch_['chain']
+    assert chain.shape[-1] == ndim
+    
+    map_bf = ch_['best_fit'][ifnl]   
+    map_chain = ch_['chain'].reshape(-1, ndim)[ch_['log_prob'].argmax()][ifnl]
+    
+    sample = chain[skip:, :, :].flatten().reshape(-1, ndim)
+    sample[:, 2] *= 1.0e7
+    
+    mean_chain = sample[:, ifnl].mean()
+    vmin, median, vmax = np.percentile(sample[:, ifnl], [16, 50, 84], axis=ifnl)
+    
+    return [map_bf, map_chain, mean_chain, median, vmin, vmax], sample
+
+
 def read_window(region):
     """ Return Window, Mask, Noise
     """

@@ -56,7 +56,7 @@ region   = sys.argv[3]  # for window
 output   = sys.argv[4]
 
 nsteps   = 10000   # int(sys.argv[2])
-ndim     = 2      # Number of parameters/dimensions
+ndim     = 3      # Number of parameters/dimensions
 nwalkers = 50     # Number of walkers to use. It should be at least twice the number of dimensions.
 assert nwalkers > 2*ndim
 
@@ -84,7 +84,7 @@ def neglogpost(params):
 
 # scipy optimization        
 np.random.seed(SEED)
-res = minimize(neglogpost, [1.0, 1.0e-7], method='Powell')
+res = minimize(neglogpost, [1.0, 1.0, 1.0e-7], method='Powell')
 
 # Initial positions of the walkers.
 start = res.x *(1.+0.01*np.random.randn(nwalkers, ndim))
@@ -99,5 +99,6 @@ np.savez(output, **{'chain':sampler.get_chain(),
                     'log_prob':sampler.get_log_prob(), 
                     'best_fit':res.x,
                     'best_fit_logprob':res.fun,
+                    'best_fit_success':res.success, 
                     '#data':cl_obs.size,
                     '#params':ndim})
