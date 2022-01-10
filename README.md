@@ -1,9 +1,8 @@
 # LSSutils
-utilities for LSS analysis
+Utilities for LSS analysis
 
-
-Issues with tensorflow 1.14
-see https://github.com/tensorflow/tensorflow/issues/32859
-- pip install gast=0.2.2
-
-
+## Setup
+Clone the repository using `git clone ...` and then add the absolute path to the enviornment variable PYTHONPATH, e.g.,
+```bash
+export PYTHONPATH=${HOME}/github/LSSutils:${PYTHONPATH}
+```
