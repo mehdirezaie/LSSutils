@@ -29,11 +29,15 @@ def read_window(region):
     import healpy as hp
     
     # read survey geometry
-    data_path = '/fs/ess/PHS0336/data/'    
-    dt = ft.read(f'{data_path}/rongpu/imaging_sys/tables/v3/nlrg_features_{region}_256.fits')
-    mask_  = make_hp(256, dt['hpix'], 1.0) > 0.5
-    
-    mask   = hp.ud_grade(mask_, 1024)
+    if region in ['bmzls', 'ndecals', 'sdecals']:        
+        data_path = '/fs/ess/PHS0336/data/'    
+        dt = ft.read(f'{data_path}/rongpu/imaging_sys/tables/v3/nlrg_features_{region}_256.fits')
+        mask_  = make_hp(256, dt['hpix'], 1.0) > 0.5
+        mask   = hp.ud_grade(mask_, 2048)        
+    else:
+        mask = np.ones(12*2048*2048)
+        
+        
     weight = mask * 1.0
     print(f'read window')
     
