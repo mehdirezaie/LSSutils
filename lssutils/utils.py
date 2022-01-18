@@ -1391,14 +1391,21 @@ def split2kfolds(data, k=5, shuffle=True, seed=42):
     return kfold_data
 
 
+def depth2ivar(depth):
+    """ change DEPTH to IVAR """
+    return (5./mag2nmag(depth))**2
+
+
 def ivar2depth(ivar):
     """ change IVAR to DEPTH """
     depth = nmag2mag(5./np.sqrt(ivar))
     return depth
 
+   
 def nmag2mag(nmag):
     """ nano maggies to magnitude """
     return -2.5 * (np.log10(nmag) - 9.)
+
 
 def mag2nmag(m):
     """ Magnitude to nano maggies """
