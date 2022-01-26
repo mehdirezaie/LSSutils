@@ -1,1 +1,2 @@
-from .ddthetahp import *
+
+from .ddthetahp import ddthetahpauto

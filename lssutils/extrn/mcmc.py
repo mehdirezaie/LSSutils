@@ -2,6 +2,20 @@ import numpy as np
 from lssutils.utils import histogram_cell
 
 
+def gelman_rubin(chain):
+    ssq = np.var(chain, axis=1, ddof=1)
+    W = np.mean(ssq, axis=0)
+    pb = np.mean(chain, axis=1)
+    pbb = np.mean(pb, axis=0)
+    m = chain.shape[0]
+    n = chain.shape[1]
+    B = n / (m - 1) * np.sum((pbb - pb)**2, axis=0)
+    var_p = (n - 1) / n * W + 1 / n * B
+    rhat = np.sqrt(var_p / W)
+    return rhat
+
+
+
 class Posterior:
     """ Log Posterior for PNGModel
     """

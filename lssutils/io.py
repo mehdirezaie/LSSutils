@@ -21,7 +21,7 @@ def read_chain(chain_filename, skip=5000, ndim=3, ifnl=0):
     return [map_bf, map_chain, mean_chain, median, vmin, vmax], sample
 
 
-def read_window(region):
+def read_window(region, nside=256):
     """ Return Window, Mask, Noise
     """
     from .utils import make_hp
@@ -32,10 +32,11 @@ def read_window(region):
     if region in ['bmzls', 'ndecals', 'sdecals']:        
         data_path = '/fs/ess/PHS0336/data/'    
         dt = ft.read(f'{data_path}/rongpu/imaging_sys/tables/v3/nlrg_features_{region}_256.fits')
-        mask_  = make_hp(256, dt['hpix'], 1.0) > 0.5
-        mask   = hp.ud_grade(mask_, 2048)        
+        mask  = make_hp(256, dt['hpix'], 1.0) > 0.5
+        if nside != 256:
+            mask   = hp.ud_grade(mask, nside)        
     else:
-        mask = np.ones(12*2048*2048)
+        mask = np.ones(12*nside*nside)
         
         
     weight = mask * 1.0

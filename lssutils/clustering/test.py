@@ -4,7 +4,8 @@
 
     (c) Mehdi Rezaie
 
-    > python test.py xi_mehdiJul27/weight_comp_False_scaled_False_Nside_256_LRGnew.txtfc.fits xi_mehdiJul27/weight_comp_False_scaled_True_Nside_256_LRG_randnew.txtfc.fits xi_mehdiJul27/galDESILRGFalse2562ptPixclb.dat
+    > python test.py data/weight_comp_False_scaled_False_Nside_256_LRGnew.txtfc.fits data/weight_comp_False_scaled_True_Nside_256_LRG_randnew.txtfc.fits data/galDESILRGFalse2562ptPixclb.dat
+    
 '''
 
 
@@ -14,7 +15,8 @@ import sys
 from time import time
 import ddthetahp
 import matplotlib.pyplot as plt
-
+import matplotlib as mpl
+mpl.use('Agg')
 
 # read data
 galaxy = hp.read_map(sys.argv[1])
@@ -59,4 +61,4 @@ plt.plot(np.arccos(bins_mid)*180./np.pi, c[0,:]/c[1,:],
             marker='x', alpha=0.5, label='Mehdi')
 
 plt.legend()
-plt.show()
+plt.savefig('xi_test.png', bbox_inches='tight')
