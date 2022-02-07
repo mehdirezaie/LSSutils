@@ -849,7 +849,8 @@ def select_region(ra, dec, reg):
     wra &= (ra < 280. +dec)
     
     if reg == 'ndecals':
-        w = dec < 32.375
+        w = dec < 32.375 # BASS
+        w &= dec > -11.0 # spurios islands 
         w &= wra
     elif reg == 'sdecals':
         w = ~wra

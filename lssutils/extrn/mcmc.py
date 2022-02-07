@@ -33,8 +33,8 @@ class Posterior:
         fnl, b, noise = theta
         
         # uniform prior on fNL
-        fmin = -100. # lower range of prior
-        fmax = 100.  # upper range of prior
+        fmin = -1000. # lower range of prior
+        fmax = 1000.  # upper range of prior
         # set prior to 1 (log prior to 0) if in the range and zero (-inf) outside the range
         lp += 0. if fmin < fnl < fmax else -np.inf
 

@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=nncl
+#SBATCH --job-name=linclx
 #SBATCH --account=PHS0336 
-#SBATCH --time=05:00:00
+#SBATCH --time=01:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -25,8 +25,10 @@ do_linsamp=false    # 1 h x 1
 do_nnsamp=false    # 3h x 10tpn
 do_nnpull=false    # 1 h
 do_lincell=false   # 5hx14tpn
-do_nncell=true    # 5hx14tpn
+do_nncell=false    # 5hx14tpn
 do_cl=false
+do_clx=true        # ?h x 4tpn
+
 
 target=elg
 region=$1   # options are bmzls, ndecals, sdecals
@@ -122,7 +124,20 @@ then
 fi
 
 
-
+if [ "${do_clx}" = true ]
+then
+    input_path=${root_dir}/tables/v3/n${target}_features_${region}_${nside}.fits
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/clustering/cl_${target}_${region}_${nside}_noweight.npy
+    du -h $input_path
+    echo $output_path
+    mpirun -np 4 python $cl -d ${input_path} -o ${output_path}
+    
+    #output_path=${root_dir}/clustering/${mversion}/cl_${target}_${region}_${nside}_nn.npy
+    #selection=/home/mehdi/data/tanveer/dr9/elg_mse_snapshots/${region}/windows_mean.hp1024.fits
+    #echo $output_path
+    #du -h $selection
+    #mpirun -np 4 python $cl -d ${input_path} -o ${output_path} -s ${selection}            
+fi
 
 if [ "${do_cl}" = true ]
 then

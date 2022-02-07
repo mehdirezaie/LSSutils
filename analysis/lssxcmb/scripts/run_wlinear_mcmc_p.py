@@ -16,7 +16,13 @@ np.random.seed(85)
 
 def modelp(x, *theta):
     """ Linear model Poisson """
-    return np.log(1.+np.exp(x.dot(theta[1:]) + theta[0]))
+    u = x.dot(theta[1:]) + theta[0]
+    
+    is_high = u > 20
+    ret = u*1
+    ret[~is_high] = np.log(1.+np.exp(u[~is_high]))
+
+    return ret
 
 def logprior(theta):
     ''' The natural logarithm of the prior probability. '''
@@ -24,16 +30,16 @@ def logprior(theta):
     mmu = 0.0     # mean of the Gaussian prior
     msigma = 1.0 # standard deviation of the Gaussian prior
     
-    lp = 0. if 0.0 < theta[0] < 1000. else -np.inf
+    lp = 0. if 0.0 < theta[0] < 100. else -np.inf
     lp += -0.5*((np.array(theta[1:])-mmu)/msigma)**2
     lp = lp.sum()
     return lp
 
 def loglike(theta, y, x, w):
-    '''The natural logarithm of the (Gaussian) likelihood.'''
+    '''The natural logarithm of the Poisson likelihood.'''
     md = modelp(x, *theta)
-    res = (w*md-y*np.log(w*md))
-    return -0.5 * (w*res).sum()
+    res = (y*np.log(w*md)) - w*md
+    return (w*res).sum()
 
 
 from argparse import ArgumentParser
@@ -51,7 +57,7 @@ output_path = ns.output_path
 
 ndim = len(ns.axes)+1     # Number of parameters/dimensions (e.g. m and c) +1 for bias
 nwalkers = 400            # 400-500 walkers? Number of walkers to use. It should be at least twice the number of dimensions.
-nsteps = 1000             # 1000, Number of steps/iterations.
+nsteps = 2000             # 2000, Number of steps/iterations.
 print(f'axes for regression: {ns.axes}')
 
 output_dir = os.path.dirname(output_path)
@@ -80,11 +86,8 @@ def logpost(theta):
     '''The natural logarithm of the posterior.'''
     return logprior(theta) + loglike(theta, y, xs, w)
 
-#ymean = np.mean(y)
-#ystd = np.std(y)
-#ys = (y - ymean)/ystd
-
 p0 = np.zeros(ndim)
+p0[0] = 1.0
 results = curve_fit(modelp, xs, y, p0=p0)
 print('curve_fit:', results[0])
 
@@ -96,4 +99,7 @@ with Pool() as pool:
     sampler.run_mcmc(start, nsteps, progress=True) # Run sampling
     #print("Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction)))
 
-np.savez(output_path, **{'chain':sampler.get_chain(), 'x':(xmean, xstd)}) #, 'y':(ymean, ystd)})
+np.savez(output_path, **{'chain':sampler.get_chain(),
+                         'x':(xmean, xstd),
+                         'log_prob':sampler.get_log_prob(), 
+                         '#params':ndim})

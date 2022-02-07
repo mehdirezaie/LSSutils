@@ -82,7 +82,4 @@ if __name__ == '__main__':
         ns = None
         print(f'hey from {comm.rank}')
         
-    main(ns)            
-            
-        
-    
+    main(ns) 

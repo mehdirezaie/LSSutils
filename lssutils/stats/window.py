@@ -63,7 +63,6 @@ class WindowSHT:
         return cl_thw
     
     def apply_ic(self, cl_model):
-        print('rm sq')
         lmax = len(cl_model)
         return cl_model - cl_model[0]*(self.cl_mask[:lmax]/self.cl_mask[0])
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=fitfnl
 #SBATCH --account=PHS0336 
-#SBATCH --time=03:00:00
+#SBATCH --time=00:10:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
@@ -26,17 +26,17 @@ do_nn=false     # 20 h
 do_assign=false
 do_nbar=false   # 10 m
 do_cl=false     # 10 m
-do_clfull=false # 10 m x 14
-do_mcmc=false   #  3 h x 14
-do_bfit=true    #  3 h x 14
+do_clfull=true # 10 m x 14
+do_mcmc=false    #  3 h x 14
+do_bfit=false   #  3 h x 14
 
 #mockid=1
-printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
+#printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=4098
-regions=$1
+#regions=$1
 targets="lrg"
-ver=v0
+ver=v1 # v0 has 0 fnl, v1 has ne200, ne100, ... etc
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
 root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys/tables
 nside=256
@@ -172,7 +172,15 @@ fi
 
 if [ "${do_clfull}" = true ]
 then
-    srun -n 14 python $clfull -m ${root_dir} -o ${root_dir}/clustering/clmock_fullsky.npy
+    region=$1
+    fnltag=$2
+    indir=${root_dir}
+    oudir=${root_dir}/clustering/clmock_${fnltag}_${region}.npy
+    echo $region
+    echo $indir
+    echo $oudir
+
+    srun -n 14 python $clfull -m ${indir} -o ${oudir} -t ${fnltag} -r $region
 fi
 
 if [ "${do_mcmc}" = true ]

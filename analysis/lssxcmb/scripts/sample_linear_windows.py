@@ -11,14 +11,16 @@ def model(x, theta):
     """ Linear model """
     return x.dot(theta[1:]) + theta[0]
 
-def modelp(x, theta, threshold=20.):
+def modelp(x, theta):
     """ Linear model Poisson """
     u = x.dot(theta[1:]) + theta[0]
-    is_inf = u > threshold
-    res = np.log(1.+np.exp(u))
-    if is_inf.sum() != 0:
-        res[is_inf] = u[is_inf]
-    return res
+    
+    is_high = u > 20
+    ret = u*1
+    ret[~is_high] = np.log(1.+np.exp(u[~is_high]))
+
+    return ret
+
 
 class Chains:
     def __init__(self, filename, plot=False):    
@@ -54,9 +56,9 @@ params = {}
 stats = {}
 
 for region in regions:
-    df = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/v3/nelg_features_{region}_{nside}.fits')    
-    ch1 = Chains(f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_linearp/mcmc_{region}_{nside}.npz')
-    params[region] = ch1.get_sample(skip_rows=400)
+    df = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/v3/nelg_features_{region}_clean_{nside}.fits')    
+    ch1 = Chains(f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_linearp/mcmc_{region}_clean_{nside}.npz')
+    params[region] = ch1.get_sample(skip_rows=1000)
     stats[region] = ch1.stats
     features[region] = (df['features'][:, axes] - ch1.stats['x'][0]) / ch1.stats['x'][1]
     hpix[region] = df['hpix']
@@ -70,22 +72,16 @@ for j, i in enumerate(ix):
 
     for region in regions:
         
-        #n_mu, n_std = stats[region]['y']
-        #wind_ = n_std*model(features[region], params[region][i, :]) + n_mu
-        
         # Poisson
         wind_ = modelp(features[region], params[region][i, :])
         window_i[hpix[region]] += wind_
         count_i[hpix[region]] += 1.0
-        #if j == 0:
-        #    hp.mollview(window_i, rot=-90, cmap=plt.cm.jet, max=10)
-        #    plt.show()
         
 
     print('.', end='')
     if (j+1)%100==0:
         print()
-    output_path = f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_linearp/windows/linwindow_{j}.hp{nside}.fits'
+    output_path = f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_linearp/windows_clean/linwindow_{j}.hp{nside}.fits'
     output_dir = os.path.dirname(output_path)
     if not os.path.exists(output_dir):
          os.makedirs(output_dir)
