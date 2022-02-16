@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=fitfnl
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:10:00
+#SBATCH --time=03:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
@@ -21,13 +21,14 @@ source activate sysnet
 
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
-do_prep=false
+do_prep=false   #
 do_nn=false     # 20 h
-do_assign=false
+do_assign=false #
 do_nbar=false   # 10 m
 do_cl=false     # 10 m
-do_clfull=true # 10 m x 14
+do_clfull=false # 10 m x 14
 do_mcmc=false    #  3 h x 14
+do_mcmc_joint=true
 do_bfit=false   #  3 h x 14
 
 #mockid=1
@@ -56,6 +57,7 @@ clfull=${HOME}/github/LSSutils/analysis/desi/scripts/run_cell_mocks_mpi.py
 nbar=${HOME}/github/LSSutils/scripts/analysis/desi/run_nnbar_mocks.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
 mcmc=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_fast.py
+mcmc_joint=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_joint.py
 bfit=${HOME}/github/LSSutils/analysis/desi/scripts/run_best_fit.py
 
 
@@ -188,25 +190,45 @@ then
     for target in ${targets}
     do
         region=$1
+        fnltag=zero
         method=noweight
-
-        if [ "${region}" != "fullsky" ]
-        then
-            path_cl=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_${method}_mean_fine.npz
-            path_cov=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_${region}_noweight_cov_fine.npz   # fix covariance
-        else
-            path_cl=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_fullsky_mean_fine.npz
-            path_cov=/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_fullsky_cov_fine.npz   # fix covariance
-        fi
+        path_cl=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region}_mean.npz
+        path_cov=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region}_cov.npz
 
         
-        output_mcmc=${root_dir}/mcmc/mcmc_${target}_${region}_${method}_steps10000_walkers50.npz
+        output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
             
         du -h $path_cl $path_cov
         echo $target $region $method $output_mcmc
         python $mcmc $path_cl $path_cov $region $output_mcmc
     done
 fi
+
+
+if [ "${do_mcmc_joint}" = true ]
+then
+    for target in ${targets}
+    do
+        region=$1
+        region1=$2
+        fnltag=zero
+        method=noweight
+        path_cl=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region}_mean.npz
+        path_cov=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region}_cov.npz
+        path_cl1=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region1}_mean.npz
+        path_cov1=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region1}_cov.npz
+
+        regionj=${region}${region1}
+        output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${regionj}_${method}_steps10k_walkers50.npz
+            
+        du -h $path_cl $path_cov
+        du -h $path_cl1 $path_cov1
+        echo $target $region $reion1 $method $output_mcmc
+        
+        python $mcmc_joint $path_cl $path_cl1 $path_cov $path_cov1 $region $region1 $output_mcmc
+    done
+fi
+
 
 
 if [ "${do_bfit}" = true ]

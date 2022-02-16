@@ -65,6 +65,15 @@ def chi2_fn(residual, invcov):
     return np.dot(residual, np.dot(invcov, residual))  
 
 
+def remove_islands(dt, nside=1024):
+    # to remove islands in DECaLS N
+    
+    ra, dec = hpix2radec(nside, dt['hpix'])
+    is_good = dec > -11.0 # spurious islands
+    
+    return dt[is_good]    
+
+
 def get_inv(err_tot, return_cov=False):
     
     nmocks, nbins = err_tot.shape

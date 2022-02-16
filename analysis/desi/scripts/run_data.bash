@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=dr9nn
+#SBATCH --job-name=dr9prep
 #SBATCH --account=PHS0336 
 #SBATCH --time=00:30:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=10
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -26,15 +26,15 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 do_prep=false     # 20 min x 1 tpn
 do_lr=false      # 20 min x 1 tpn
 do_fit=false       # 50 h x 1 tpn
-do_rfe=true       
+do_rfe=false       
 do_assign=false
 do_nbar=false
 do_cl=false       # 20 min x 4 tpn
 do_mcmc=false     # 10 h x 14 tpn
 
 bsize=5000  # v1 500
-targets=$1  #'QSO'
-regions=$2  # BMZLS
+targets='lrg'  #'QSO'
+regions=$1  # BMZLS
 tag_d=0.57.0    # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256   # lrg=256, elg=1024
 method=""   # lin, nn, or noweight

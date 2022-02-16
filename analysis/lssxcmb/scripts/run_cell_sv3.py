@@ -31,7 +31,7 @@ def main(args, comm=None):
         if args.selection is not None:
             #s_ = ft.read(args.selection)           
             #selection_fn = make_hp(nside, s_['hpix'], np.median(s_['weight'], axis=1))#.mean(axis=1))
-            selection_fn = hp.read_map(args.selection)
+            selection_fn = hp.read_map(args.selection, verbose=False)
             print(np.percentile(selection_fn[mask], [0, 1, 99, 100]))
         else:
             selection_fn = None
@@ -82,4 +82,4 @@ if __name__ == '__main__':
         ns = None
         print(f'hey from {comm.rank}')
         
-    main(ns) 
+    main(ns)

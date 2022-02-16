@@ -75,4 +75,8 @@ features = np.array(features).T
 data_nn = ut.to_numpy(label, features, fracgood, hpix)
 for name in data_nn.dtype.names:
     assert (~np.isfinite(data_nn[name])).sum() == 0, f'{name} is bad'
+    
+if region=='ndecals':
+    data_nn = ut.remove_islands(data_nn, nside)
+    
 ft.write(path_out, data_nn, clobber=True)

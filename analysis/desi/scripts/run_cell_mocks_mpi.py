@@ -24,12 +24,12 @@ def main(ns, comm=None):
             print(f'{key:15s} : {value}')
     
         # get list of windows
-        windows = glob(os.path.join(ns.hpmap_dir, f'{ns.fnl_tag}*.fits'))
+        windows = glob(os.path.join(ns.hpmap_dir, f'lrg-{ns.fnl_tag}-*.fits'))
         print(f'# windows: {len(windows)}')
         if len(windows) > 2:print(windows[:2])
 
-        if ns.region in ['bmzls', 'ndecals', 'sdecals']:
-            dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/v3/nlrg_features_{ns.region}_256.fits')
+        if ns.region in ['bmzls', 'ndecals', 'sdecals', 'ngc', 'desi']:
+            dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/{ns.tagd}/nlrg_features_{ns.region}_256.fits')
             mask = np.zeros(12*nside*nside, '?')
             mask[dt['hpix']] = True
         else:
@@ -83,6 +83,7 @@ if __name__ == '__main__':
         ap.add_argument('-o', '--output_path', required=True)
         ap.add_argument('-t', '--fnl_tag', required=False, default='')
         ap.add_argument('-r', '--region', required=False, default='fullsky')
+        ap.add_argument('--tagd', default='0.57.0')
         ns = ap.parse_args()
     else:
         ns = None
