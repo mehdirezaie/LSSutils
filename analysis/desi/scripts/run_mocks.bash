@@ -28,7 +28,8 @@ do_nbar=false   # 10 m
 do_cl=false     # 10 m
 do_clfull=false # 10 m x 14
 do_mcmc=false    #  3 h x 14
-do_mcmc_joint=true
+do_mcmc_joint=false # 3hx14
+do_mcmc_scale=true
 do_bfit=false   #  3 h x 14
 
 #mockid=1
@@ -195,6 +196,24 @@ then
         path_cl=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region}_mean.npz
         path_cov=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region}_cov.npz
 
+        
+        output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
+            
+        du -h $path_cl $path_cov
+        echo $target $region $method $output_mcmc
+        python $mcmc $path_cl $path_cov $region $output_mcmc
+    done
+fi
+
+if [ "${do_mcmc_scale}" = true ]
+then
+    for target in ${targets}
+    do
+        region=fullskyscaled
+        fnltag=zero
+        method=noweight
+        path_cl=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_fullsky_mean.npz
+        path_cov=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_bmzls_cov.npz
         
         output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
             

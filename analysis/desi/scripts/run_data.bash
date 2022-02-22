@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=dr9prep
+#SBATCH --job-name=nnfit
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:30:00
+#SBATCH --time=50:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=10
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -24,8 +24,8 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false     # 20 min x 1 tpn
-do_lr=false      # 20 min x 1 tpn
-do_fit=false       # 50 h x 1 tpn
+do_lr=false        # 20 min x 1 tpn
+do_fit=true      # 50 h x 1 tpn
 do_rfe=false       
 do_assign=false
 do_nbar=false
@@ -57,7 +57,7 @@ mcmc=${HOME}/github/LSSutils/scripts/analysis/desi/run_mcmc_fast.py
 function get_lr(){
     if [ $1 = "lrg" ]
     then
-        lr=0.2
+        lr=0.1
     elif [ $1 = "elg" ]
     then
         lr=0.2
@@ -69,7 +69,8 @@ function get_lr(){
 function get_axes(){
     if [ $1 = "lrg" ]
     then
-        axes=({0..12})
+        #axes=({0..12})
+        axes=(0 1 3 11) # EBV, Nstar, galdepth-g, psfsize-g (pcc selected)
     elif [ $1 = "elg" ]
     then
         axes=(0 1 2 3 4 5 6 7 10 11 12) # ELG's do not need 8 and 9, which are W1 and W1 bands

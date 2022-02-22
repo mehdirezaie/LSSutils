@@ -2,7 +2,7 @@
 import numpy as np
 
 
-def read_chain(chain_filename, skip=5000, ndim=3, ifnl=0):
+def read_chain(chain_filename, skip=5000, ndim=3, ifnl=0, iscale=[2, ]):
     
     ch_ = np.load(chain_filename)
     
@@ -13,7 +13,8 @@ def read_chain(chain_filename, skip=5000, ndim=3, ifnl=0):
     map_chain = ch_['chain'].reshape(-1, ndim)[ch_['log_prob'].argmax()][ifnl]
     
     sample = chain[skip:, :, :].flatten().reshape(-1, ndim)
-    sample[:, 2] *= 1.0e7
+    for icol in iscale:
+        sample[:, icol] *= 1.0e7
     
     mean_chain = sample[:, ifnl].mean()
     vmin, median, vmax = np.percentile(sample[:, ifnl], [16, 50, 84], axis=ifnl)
