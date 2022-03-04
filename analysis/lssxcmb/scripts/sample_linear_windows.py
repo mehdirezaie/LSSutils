@@ -47,6 +47,7 @@ class Chains:
 np.random.seed(85)
 nside = 1024     #
 nwindows = 1000  # 
+version = 'v4'
 regions = ['bmzls', 'ndecals', 'sdecals']
 axes = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
 
@@ -56,8 +57,10 @@ params = {}
 stats = {}
 
 for region in regions:
-    df = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/v3/nelg_features_{region}_clean_{nside}.fits')    
-    ch1 = Chains(f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_linearp/mcmc_{region}_clean_{nside}.npz')
+
+    df = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/{version}/nelg_features_{region}_clean_{nside}.fits')    
+    ch1 = Chains(f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_linearp/mcmc_{region}_clean_{nside}.npz')
+
     params[region] = ch1.get_sample(skip_rows=1000)
     stats[region] = ch1.stats
     features[region] = (df['features'][:, axes] - ch1.stats['x'][0]) / ch1.stats['x'][1]
@@ -66,7 +69,9 @@ for region in regions:
 npoints = params['bmzls'].shape[0]
 print(f'# points: {npoints}')
 ix = np.random.choice(np.arange(npoints), size=nwindows, replace=False)
+
 for j, i in enumerate(ix):
+    
     window_i = np.zeros(12*nside*nside)
     count_i = np.zeros_like(window_i)
 
@@ -81,7 +86,8 @@ for j, i in enumerate(ix):
     print('.', end='')
     if (j+1)%100==0:
         print()
-    output_path = f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_linearp/windows_clean/linwindow_{j}.hp{nside}.fits'
+    output_path = f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_linearp/windows_clean/linwindow_{j}.hp{nside}.fits'
+
     output_dir = os.path.dirname(output_path)
     if not os.path.exists(output_dir):
          os.makedirs(output_dir)

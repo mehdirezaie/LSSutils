@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=nnfit
 #SBATCH --account=PHS0336 
-#SBATCH --time=50:00:00
+#SBATCH --time=20:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
@@ -24,17 +24,18 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false     # 20 min x 1 tpn
-do_lr=false        # 20 min x 1 tpn
-do_fit=true      # 50 h x 1 tpn
+do_lr=false       # 20 min x 1 tpn
+do_fit=true       # 20 h x 1 tpn
 do_rfe=false       
 do_assign=false
-do_nbar=false
+do_nbar=false     # 10 min x 4 tpn
 do_cl=false       # 20 min x 4 tpn
 do_mcmc=false     # 10 h x 14 tpn
 
 bsize=5000  # v1 500
 targets='lrg'  #'QSO'
 regions=$1  # BMZLS
+maps=$2
 tag_d=0.57.0    # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256   # lrg=256, elg=1024
 method=""   # lin, nn, or noweight
@@ -50,7 +51,7 @@ root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
 prep=${HOME}/github/LSSutils/analysis/desi/scripts/prep_desi.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
 cl=${HOME}/github/LSSutils/scripts/analysis/desi/run_cell_sv3.py
-nbar=${HOME}/github/LSSutils/scripts/analysis/desi/run_nnbar_sv3.py
+nbar=${HOME}/github/LSSutils/analysis/desi/scripts/run_nnbar_sv3.py
 assign=${HOME}/github/LSSutils/scripts/analysis/desi/fetch_weights.py
 mcmc=${HOME}/github/LSSutils/scripts/analysis/desi/run_mcmc_fast.py
 
@@ -67,13 +68,13 @@ function get_lr(){
 
 
 function get_axes(){
-    if [ $1 = "lrg" ]
+    if [ $1 = "known" ]
     then
-        #axes=({0..12})
-        axes=(0 1 3 11) # EBV, Nstar, galdepth-g, psfsize-g (pcc selected)
-    elif [ $1 = "elg" ]
+        axes=(0 1 2)   # EBV, Nstar, galdepth-r (pcc selected)
+    elif [ $1 = "all" ]
     then
-        axes=(0 1 2 3 4 5 6 7 10 11 12) # ELG's do not need 8 and 9, which are W1 and W1 bands
+        axes=({0..12}) # all maps
+        #axes=(0 1 2 3 4 5 6 7 10 11 12) # ELG's do not need 8 and 9, which are W1 and W1 bands
     fi
     echo ${axes[@]}
 }
@@ -165,13 +166,14 @@ then
     do
         for region in ${regions}
         do
+            maps=$2
             lr=$(get_lr ${target})
-            axes=$(get_axes ${target})
+            axes=$(get_axes ${maps})
 
-            echo ${target} ${region} $lr ${axes[@]}
+            echo ${target} ${region} $lr ${axes[@]} $maps
 
             input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
-            output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}/
+            output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/
            
             echo $output_path 
             du -h $input_path
@@ -213,10 +215,15 @@ then
         do
             input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
             output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_noweight.npy
-            srun -n 4 python $nbar -d ${input_path} -o ${output_path}
+            du -h $input_path
+            echo $output_path
+            #srun -n 4 python $nbar -d ${input_path} -o ${output_path}
             
-            output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_nn.npy
-            selection=${root_dir}/regression/${tag_d}/sv3nn_${target}_${region}_${nside}/nn-weights.fits
+
+            output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_nn_${maps}.npy
+            selection=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/nn-weights.fits
+            du -h $selection
+            echo $output_path
             srun -n 4 python $nbar -d ${input_path} -o ${output_path} -s ${selection}            
             
         done

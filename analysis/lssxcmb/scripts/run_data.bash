@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=linclx
+#SBATCH --job-name=clin
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:20:00
+#SBATCH --time=00:10:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=6
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -15,7 +15,6 @@ export NUMEXPR_MAX_THREADS=1
 export OMP_NUM_THREADS=1
 
 source activate sysnet
-
 cd ${HOME}/github/LSSutils/analysis/lssxcmb/scripts/
 
 
@@ -26,14 +25,14 @@ do_nnsamp=false    # 3h x 10tpn
 do_nnpull=false    # 1 h
 do_lincell=false   # 5hx14tpn
 do_nncell=false    # 5hx14tpn
-do_cl=false
-do_clx=true        # 20min x 4tpn
+do_cl=false        #
+do_clx=true       # 20min x 4tpn
 
 
 target=elg
 region=$1   # options are bmzls, ndecals, sdecals
 nside=1024
-version=v3
+version=v4
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 #mockid=$2
 echo $mockid
@@ -129,17 +128,17 @@ fi
 
 if [ "${do_clx}" = true ]
 then
-    input_path=${root_dir}/tables/v3/n${target}_features_${region}_${nside}.fits
-    #output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/clustering/cl_${target}_${region}_${nside}_noweight.npy
+    input_path=${root_dir}/tables/${version}/n${target}_features_${region}_${nside}.fits
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/clustering/cl_${target}_${region}_${nside}_noweight.npy
     du -h $input_path
-    #echo $output_path
-    #mpirun -np 4 python $cl -d ${input_path} -o ${output_path}
+    echo $output_path
+    #srun -n 4 python $cl -d ${input_path} -o ${output_path}
 
     output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/clustering/cl_${target}_${region}_${nside}_${mockid}_linp.npy
-    selection=/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_linearp/windows_clean/linwindow_${mockid}.hp1024.fits
+    selection=/fs/ess/PHS0336/data/tanveer/dr9/${version}/elg_linearp/windows_clean/linwindow_${mockid}.hp1024.fits
     echo $output_path
     du -h $selection
-    mpirun -np 4 python $cl -d ${input_path} -o ${output_path} -s ${selection}            
+    srun -n 6 python $cl -d ${input_path} -o ${output_path} -s ${selection}            
 fi
 
 if [ "${do_cl}" = true ]
