@@ -23,35 +23,27 @@ size = comm.Get_size()
 # read covariance and cls with root
 if rank==0:
     region = sys.argv[1]  # fullsky, bmzls, ndecals, sdecals ##for window
+    path_cl = sys.argv[2]
+    path_cov = sys.argv[3]
+    output = sys.argv[4]
+
     method = 'noweight'
-    output = f'/fs/ess/PHS0336/data/lognormal/v0/mcmc/bestfit_{region}_{method}_fine.npz'
 
     if not os.path.exists(os.path.dirname(output)):
         print(f'create {os.path.dirname(output)}')
         os.makedirs(os.path.dirname(output))
     print('will output ', output)
 
+    cl_mocks = np.load(path_cl)
+
     if region=='fullsky':
-        path_cl  = '/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_fullsky.npy'
-        path_cov = '/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_fullsky_cov_fine.npz'
-        cl_mocks = np.load(path_cl)
-        
         weight = np.ones(12*1024*1024, 'f8') # full sky
     else:
         import fitsio as ft
         import healpy as hp
-        from glob import glob
         from lssutils.utils import hpix2radec, radec2hpix
 
-        path_cl  = f'/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_*_lrg_{region}_256_{method}.npy'
-        path_cov = f'/fs/ess/PHS0336/data/lognormal/v0/clustering/clmock_{region}_{method}_cov_fine.npz'    
-        
-        cl_mocks = []
-        for fl in glob(path_cl):
-            cl_mocks.append(np.load(fl, allow_pickle=True).item()['cl_gg']['cl'])
-        cl_mocks = np.array(cl_mocks)
-
-        dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/v3/nlrg_features_{region}_256.fits')
+        dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_{region}_256.fits')
         weight_ = np.zeros(12*256*256, 'f8')
         weight_[dt['hpix']] = 1.0
         weight = hp.ud_grade(weight_, 1024)
@@ -80,7 +72,7 @@ weight = comm.bcast(weight, root=0)
 mask = weight > 0
 
 model = SurveySpectrum()
-model.add_tracer(*zbdndz, p=1.6)
+model.add_tracer(*zbdndz, p=1.0)
 model.add_kernels(model.el_model)
 model.add_window(weight, mask, np.arange(2048), ngauss=2048)
 

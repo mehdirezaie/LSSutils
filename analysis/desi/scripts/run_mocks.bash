@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=nnbar
+#SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:10:00
+#SBATCH --time=03:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -24,16 +24,16 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 do_prep=false   #
 do_nn=false     # 20 h
 do_assign=false #
-do_nbar=true   # 10 m x 4
+do_nbar=false   # 10 m x 4
 do_cl=false     # 10 m x 4
 do_clfull=false # 10 m x 14
 do_mcmc=false    #  3 h x 14
 do_mcmc_joint=false # 3hx14
 do_mcmc_scale=false
-do_bfit=false   #  3 h x 14
+do_bfit=true   #  3 h x 14
 
 #mockid=1
-printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
+#printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=4098
 region=$1
@@ -181,64 +181,55 @@ fi
 
 if [ "${do_mcmc}" = true ]
 then
-    for target in ${targets}
-    do
-        region=$1
-        fnltag=zero
-        method=noweight
-        path_cl=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region}_mean.npz
-        path_cov=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region}_cov.npz
+    region=$1
+    fnltag=zero
+    method=noweight
+    path_cl=${root_dir}/clustering/clmock_${fnltag}_${region}_mean.npz
+    path_cov=${root_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
 
+    
+    output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
         
-        output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
-            
-        du -h $path_cl $path_cov
-        echo $target $region $method $output_mcmc
-        python $mcmc $path_cl $path_cov $region $output_mcmc
-    done
+    du -h $path_cl $path_cov
+    echo $target $region $method $output_mcmc
+    python $mcmc $path_cl $path_cov $region $output_mcmc
 fi
 
 if [ "${do_mcmc_scale}" = true ]
 then
-    for target in ${targets}
-    do
-        region=fullskyscaled
-        fnltag=zero
-        method=noweight
-        path_cl=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_fullsky_mean.npz
-        path_cov=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_bmzls_cov.npz
+    region=fullskyscaled
+    fnltag=zero
+    method=noweight
+    path_cl=${root_dir}/clustering/clmock_${fnltag}_fullsky_mean.npz
+    path_cov=${root_dir}/clustering/clmock_${fnltag}_bmzls_cov.npz
+    
+    output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
         
-        output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
-            
-        du -h $path_cl $path_cov
-        echo $target $region $method $output_mcmc
-        python $mcmc $path_cl $path_cov $region $output_mcmc
-    done
+    du -h $path_cl $path_cov
+    echo $target $region $method $output_mcmc
+    python $mcmc $path_cl $path_cov $region $output_mcmc
 fi
 
 
 if [ "${do_mcmc_joint}" = true ]
 then
-    for target in ${targets}
-    do
-        region=$1
-        region1=$2
-        fnltag=zero
-        method=noweight
-        path_cl=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region}_mean.npz
-        path_cov=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region}_cov.npz
-        path_cl1=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region1}_mean.npz
-        path_cov1=/fs/ess/PHS0336/data/lognormal/v1/clustering/clmock_${fnltag}_${region1}_cov.npz
+    region=$1
+    region1=$2
+    fnltag=zero
+    method=noweight
+    path_cl=${root_dir}/clustering/clmock_${fnltag}_${region}_mean.npz
+    path_cov=${root_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
+    path_cl1=${root_dir}/clustering/clmock_${fnltag}_${region1}_mean.npz
+    path_cov1=${root_dir}/clustering/clmock_${fnltag}_${region1}_cov.npz
 
-        regionj=${region}${region1}
-        output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${regionj}_${method}_steps10k_walkers50.npz
-            
-        du -h $path_cl $path_cov
-        du -h $path_cl1 $path_cov1
-        echo $target $region $reion1 $method $output_mcmc
+    regionj=${region}${region1}
+    output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${regionj}_${method}_steps10k_walkers50.npz
         
-        python $mcmc_joint $path_cl $path_cl1 $path_cov $path_cov1 $region $region1 $output_mcmc
-    done
+    du -h $path_cl $path_cov
+    du -h $path_cl1 $path_cov1
+    echo $target $region $reion1 $method $output_mcmc
+    
+    python $mcmc_joint $path_cl $path_cl1 $path_cov $path_cov1 $region $region1 $output_mcmc
 fi
 
 
@@ -247,5 +238,10 @@ if [ "${do_bfit}" = true ]
 then
     # options are fullsky, bmzls, ndecals, sdecals
     region=$1
-    srun -n 14 python $bfit $region
+    method=noweight
+    path_cl=${root_dir}/clustering/clmock_${fnltag}_${region}.npy
+    path_cov=${root_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
+    output_bestfit=${root_dir}/mcmc/bestfit_${target}_${fnltag}_${region}_${method}.npz
+
+    srun -n 14 python $bfit $region $path_cl $path_cov $output_bestfit
 fi

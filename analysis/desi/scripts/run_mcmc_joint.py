@@ -80,7 +80,7 @@ el_edges, cl_obs, invcov_obs = read_inputs(path_cl[0], path_cov[0])
 weight, mask = read_mask(region[0])
 
 model = SurveySpectrum()
-model.add_tracer(z, b, dNdz, p=1.6)
+model.add_tracer(z, b, dNdz, p=1.0)
 model.add_kernels(model.el_model)
 model.add_window(weight, mask, np.arange(2048), ngauss=2048)  
 
@@ -91,7 +91,7 @@ el_edges2, cl_obs2, invcov_obs2 = read_inputs(path_cl[1], path_cov[1])
 weight, mask = read_mask(region[1])
 
 model2 = SurveySpectrum()
-model2.add_tracer(z, b, dNdz, p=1.6)
+model2.add_tracer(z, b, dNdz, p=1.0)
 model2.add_kernels(model2.el_model)
 model2.add_window(weight, mask, np.arange(2048), ngauss=2048)  
 
