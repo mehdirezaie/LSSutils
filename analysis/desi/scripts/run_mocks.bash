@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=fitfnl
+#SBATCH --job-name=nnbar
 #SBATCH --account=PHS0336 
-#SBATCH --time=03:00:00
+#SBATCH --time=00:10:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -24,21 +24,22 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 do_prep=false   #
 do_nn=false     # 20 h
 do_assign=false #
-do_nbar=false   # 10 m
-do_cl=false     # 10 m
+do_nbar=true   # 10 m x 4
+do_cl=false     # 10 m x 4
 do_clfull=false # 10 m x 14
 do_mcmc=false    #  3 h x 14
 do_mcmc_joint=false # 3hx14
-do_mcmc_scale=true
+do_mcmc_scale=false
 do_bfit=false   #  3 h x 14
 
 #mockid=1
-#printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
+printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=4098
-#regions=$1
-targets="lrg"
-ver=v1 # v0 has 0 fnl, v1 has ne200, ne100, ... etc
+region=$1
+target="lrg"
+fnltag="zero"
+ver=v2 # 
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
 root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys/tables
 nside=256
@@ -52,10 +53,10 @@ etamin=0.001
 lr=0.2
 
 
-prep=${HOME}/github/LSSutils/scripts/analysis/desi/prep_mocks.py
-cl=${HOME}/github/LSSutils/scripts/analysis/desi/run_cell_mocks.py
+prep=${HOME}/github/LSSutils/analysis/desi/scripts/prep_mocks.py
+cl=${HOME}/github/LSSutils/analysis/desi/scripts/run_cell_mocks.py
 clfull=${HOME}/github/LSSutils/analysis/desi/scripts/run_cell_mocks_mpi.py
-nbar=${HOME}/github/LSSutils/scripts/analysis/desi/run_nnbar_mocks.py
+nbar=${HOME}/github/LSSutils/analysis/desi/scripts/run_nnbar_mocks.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
 mcmc=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_fast.py
 mcmc_joint=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_joint.py
@@ -118,31 +119,23 @@ fi
 
 if [ "${do_nbar}" = true ]
 then
-    for target in ${targets}
-    do
-        for region in ${regions}
-        do
-            #for mockid in {1..1000} ##--- no need to do this with slurm array
-            #do
-                echo $target $region
-                input_path=${root_dir2}/n${target}_features_${region}_${nside}.fits
-                input_map=${root_dir}/${target}-${mockid}-f1z1.fits
-                du -h $input_map $input_path
 
-                # no weight
-                output_path=${root_dir}/clustering/nbarmock_${mockid}_${target}_${region}_${nside}_noweight.npy                
-                echo $output_path
-                #srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
-                #python ./run_nmocks.py -d ${input_path} -m ${input_map} -o ${output_path} # find num. of mock gal in each catalog
+    echo $target $region
+    input_path=${root_dir2}/0.57.0/n${target}_features_${region}_${nside}.fits
+    input_map=${root_dir}/${target}hp-${fnltag}-${mockid}-f1z1.fits
+    du -h $input_map $input_path
 
-                # nn weight
-                input_wsys=${root_dir}/regression/${mockid}/${region}/nn/nn-weights.fits
-                output_path=${root_dir}/clustering/nbarmock_${mockid}_${target}_${region}_${nside}_nn.npy
-                echo $output_path
-                srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
-            #done
-        done
-    done
+    # no weight
+    output_path=${root_dir}/clustering/nbarmock_${mockid}_${target}_${fnltag}_${region}_${nside}_noweight.npy                
+    echo $output_path
+    srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
+    #python ./run_nmocks.py -d ${input_path} -m ${input_map} -o ${output_path} # find num. of mock gal in each catalog
+
+    # nn weight
+    #input_wsys=${root_dir}/regression/${mockid}/${region}/nn/nn-weights.fits
+    #output_path=${root_dir}/clustering/nbarmock_${mockid}_${target}_${region}_${nside}_nn.npy
+    #echo $output_path
+    #srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
 fi
 
 if [ "${do_cl}" = true ]

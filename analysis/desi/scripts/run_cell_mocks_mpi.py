@@ -24,7 +24,7 @@ def main(ns, comm=None):
             print(f'{key:15s} : {value}')
     
         # get list of windows
-        windows = glob(os.path.join(ns.hpmap_dir, f'lrg-{ns.fnl_tag}-*.fits'))
+        windows = glob(os.path.join(ns.hpmap_dir, f'lrghp-{ns.fnl_tag}-*.fits'))
         print(f'# windows: {len(windows)}')
         if len(windows) > 2:print(windows[:2])
 

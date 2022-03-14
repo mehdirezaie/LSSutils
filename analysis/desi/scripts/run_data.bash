@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=nnfit
+#SBATCH --job-name=cl
 #SBATCH --account=PHS0336 
-#SBATCH --time=20:00:00
+#SBATCH --time=00:20:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -25,20 +25,20 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
-do_fit=true       # 20 h x 1 tpn
+do_fit=false       # 20 h x 1 tpn
 do_rfe=false       
 do_assign=false
 do_nbar=false     # 10 min x 4 tpn
-do_cl=false       # 20 min x 4 tpn
+do_cl=true       # 20 min x 4 tpn
 do_mcmc=false     # 10 h x 14 tpn
 
-bsize=5000  # v1 500
-targets='lrg'  #'QSO'
-regions=$1  # BMZLS
-maps=$2
-tag_d=0.57.0    # 0.57.0 (sv3) or 1.0.0 (main)
-nside=256   # lrg=256, elg=1024
-method=""   # lin, nn, or noweight
+bsize=5000    # 
+targets='lrg' # lrg
+regions=$1    # bmzls, ndecals, sdecals
+maps=$2       # known, all
+tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
+nside=256     # lrg=256, elg=1024
+method=""     # lin, nn, or noweight
 model=dnn
 loss=mse
 nns=(4 20)
@@ -50,7 +50,7 @@ root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
 
 prep=${HOME}/github/LSSutils/analysis/desi/scripts/prep_desi.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
-cl=${HOME}/github/LSSutils/scripts/analysis/desi/run_cell_sv3.py
+cl=${HOME}/github/LSSutils/analysis/desi/scripts/run_cell_sv3.py
 nbar=${HOME}/github/LSSutils/analysis/desi/scripts/run_nnbar_sv3.py
 assign=${HOME}/github/LSSutils/scripts/analysis/desi/fetch_weights.py
 mcmc=${HOME}/github/LSSutils/scripts/analysis/desi/run_mcmc_fast.py
@@ -216,9 +216,12 @@ then
             input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
             output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_noweight.npy
             du -h $input_path
-            echo $output_path
-            #srun -n 4 python $nbar -d ${input_path} -o ${output_path}
             
+            if [ ! -f $output_path ] 
+            then
+                echo $output_path
+                srun -n 4 python $nbar -d ${input_path} -o ${output_path}
+            fi
 
             output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_nn_${maps}.npy
             selection=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/nn-weights.fits
@@ -238,10 +241,18 @@ then
         do
             input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
             output_path=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_noweight.npy
-            srun -n 4 python $cl -d ${input_path} -o ${output_path}
+            du -h $input_path
             
-            output_path=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_nn.npy
-            selection=${root_dir}/regression/${tag_d}/sv3nn_${target}_${region}_${nside}/nn-weights.fits
+            if [ ! -f $output_path ]
+            then
+                echo $output_path
+                srun -n 4 python $cl -d ${input_path} -o ${output_path}
+            fi
+
+            output_path=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_nn_${maps}.npy
+            selection=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/nn-weights.fits
+            du -h $selection
+            echo $output_path
             srun -n 4 python $cl -d ${input_path} -o ${output_path} -s ${selection}            
         done
     done
