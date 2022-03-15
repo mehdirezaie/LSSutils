@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=cl
+#SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:20:00
+#SBATCH --time=03:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -29,12 +29,12 @@ do_fit=false       # 20 h x 1 tpn
 do_rfe=false       
 do_assign=false
 do_nbar=false     # 10 min x 4 tpn
-do_cl=true       # 20 min x 4 tpn
-do_mcmc=false     # 10 h x 14 tpn
+do_cl=false       # 20 min x 4 tpn
+do_mcmc=true     # 3 h x 14 tpn
 
 bsize=5000    # 
-targets='lrg' # lrg
-regions=$1    # bmzls, ndecals, sdecals
+target='lrg' # lrg
+region=$1    # bmzls, ndecals, sdecals
 maps=$2       # known, all
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
@@ -53,7 +53,7 @@ nnfit=${HOME}/github/sysnetdev/scripts/app.py
 cl=${HOME}/github/LSSutils/analysis/desi/scripts/run_cell_sv3.py
 nbar=${HOME}/github/LSSutils/analysis/desi/scripts/run_nnbar_sv3.py
 assign=${HOME}/github/LSSutils/scripts/analysis/desi/fetch_weights.py
-mcmc=${HOME}/github/LSSutils/scripts/analysis/desi/run_mcmc_fast.py
+mcmc=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_fast.py
 
 function get_lr(){
     if [ $1 = "lrg" ]
@@ -261,13 +261,12 @@ fi
 
 if [ "${do_mcmc}" = true ]
 then
-    for target in ${targets}
-    do
-        for region in ${regions}
-        do       
-            output_mcmc=${root_dir}/clustering/${tag_d}/mcmc_${target}_${region}_${method}.npy
-            echo $target $region $method $output_mcmc
-            python $mcmc $region $method $output_mcmc
-        done
-    done
+    fnltag=zero
+    path_cl=/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/${tag_d}/clgg_lrg_${region}_256_${maps}.npz
+    path_cov=/fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_${fnltag}_${region}_cov.npz
+    output_mcmc=/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/${tag_d}/mcmc_${target}_${fnltag}_${region}_${maps}_steps10k_walkers50.npz
+        
+    du -h $path_cl $path_cov
+    echo $target $region $maps $output_mcmc
+    python $mcmc $path_cl $path_cov $region $output_mcmc
 fi
