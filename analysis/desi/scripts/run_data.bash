@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=mcmc
+#SBATCH --job-name=mcmcjoint
 #SBATCH --account=PHS0336 
 #SBATCH --time=03:00:00
 #SBATCH --nodes=1
@@ -30,7 +30,9 @@ do_rfe=false
 do_assign=false
 do_nbar=false     # 10 min x 4 tpn
 do_cl=false       # 20 min x 4 tpn
-do_mcmc=true     # 3 h x 14 tpn
+do_mcmc=false     # 3 h x 14 tpn
+do_mcmc_joint=false # 3x14
+do_mcmc_joint3=true # 3x14
 
 bsize=5000    # 
 target='lrg' # lrg
@@ -47,6 +49,7 @@ nchain=20
 etamin=0.001
 
 root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
+mock_dir=/fs/ess/PHS0336/data/lognormal/v2
 
 prep=${HOME}/github/LSSutils/analysis/desi/scripts/prep_desi.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
@@ -54,6 +57,8 @@ cl=${HOME}/github/LSSutils/analysis/desi/scripts/run_cell_sv3.py
 nbar=${HOME}/github/LSSutils/analysis/desi/scripts/run_nnbar_sv3.py
 assign=${HOME}/github/LSSutils/scripts/analysis/desi/fetch_weights.py
 mcmc=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_fast.py
+mcmc_joint=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_joint.py
+mcmc_joint=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_joint3.py
 
 function get_lr(){
     if [ $1 = "lrg" ]
@@ -262,11 +267,34 @@ fi
 if [ "${do_mcmc}" = true ]
 then
     fnltag=zero
-    path_cl=/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/${tag_d}/clgg_lrg_${region}_256_${maps}.npz
-    path_cov=/fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_${fnltag}_${region}_cov.npz
-    output_mcmc=/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/${tag_d}/mcmc_${target}_${fnltag}_${region}_${maps}_steps10k_walkers50.npz
+    path_cl=${root_dir}/clustering/${tag_d}/clgg_lrg_${region}_256_${maps}.npz
+    path_cov=${mock_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
+    output_mcmc=${root_dir}/mcmc/${tag_d}/mcmc_${target}_${fnltag}_${region}_${maps}_steps10k_walkers50.npz
         
     du -h $path_cl $path_cov
     echo $target $region $maps $output_mcmc
     python $mcmc $path_cl $path_cov $region $output_mcmc
 fi
+
+if [ "${do_mcmc_joint}" = true ]
+then
+    region=$1
+    region1=$2
+    fnltag=zero
+    maps=$3
+    path_cl=${root_dir}/clustering/${tag_d}/clgg_lrg_${region}_256_${maps}.npz
+    path_cov=${mock_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
+    path_cl1=${root_dir}/clustering/${tag_d}/clgg_lrg_${region1}_256_${maps}.npz
+    path_cov1=${mock_dir}/clustering/clmock_${fnltag}_${region1}_cov.npz
+
+    regionj=${region}${region1}
+    output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${regionj}_${maps}_steps10k_walkers50.npz
+        
+    du -h $path_cl $path_cov
+    du -h $path_cl1 $path_cov1
+    echo $target $region $reion1 $maps $output_mcmc
+    
+    python $mcmc_joint $path_cl $path_cl1 $path_cov $path_cov1 $region $region1 $output_mcmc
+fi
+
+

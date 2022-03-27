@@ -58,13 +58,14 @@ rank = comm.Get_rank()
 
 if rank==0:
     region = sys.argv[1]
+    version = sys.argv[2]
     print('region', region)
     
-    chcks = glob(f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnnp/{region}_1024/model_*/snapshot_*.pth.tar')
-    templates = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/v3/nelg_features_{region}_1024.fits')    
+    chcks = glob(f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_dnnp/{region}_1024/model_*/snapshot_*.pth.tar')
+    templates = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/{version}/nelg_features_{region}_1024.fits')    
 
    # nside=1024
-    oudir = f'/fs/ess/PHS0336/data/tanveer/dr9/v3/elg_dnnp/{region}_1024/windows/'
+    oudir = f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_dnnp/{region}_1024/windows'
     if not os.path.exists(oudir):
         os.makedirs(oudir)
         print('rank 0 creates ', oudir)

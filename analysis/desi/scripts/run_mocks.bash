@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=mcmc
+#SBATCH --job-name=mcmcj3
 #SBATCH --account=PHS0336 
-#SBATCH --time=03:00:00
+#SBATCH --time=05:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
@@ -29,8 +29,9 @@ do_cl=false     # 10 m x 4
 do_clfull=false # 10 m x 14
 do_mcmc=false    #  3 h x 14
 do_mcmc_joint=false # 3hx14
+do_mcmc_joint3=true # 3x14
 do_mcmc_scale=false
-do_bfit=true   #  3 h x 14
+do_bfit=false   #  3 h x 14
 
 #mockid=1
 #printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
@@ -60,6 +61,7 @@ nbar=${HOME}/github/LSSutils/analysis/desi/scripts/run_nnbar_mocks.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
 mcmc=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_fast.py
 mcmc_joint=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_joint.py
+mcmc_joint3=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_joint3.py
 bfit=${HOME}/github/LSSutils/analysis/desi/scripts/run_best_fit.py
 
 
@@ -230,6 +232,31 @@ then
     echo $target $region $reion1 $method $output_mcmc
     
     python $mcmc_joint $path_cl $path_cl1 $path_cov $path_cov1 $region $region1 $output_mcmc
+fi
+
+if [ "${do_mcmc_joint3}" = true ]
+then
+    region=$1
+    region1=$2
+    region2=$3
+    fnltag=zero
+    method=noweight
+    path_cl=${root_dir}/clustering/clmock_${fnltag}_${region}_mean.npz
+    path_cov=${root_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
+    path_cl1=${root_dir}/clustering/clmock_${fnltag}_${region1}_mean.npz
+    path_cov1=${root_dir}/clustering/clmock_${fnltag}_${region1}_cov.npz
+    path_cl2=${root_dir}/clustering/clmock_${fnltag}_${region2}_mean.npz
+    path_cov2=${root_dir}/clustering/clmock_${fnltag}_${region2}_cov.npz
+
+    regionj=${region}${region1}${region2}
+    output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${regionj}_${method}_steps10k_walkers50.npz
+        
+    du -h $path_cl $path_cov
+    du -h $path_cl1 $path_cov1
+    du -h $path_cl2 $path_cov2
+    echo $target $region $reion1 $region2 $method $output_mcmc
+    
+    python $mcmc_joint3 $path_cl $path_cl1 $path_cl2 $path_cov $path_cov1 $path_cov2 $region $region1 $region2 $output_mcmc
 fi
 
 

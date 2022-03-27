@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=clin
+#SBATCH --job-name=nnsam
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:10:00
+#SBATCH --time=01:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=6
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -20,20 +20,20 @@ cd ${HOME}/github/LSSutils/analysis/lssxcmb/scripts/
 
 do_linfit=false    # 10 h x 14
 do_nnfit=false     # 10 m lr finder, 120 h fit 
-do_linsamp=false    # 1 h x 1
-do_nnsamp=false    # 3h x 10tpn
-do_nnpull=false    # 1 h
+do_linsamp=false   # 1 h x 1
+do_nnsamp=false     # 3h x 10tpn
+do_nnpull=true    # 1 h
 do_lincell=false   # 5hx14tpn
 do_nncell=false    # 5hx14tpn
 do_cl=false        #
-do_clx=true       # 20min x 4tpn
+do_clx=false       # 10min x 6tpn
 
 
 target=elg
 region=$1   # options are bmzls, ndecals, sdecals
 nside=1024
 version=v4
-printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
+#printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 #mockid=$2
 echo $mockid
 
@@ -57,7 +57,6 @@ nnsamp=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/pull_sysnet_snapshot_mpi
 nnpull=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/combine_nn_windows.py
 linsamp=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/sample_linear_windows.py
 cl=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/run_cell_sv3.py
-
 root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
 
 
@@ -94,7 +93,7 @@ fi
 
 if [ "${do_nnsamp}" = true ]
 then
-    srun -n 10 python $nnsamp $region
+    srun -n 10 python $nnsamp $region $version
 fi
 
 
