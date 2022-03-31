@@ -29,7 +29,7 @@ do_cl=false     # 10 m x 4
 do_clfull=false # 10 m x 14
 do_mcmc=false    #  3 h x 14
 do_mcmc_joint=false # 3hx14
-do_mcmc_joint3=true # 3x14
+do_mcmc_joint3=true # 5x14
 do_mcmc_scale=false
 do_bfit=false   #  3 h x 14
 

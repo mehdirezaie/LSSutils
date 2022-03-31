@@ -464,6 +464,7 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
     #                    left=spacing, right=1-spacing,
     #                    hspace=0.0)
     ax.grid(True)
+    
     #plt.show()
     return image
 
