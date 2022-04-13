@@ -320,7 +320,7 @@ then
     du -h $path_cl2 $path_cov2
     echo $target $region $reion1 $region2 $maps $output_mcmc
     
-    #python $mcmc_joint3 $path_cl $path_cl1 $path_cl2 $path_cov $path_cov1 $path_cov2 $region $region1 $region2 $output_mcmc
+    python $mcmc_joint3 $path_cl $path_cl1 $path_cl2 $path_cov $path_cov1 $path_cov2 $region $region1 $region2 $output_mcmc
 fi
 
 
