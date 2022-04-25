@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=clpo100
+#SBATCH --job-name=nbarpo100
 #SBATCH --account=PHS0336 
 #SBATCH --time=00:10:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -24,9 +24,9 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 do_prep=false   #
 do_nn=false     # 20 h
 do_assign=false #
-do_nbar=false   # 10 m x 4
+do_nbar=true   # 10 m x 4
 do_cl=false     # 10 m x 4
-do_clfull=true # 10 m x 14
+do_clfull=false # 10 m x 14
 do_mcmc=false    #  3 h x 14
 do_mcmc_joint=false # 3hx14
 do_mcmc_joint3=false # 5x14
@@ -121,7 +121,7 @@ fi
 
 if [ "${do_nbar}" = true ]
 then
-
+    region=$1
     echo $target $region
     input_path=${root_dir2}/0.57.0/n${target}_features_${region}_${nside}.fits
     input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1.fits
@@ -182,7 +182,6 @@ fi
 if [ "${do_mcmc}" = true ]
 then
     region=$1
-    fnltag=zero
     method=noweight
     path_cl=${root_dir}/clustering/clmock_${fnltag}_${region}_mean.npz
     path_cov=${root_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
