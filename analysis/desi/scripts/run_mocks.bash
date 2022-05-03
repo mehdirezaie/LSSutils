@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=nncont
 #SBATCH --account=PHS0336 
-#SBATCH --time=10:00:00
+#SBATCH --time=00:10:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -22,8 +22,8 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false   #
-do_nn=true     # 20 h
-do_nbar=false   # 10 m x 4
+do_nn=false     # 20 h
+do_nbar=true   # 10 m x 4
 do_cl=false     # 10 m x 4
 do_clfull=false # 10 m x 14
 do_mcmc=false    #  3 h x 14
@@ -38,7 +38,7 @@ mockid=1 # for debugging
 bsize=4098
 region="bmzls" # bmzls, ndecals, sdecals
 iscont=1
-maps="known2"
+maps="known6"
 target="lrg"
 fnltag="zero" #zero, po100
 ver=v2 # 
@@ -83,6 +83,19 @@ function get_axes(){
     elif [ $1 = "known2" ]
     then
         axes=(0 11)   # ebv, psfsize-g 
+    elif [ $1 = "known3" ]
+    then
+        axes=(0 3 11) # ebv, gdepth-g, psfs-g
+    elif [ $1 = "known4" ]
+    then
+        axes=(0 3) # ebv, gdepth-g
+    elif [ $1 = "known5" ]
+    then
+        axes=(0 1 3) # ebv, nstar, gdepth-g
+    elif [ $1 = "known6" ]
+    then
+        axes=(0 1 3 11) # ebv, nstar, gdepth-g, psf-g
+
     elif [ $1 = "all" ]
     then
         axes=({0..12}) # all maps
