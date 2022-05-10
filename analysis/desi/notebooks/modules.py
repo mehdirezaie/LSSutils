@@ -67,6 +67,75 @@ def plot_nz():
 
     fg.savefig('figs/nz_lrg.pdf', bbox_inches='tight')    
     
+
+def plot_model():
+    bm = np.load('/fs/ess/PHS0336/data/lognormal/v2/mcmc/mcmc_lrg_zero_bmzls_noweight_steps10k_walkers50.npz')
+    zbdndz = init_sample(kind='lrg')
+    # read survey geometry
+    dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_bmzls_256.fits')
+    w = np.zeros(12*256*256)
+    w[dt['hpix']] = 1.0
+    weight = hp.ud_grade(w, 1024)
+    mask = weight > 0.5
+
+    model = Spectrum()
+    model.add_tracer(*zbdndz, p=1.0)
+    model.add_kernels(np.arange(2000))
+
+
+    wind = WindowSHT(weight, mask, np.arange(2048), ngauss=2048)
+    fnl, b, noise = bm['best_fit']
+    el_g = np.arange(2000)
+    cl_bf = model(el_g, fnl=fnl, b=b, noise=noise)
+
+    cl_bfw = wind.convolve(el_g, cl_bf)
+    lmax = max(el_g)+1
+    cl_bfwic = wind.apply_ic(cl_bfw[:lmax])
+
+    cl_ = np.load('/fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_zero_bmzls_mean.npz')
+    cl_cov_ = np.load('/fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_zero_bmzls_cov.npz')
+
+    el_edges = cl_['el_edges']
+    el = cl_['el_bin']
+    cl = cl_['cl']
+    cl_err = np.diagonal(cl_cov_['clcov']/1000.)**0.5
+
+    cl_models = {}
+    for name, cl_i in zip(['Best Fit Model', '+ Window Convolution', '+ Integral Constraint'],
+                          [cl_bf, cl_bfw[:2000], cl_bfwic[:2000]]):
+
+        cl_models[name] = histogram_cell(el_g, cl_i, bins=el_edges)
+
+
+    fig = plt.figure(figsize=(5, 5), constrained_layout=False)
+    gs = GridSpec(3, 1, figure=fig)
+
+    ax1 = fig.add_subplot(gs[:2, 0])
+    ax2 = fig.add_subplot(gs[2, 0])
+
+    f = 1.0e5
+    lw = [0.8, 0.8, 3.]
+    ls = ['-', '-', '-']
+    al = [1., 1., 0.7]
+    for i, (n, v) in enumerate(cl_models.items()):
+        kw = dict(label=n, lw=lw[i], ls=ls[i], alpha=al[i])
+        ax1.plot(v[0], f*v[1], **kw)
+        ax2.plot(el, v[1]/cl, **kw)
+
+    ax1.plot(el, f*cl, 'C0--', label='Mean of Mocks')
+    ax2.axhline(1.0, color='C0', ls='--')
+    ax2.fill_between(el, 1-cl_err/cl, 1+cl_err/cl, alpha=0.2)
+
+
+    ax1.legend(ncol=1)
+    ax1.set(xscale='log', ylabel=r'$10^{5}C_{\ell}$')
+    ax1.tick_params(labelbottom=False)
+    ax2.set(xscale='log', xlabel=r'$\ell$', ylabel='Ratio', xlim=ax1.get_xlim(), ylim=(0.95, 1.10))
+
+    fig.subplots_adjust(hspace=0.0, wspace=0.02)
+    fig.align_labels()
+
+    fig.savefig('figs/model_window.pdf', bbox_inches='tight')        
     
 def plot_mcmc_mocks():
     stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
@@ -148,7 +217,16 @@ def plot_mcmc_mocks():
     # g.subplots[0, 0].set_xticklabels([])
     g.fig.align_labels()
     g.fig.savefig('figs/fnl2dmocks_po100.pdf', bbox_inches='tight')    
-    return pstats 
+    return pstats
+
+def add_scale(ax):
+    xx = ax.get_xticks()
+    dx = xx[1]-xx[0]
+    y = ax.get_yticks()[2]
+    ax.arrow(xx[-3], y, dx, 0, )
+    ax.annotate(f"{dx:.0f}", (xx[-3]+0.25*dx, y))
+    ax.set_xticklabels([])
+    
     
 def plot_mcmc_dr9methods():
     
@@ -185,34 +263,84 @@ def plot_mcmc_dr9methods():
 
             g.plot_2d([noweight, nnknown, nnall], 'fnl', 'b', filled=True)
             g.add_legend(['BASS/MzLS', 'DECaLS North', 'DECaLS South'], colored_text=True, title=titles[r])
-
-
-            ## --- for blinding
-            hwidth=0.0
-            width=0.001
-            kw = dict(shape='full', width=width, 
-                      head_width=hwidth, alpha=0.8)  
-            kw2 = dict()#bbox={'facecolor': 'w', 'alpha': 0.5, 'pad': 10})
-            mparams = noweight.samples.mean(axis=0)
-            dparams = mparams - nnknown.samples.mean(axis=0)
-            g.subplots[0, 0].arrow(mparams[0], 0.97*mparams[1], -dparams[0], 0, color='r', **kw)
-            g.subplots[0, 0].text(mparams[0]-0.5*dparams[0], 0.975*mparams[1], '%.1f'%abs(dparams[0]), color='r', **kw2)
-
-            dparams = mparams - nnall.samples.mean(axis=0)
-            g.subplots[0, 0].arrow(mparams[0], 1.03*mparams[1], -dparams[0], 0, color='b', **kw)
-            g.subplots[0, 0].text(mparams[0]-0.5*dparams[0], 1.035*mparams[1], '%.1f'%abs(dparams[0]), color='b', **kw2)
-
-
-
             g.subplots[0, 0].set_ylim((1.23, 1.6))
-            #if xlim is None:
-            #    xlim = g.subplots[0, 0].get_xlim()
-            #g.subplots[0, 0].set_xlim(xlim[0]-mparams[0], xlim[1]-mparams[0])
-            g.subplots[0, 0].set_xticklabels([]) # VERY IMPORTANT!!!
+            add_scale(g.subplots[0, 0])
+            g.fig.align_labels()
+            pdf.savefig(bbox_inches='tight')
+            
+def plot_mcmc_dr9regions():
+    titles = {'bmzls':'BASS/MzLS', 
+             'ndecals':'DECaLS North',
+             'sdecals':'DECaLS South'}
 
+    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
+    mc_kw = dict(names=['fnl', 'b', 'n0'], 
+                 labels=['f_{NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+
+    read_kw = dict(ndim=3, iscale=[2])
+    mc_kw2 = dict(names=['fnl', 'b', 'n0', 'b2', 'n02'], 
+                  labels=['f_{NL}', 'b1', '10^{7}n_{0}', 'b2', '10^{7}n_{0}2'], settings=stg)
+    read_kw2 = dict(ndim=5, iscale=[2, 4])
+    mc_kw3 = dict(names=['fnl', 'b', 'n0', 'b2', 'n02', 'b3', 'n03'], 
+                  labels=['f_{NL}', 'b1', '10^{7}n_{0}', 'b2', '10^{7}n_{0}2', 'b3', '10^{7}n_{0}3'], settings=stg)
+    read_kw3 = dict(ndim=7, iscale=[2, 4, 6])
+
+    xlim = None
+
+    with PdfPages('figs/fnl2d_dr9_regions.pdf') as pdf:
+
+        for r in ['bmzls', 'ndecals', 'sdecals']:
+
+            noweight = MCMC(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/mcmc_lrg_zero_{r}_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+            nnknown = MCMC(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/mcmc_lrg_zero_{r}_nn_known_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+            nnall = MCMC(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/mcmc_lrg_zero_{r}_nn_all_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+
+
+            # Triangle plot
+            g = plots.get_single_plotter(width_inch=4*1.5)
+            g.settings.legend_fontsize = 14
+            g.plot_2d([noweight, nnknown, nnall], 'fnl', 'b', filled=True)
+            g.add_legend(['No Correction', 'Conservative', 'Extreme'], colored_text=True, title=titles[r])
+            g.subplots[0, 0].set_ylim((1.23, 1.6))
+            add_scale(g.subplots[0, 0])
+            g.fig.align_labels()
+            pdf.savefig(bbox_inches='tight')
+            
+            
+            
+def plot_mcmc_dr9joint():
+    path_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
+    titles = {'nn_known':'Conservative', 
+             'nn_all':'Extreme'}
+
+    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
+    mc_kw = dict(names=['fnl', 'b', 'n0'], 
+                 labels=['f_{NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+
+    read_kw = dict(ndim=3, iscale=[2])
+    mc_kw2 = dict(names=['fnl', 'b', 'n0', 'b2', 'n02'], 
+                  labels=['f_{NL}', 'b1', '10^{7}n_{0}', 'b2', '10^{7}n_{0}2'], settings=stg)
+    read_kw2 = dict(ndim=5, iscale=[2, 4])
+    mc_kw3 = dict(names=['fnl', 'b', 'n0', 'b2', 'n02', 'b3', 'n03'], 
+                  labels=['f_{NL}', 'b1', '10^{7}n_{0}', 'b2', '10^{7}n_{0}2', 'b3', '10^{7}n_{0}3'], settings=stg)
+    read_kw3 = dict(ndim=7, iscale=[2, 4, 6])
+
+    xlim = None
+
+    with PdfPages('figs/fnl2d_dr9_joint.pdf') as pdf:
+        for r in ['nn_known', 'nn_all']:
+            noweight = MCMC(f'{path_}mcmc_lrg_zero_bmzls_{r}_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+            nnknown = MCMC(f'{path_}mcmc_lrg_zero_bmzlsndecals_{r}_steps10k_walkers50.npz', mc_kw=mc_kw2, read_kw=read_kw2)
+            nnall = MCMC(f'{path_}mcmc_lrg_zero_bmzlsndecalssdecals_{r}_steps10k_walkers50.npz', mc_kw=mc_kw3, read_kw=read_kw3)
+
+            # Triangle plot
+            g = plots.get_single_plotter(width_inch=4*1.5)
+            g.settings.legend_fontsize = 14
+
+            g.plot_1d([noweight, nnknown, nnall], 'fnl', filled=False)
+            g.add_legend(['BASS/MzLS', '+ DECaLS North', '+ DECaLS (North + South)'], 
+                         colored_text=True, title=titles[r], legend_loc='lower left')
+            add_scale(g.subplots[0, 0])
 
             g.fig.align_labels()
-            #g.fig.show()
             pdf.savefig(bbox_inches='tight')
-            # g.fig.savefig('figs/fnl2dmocks.pdf', bbox_inches='tight')    
-            

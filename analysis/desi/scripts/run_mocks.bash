@@ -36,9 +36,9 @@ mockid=1 # for debugging
 #printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 #echo ${mockid}
 bsize=4098
-region="bmzls" # bmzls, ndecals, sdecals
+region="bmzlshuff" # bmzls, ndecals, sdecals
 iscont=1
-maps="known6"
+maps="all"
 target="lrg"
 fnltag="zero" #zero, po100
 ver=v2 # 
