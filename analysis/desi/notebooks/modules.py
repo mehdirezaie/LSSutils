@@ -68,8 +68,8 @@ def plot_nz():
     fg.savefig('figs/nz_lrg.pdf', bbox_inches='tight')    
     
 
-def plot_model():
-    bm = np.load('/fs/ess/PHS0336/data/lognormal/v2/mcmc/mcmc_lrg_zero_bmzls_noweight_steps10k_walkers50.npz')
+def plot_model(fnltag='po100'):
+    bm = np.load(f'/fs/ess/PHS0336/data/lognormal/v2/mcmc/mcmc_lrg_{fnltag}_bmzls_noweight_steps10k_walkers50.npz')
     zbdndz = init_sample(kind='lrg')
     # read survey geometry
     dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_bmzls_256.fits')
@@ -85,6 +85,8 @@ def plot_model():
 
     wind = WindowSHT(weight, mask, np.arange(2048), ngauss=2048)
     fnl, b, noise = bm['best_fit']
+    print(fnl, b)
+    
     el_g = np.arange(2000)
     cl_bf = model(el_g, fnl=fnl, b=b, noise=noise)
 
@@ -92,8 +94,8 @@ def plot_model():
     lmax = max(el_g)+1
     cl_bfwic = wind.apply_ic(cl_bfw[:lmax])
 
-    cl_ = np.load('/fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_zero_bmzls_mean.npz')
-    cl_cov_ = np.load('/fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_zero_bmzls_cov.npz')
+    cl_ = np.load(f'/fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_{fnltag}_bmzls_mean.npz')
+    cl_cov_ = np.load(f'/fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_{fnltag}_bmzls_cov.npz')
 
     el_edges = cl_['el_edges']
     el = cl_['el_bin']
@@ -128,9 +130,9 @@ def plot_model():
 
 
     ax1.legend(ncol=1)
-    ax1.set(xscale='log', ylabel=r'$10^{5}C_{\ell}$')
+    ax1.set(xscale='log', ylabel=r'$10^{5}C_{\ell}$', yscale='log')
     ax1.tick_params(labelbottom=False)
-    ax2.set(xscale='log', xlabel=r'$\ell$', ylabel='Ratio', xlim=ax1.get_xlim(), ylim=(0.95, 1.10))
+    ax2.set(xscale='log', xlabel=r'$\ell$', ylabel='Ratio', xlim=ax1.get_xlim(), ylim=(0.89, 1.11))
 
     fig.subplots_adjust(hspace=0.0, wspace=0.02)
     fig.align_labels()
@@ -344,3 +346,31 @@ def plot_mcmc_dr9joint():
 
             g.fig.align_labels()
             pdf.savefig(bbox_inches='tight')
+            
+def plot_mcmc_dr9joint_bench():
+    path_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
+    titles = {'nn_known':'Conservative', 
+             'nn_all':'Extreme'}
+
+    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
+    mc_kw3 = dict(names=['fnl', 'b', 'n0', 'b2', 'n02', 'b3', 'n03'], 
+                  labels=['f_{NL}', 'b1', '10^{7}n_{0}', 'b2', '10^{7}n_{0}2', 'b3', '10^{7}n_{0}3'], settings=stg)
+    read_kw3 = dict(ndim=7, iscale=[2, 4, 6])
+
+    xlim = None
+
+    with PdfPages('figs/fnl2d_dr9_joint_bench.pdf') as pdf:
+        nn_ = MCMC(f'{path_}mcmc_lrg_zero_bmzlsndecalssdecals_nn_known_steps10k_walkers50.npz', mc_kw=mc_kw3, read_kw=read_kw3)
+        nn = MCMC(f'{path_}mcmc_lrg_zero_bmzlsndecalssdecals_nn_all_steps10k_walkers50.npz', mc_kw=mc_kw3, read_kw=read_kw3)
+
+        # Triangle plot
+        g = plots.get_single_plotter(width_inch=4*1.5)
+        g.settings.legend_fontsize = 14
+
+        g.plot_1d([nn, nn_], 'fnl', filled=False)
+        g.add_legend(['Extreme', 'Conservative'], 
+                     colored_text=True, legend_loc='lower left')
+        add_scale(g.subplots[0, 0])
+
+        g.fig.align_labels()
+        pdf.savefig(bbox_inches='tight')            

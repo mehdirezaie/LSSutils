@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=mcmcjoint3
+#SBATCH --job-name=nbar
 #SBATCH --account=PHS0336 
-#SBATCH --time=05:00:00
+#SBATCH --time=00:10:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 

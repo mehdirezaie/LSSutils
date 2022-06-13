@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=nncont
+#SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:10:00
+#SBATCH --time=03:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -22,11 +22,12 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false   #
-do_nn=false     # 20 h
-do_nbar=true   # 10 m x 4
+do_nn=false      # 5 h
+do_nbar=false   # 10 m x 4
 do_cl=false     # 10 m x 4
 do_clfull=false # 10 m x 14
-do_mcmc=false    #  3 h x 14
+do_mcmc=false   #  3 h x 14
+do_mcmc_cont=true
 do_mcmc_joint=false # 3hx14
 do_mcmc_joint3=false # 5x14
 do_mcmc_scale=false
@@ -36,9 +37,9 @@ mockid=1 # for debugging
 #printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 #echo ${mockid}
 bsize=4098
-region="bmzlshuff" # bmzls, ndecals, sdecals
+region="bmzls" # bmzls, ndecals, sdecals
 iscont=1
-maps="all"
+maps=$1 #"known7"
 target="lrg"
 fnltag="zero" #zero, po100
 ver=v2 # 
@@ -75,7 +76,6 @@ function get_lr(){
     echo $lr
 }
 
-
 function get_axes(){
     if [ $1 = "known1" ]
     then
@@ -95,7 +95,13 @@ function get_axes(){
     elif [ $1 = "known6" ]
     then
         axes=(0 1 3 11) # ebv, nstar, gdepth-g, psf-g
-
+    elif [ $1 = "known7" ]
+    then
+        axes=(0 1 2 3 4 11) # ebv, nstar, gdepth-rgz, psf-g
+    elif [ $1 = "all2" ]
+    then
+        axes=({0..12})
+        axes=($(echo ${axes[*]}) $(echo ${axes[*]}))
     elif [ $1 = "all" ]
     then
         axes=({0..12}) # all maps
@@ -193,29 +199,31 @@ fi
 
 if [ "${do_cl}" = true ]
 then
-    for target in ${targets}
-    do
-        for region in ${regions}
-        do
-            #for mockid in {1..1000}
-            #do
-                input_path=${root_dir2}/n${target}_features_${region}_${nside}.fits
-                input_map=${root_dir}/lrg-${mockid}-f1z1.fits
-                output_path=${root_dir}/clustering/clmock_${mockid}_${target}_${region}_${nside}_noweight.npy
-                
-                du -h $input_map $input_path
-                #echo $output_path
-                #srun -np 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path}
+    if [ $iscont = 1 ]
+    then
+        input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1-contaminated.fits
+        input_wsys=${root_dir}/regression/fnl_${fnltag}/cont/${mockid}/${region}/nn_${maps}/nn-weights.fits
+    else
+        input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1.fits
+        input_wsys=${root_dir}/regression/fnl_${fnltag}/null/${mockid}/${region}/nn_${maps}/nn-weights.fits
+    fi
+    echo $target $region $iscont $maps
+    input_path=${root_dir2}/0.57.0/n${target}_features_${region}_${nside}.fits
+    
+    du -h $input_map $input_path $input_wsys
 
-                # nn weight
-                input_wsys=${root_dir}/regression/${mockid}/${region}/nn/nn-weights.fits
-                output_path=${root_dir}/clustering/clmock_${mockid}_${target}_${region}_${nside}_nn.npy
-                du -h $input_wsys
-                echo $output_path
-                srun -n 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
-            #done
-        done
-    done
+    # no weight
+    output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_noweight.npy                
+    if [ ! -f $output_path ]
+    then
+        echo $output_path
+        srun -n 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path}
+    fi
+
+    # nn weight
+    output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}.npy                
+    echo $output_path
+    srun -n 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
 fi
 
 
@@ -245,6 +253,19 @@ then
     echo $target $region $method $output_mcmc
     python $mcmc $path_cl $path_cov $region $output_mcmc
 fi
+
+if [ "${do_mcmc_cont}" = true ]
+then
+    # /fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_1_1_lrg_zero_bmzls_256_noweight.npy
+    path_cl=${root_dir}/clustering/clmock_1_1_lrg_${fnltag}_${region}_256_${maps}.npy
+    path_cov=${root_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
+    output_mcmc=${root_dir}/mcmc/mcmc_1_1_${target}_${fnltag}_${region}_${maps}_steps10k_walkers50.npz
+        
+    du -h $path_cl $path_cov
+    echo $target $region $maps $output_mcmc
+    python $mcmc $path_cl $path_cov $region $output_mcmc
+fi
+
 
 if [ "${do_mcmc_scale}" = true ]
 then

@@ -14,12 +14,25 @@ from time import time
 from lssutils.theory.cell import dNdz_model, init_sample, SurveySpectrum
 from lssutils.extrn.mcmc import Posterior
 
-
 SEED = 85
+
+def load_cl(path_cl):
+    d = np.load(path_cl, allow_pickle=True)
+    if hasattr(d, 'files'):
+        return d
+    else:
+        from lssutils.utils import histogram_cell
+        cl = d.item()
+        ell_edges = np.array([2, 6, 10, 14, 18, 22, 26] \
+                   + [10*i for i in range(3,10)] \
+                  + [100+i*20 for i in range(5)] \
+                 + [200+i*50 for i in range(3)])
+        lb, clb = histogram_cell(cl['cl_gg']['l'], cl['cl_gg']['cl'], bins=ell_edges)
+        return {'el_edges':ell_edges, 'el_bin':lb, 'cl':clb}
 
 def read_inputs(path_cl, path_cov):
     
-    dcl_obs = np.load(path_cl)
+    dcl_obs = load_cl(path_cl)
     dclcov_obs = np.load(path_cov)
     assert np.array_equal(dcl_obs['el_edges'], dclcov_obs['el_edges'])
     
