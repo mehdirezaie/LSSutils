@@ -374,3 +374,120 @@ def plot_mcmc_dr9joint_bench():
 
         g.fig.align_labels()
         pdf.savefig(bbox_inches='tight')            
+        
+        
+def plot_nbar_mock(names, labels):
+    p_ = '/fs/ess/PHS0336/data/lognormal/v2/clustering/'
+    
+    def errorbar(axi, *arrays, **kwargs):
+        _, y, ye = arrays
+        chi2 = (((y-1)/ye)**2).sum()
+        axi.errorbar(*arrays, **kwargs, label=fr'$\chi^{2}$ = {chi2:.1f}')
+
+
+    for jj in range(1):
+
+
+        fg, ax = plt.subplots(nrows=3, ncols=5, figsize=(25, 14), sharey=True)
+        ax = ax.flatten()
+        fg.subplots_adjust(wspace=0.0)
+        for k, r in enumerate(['bmzls']):#,'ndecals', 'sdecals']):
+            nbars = {}
+            for n in names:
+                nbars[n] = np.load(f'{p_}nbarmock_1_1_lrg_zero_{r}_256_{n}.npy', allow_pickle=True)        
+
+            for i in range(13):
+                for j, n in enumerate(nbars.keys()):
+                    #if j > jj:break
+                    errorbar(ax[i], nbars[n][i]['bin_avg'], nbars[n][i]['nnbar'], nbars[n][i]['nnbar_err'], capsize=4)
+                    if i==12:
+                        ax[13].text(0.2, 0.8-0.1*j-0.1*k, f'{labels[j]} {r}', 
+                                    transform=ax[13].transAxes, color='C%s'%j)
+                ax[i].axhline(1.0, ls=':', lw=1)
+                ax[i].set_xlabel(nbars[n][i]['sys'])
+                ax[i].legend(ncol=2)
+                ax[i].set_ylim(0.82, 1.18)
+
+        # plt.plot(nbars['nn'])
+        ax[5].set_ylabel('Mean Density')
+
+        # plt.plot(nbars['noweight'])
+        fg.show()        
+        
+        
+        
+## Mean Density Test
+def chi2_fn(y, invcov):
+    return np.dot(y, np.dot(invcov, y))    
+
+def get_chi2t(path, invcov):
+    nnbar_ = read_nnbar(path)
+    return chi2_fn(nnbar_, invcov)
+
+def get_chi2t_mocks(cap, iscont, fnl):
+    path_ = '/fs/ess/PHS0336/data/lognormal/v2/clustering/'
+    mocks = glob(f'{path_}nbarmock_{iscont}_*_lrg_{fnl}_{cap}_256_noweight.npy')
+    mocks.sort()
+    mocks = mocks[::-1]
+    print('len(nbars):', len(mocks), cap)
+    print(mocks[0])
+    nmocks = len(mocks)
+    err_tot = []
+    for j, fn in enumerate(mocks):
+        err_j = read_nnbar(fn)
+        err_tot.append(err_j)            
+    err_tot = np.array(err_tot)
+    print(err_tot.shape)
+
+    nbins = err_tot.shape[1]
+    hartlapf = (nmocks-1. - 1.) / (nmocks-1. - nbins - 2.)
+    indices = [i for i in range(nmocks)]
+    chi2s = []
+    for i in range(nmocks):
+        indices_ = indices.copy()    
+        indices_.pop(i)
+        nbar_ = err_tot[i, :]
+        err_ = err_tot[indices_, :]    
+        covmax_ = np.cov(err_, rowvar=False)
+        invcov_ = np.linalg.inv(covmax_*hartlapf)
+        chi2_ = chi2_fn(nbar_, invcov_)
+        if i==0:print(chi2_)
+        chi2s.append(chi2_)       
+
+    print(nmocks)
+    covmax_ = np.cov(err_tot, rowvar=False)
+    hartlapf = (nmocks - 1.) / (nmocks - nbins - 2.)
+    invcov_ = np.linalg.inv(covmax_*hartlapf)
+
+    return np.array(chi2s), invcov_    
+
+
+def plot_chi2hist_mock(names, labels):
+    if os.path.exists('./tmp_nbarmock_chi2_iscont0_bmzls.npz'):
+        chi2ss = np.load('./tmp_nbarmock_chi2_iscont0_bmzls.npz', allow_pickle=True)
+        print(chi2ss.files)
+        chi2s = chi2ss['0']
+        chi2f = chi2ss['100']
+    else:
+        chi2s = get_chi2t_mocks('bmzls', 0, 'zero')
+        chi2f = get_chi2t_mocks('bmzls', 0, 'po100')
+        np.savez('./tmp_nbarmock_chi2_iscont0_bmzls.npz', **{'0':chi2s, '100':chi2f})
+
+    chi2c = {}
+    p_ = '/fs/ess/PHS0336/data/lognormal/v2/clustering/'
+    for i, n in enumerate(names):
+        chi2c[names[i]] = get_chi2t(f'{p_}nbarmock_1_1_lrg_zero_bmzls_256_{n}.npy', chi2s[1])
+
+    plt.figure()    
+    plt.hist(chi2s[0], histtype='step', range=(50., 200.), bins=25)
+    plt.hist(chi2f[0], histtype='step', range=(50., 200.), bins=25)
+    for i, (n,v) in enumerate(chi2c.items()):
+        plt.axvline(v, label=labels[i], color='C%d'%i)
+    plt.legend(loc=(1., 0.2))
+    plt.text(120, 150, r'Mocks $f_{\rm NL}$=0')
+    plt.text(120, 135, r'Mocks $f_{\rm NL}$=100', color='C1')
+    plt.xlabel(r'Mean Density Contrast $\chi^{2}$')
+    plt.xscale('log')
+    plt.show()
+    # plt.savefig('figs/nbar_chi2_mock1.pdf', bbox_inches='tight')
+    # plt.yscale('log')        

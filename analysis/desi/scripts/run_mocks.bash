@@ -39,7 +39,7 @@ echo ${mockid}
 bsize=4098
 region="bmzls" # bmzls, ndecals, sdecals
 iscont=1
-maps="known3" #"known7"
+maps="known4" #"known7"
 target="lrg"
 fnltag="zero" #zero, po100
 ver=v2 # 
@@ -88,7 +88,7 @@ function get_axes(){
         axes=(0 1 6) # ebv, nstar, psfdepth-g
     elif [ $1 = "known4" ]
     then
-        axes=(0 3) # ebv, gdepth-g
+        axes=(0 1 6 11) # ebv, nstar, psfdepth-g, psfsize-g
     elif [ $1 = "known5" ]
     then
         axes=(0 1 3) # ebv, nstar, gdepth-g
