@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=nbar
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:10:00
+#SBATCH --time=20:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -25,26 +25,26 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
-do_fit=false       # 20 h x 1 tpn
+do_fit=true       # 20 h x 1 tpn
 do_rfe=false       
 do_assign=false
-do_nbar=false     # 10 min x 4 tpn
-do_cl=false       # 20 min x 4 tpn
+do_nbar=true     # 10 min x 4 tpn
+do_cl=true       # 20 min x 4 tpn
 do_mcmc=false     # 3 h x 14 tpn
 do_mcmc_joint=false # 3x14
-do_mcmc_joint3=true # 5x14
+do_mcmc_joint3=false # 5x14
 
 bsize=5000    # 
 target='lrg' # lrg
-region=$1    # bmzls, ndecals, sdecals
-maps=$2       # known, all
+region='bmzls'    # bmzls, ndecals, sdecals
+maps='known1'       # known, all
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
 method=""     # lin, nn, or noweight
 model=dnn
 loss=mse
 nns=(4 20)
-nepoch=150  # v0 with 71
+nepoch=70  # v0 with 71
 nchain=20
 etamin=0.001
 
@@ -73,9 +73,9 @@ function get_lr(){
 
 
 function get_axes(){
-    if [ $1 = "known" ]
+    if [ $1 = "known1" ]
     then
-        axes=(0 1 2)   # EBV, Nstar, galdepth-r (pcc selected)
+        axes=(0)   # EBV
     elif [ $1 = "all" ]
     then
         axes=({0..12}) # all maps
@@ -112,33 +112,21 @@ function get_reg(){
 # e.g., sbatch run_data.bash "lrg elg" "bmzls ndecals sdecals" 0.57.0 256
 if [ "${do_prep}" = true ]
 then
-    for target in ${targets}
-    do
-        for region in ${regions}
-        do
-            echo ${target} ${region} ${nside} ${root_dir} $tag_d
-            srun -n 1 python $prep $target $region $nside $root_dir $tag_d
-        done
-    done
+        echo ${target} ${region} ${nside} ${root_dir} $tag_d
+        srun -n 1 python $prep $target $region $nside $root_dir $tag_d
 fi
 
 
 if [ "${do_lr}" = true ]
 then
-    for target in ${targets}
-    do
-        for region in ${regions}
-        do
-            echo ${target} ${region}
-            input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
-            output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}/hp/
-            
-            axes=$(get_axes ${target})           
-            du -h $input_path
-            echo $output_path $axes
-            srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -fl
-        done
-    done
+        echo ${target} ${region}
+        input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
+        output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}/hp/
+        
+        axes=$(get_axes ${target})           
+        du -h $input_path
+        echo $output_path $axes
+        srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -fl
 fi
 
 if [ "${do_rfe}" = true ]
@@ -167,100 +155,56 @@ fi
 
 if [ "${do_fit}" = true ]
 then
-    for target in ${targets}
-    do
-        for region in ${regions}
-        do
-            maps=$2
-            lr=$(get_lr ${target})
-            axes=$(get_axes ${maps})
+        lr=$(get_lr ${target})
+        axes=$(get_axes ${maps})
 
-            echo ${target} ${region} $lr ${axes[@]} $maps
+        echo ${target} ${region} $lr ${axes[@]} $maps
 
-            input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
-            output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/
-           
-            echo $output_path 
-            du -h $input_path
-            srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain
-
-            echo
-
-        done
-    done
-fi
-
-
-# bash run_sv3.bash 'LRG ELG BGS_ANY' 'NBMZLS NDECALS SDECALS SDECALS_noDES DES'
-if [ "${do_assign}" = true ]
-then
-    for target in ${targets}
-    do
-        for region in ${regions}
-        do
-            echo ${target} ${region} ${tag_d}
-            input=/home/mehdi/data/dr9v0.57.0/sv3_v1/sv3target_${target}_${region}.fits
-            output=${input}_MrWsys/wsys_${tag_d}.fits
-            wreg=$(get_reg ${region})
-            nnwsys=/home/mehdi/data/rongpu/imaging_sys/regression/v2/sv3nn_${target,,}_${wreg}_256/nn-weights.fits
-            
-            du -h $input $nnwsys
-            echo ${output}
-            python $assign ${input} ${nnwsys} ${output}
-        done
-    done
+        input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
+        output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/
+       
+        echo $output_path 
+        du -h $input_path
+        srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain
 fi
 
 
 if [ "${do_nbar}" = true ]
 then
-    for target in ${targets}
-    do
-        for region in ${regions}
-        do
-            input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
-            output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_noweight.npy
-            du -h $input_path
-            
-            if [ ! -f $output_path ] 
-            then
-                echo $output_path
-                srun -n 4 python $nbar -d ${input_path} -o ${output_path}
-            fi
-
-            output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_nn_${maps}.npy
-            selection=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/nn-weights.fits
-            du -h $selection
+        input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
+        output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_noweight.npy
+        du -h $input_path
+        
+        if [ ! -f $output_path ] 
+        then
             echo $output_path
-            srun -n 4 python $nbar -d ${input_path} -o ${output_path} -s ${selection}            
-            
-        done
-    done
+            srun -n 1 python $nbar -d ${input_path} -o ${output_path}
+        fi
+
+        output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_nn_${maps}.npy
+        selection=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/nn-weights.fits
+        du -h $selection
+        echo $output_path
+        srun -n 1 python $nbar -d ${input_path} -o ${output_path} -s ${selection}            
 fi
 
 if [ "${do_cl}" = true ]
 then
-    for target in ${targets}
-    do
-        for region in ${regions}
-        do
-            input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
-            output_path=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_noweight.npy
-            du -h $input_path
-            
-            if [ ! -f $output_path ]
-            then
-                echo $output_path
-                srun -n 4 python $cl -d ${input_path} -o ${output_path}
-            fi
-
-            output_path=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_nn_${maps}.npy
-            selection=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/nn-weights.fits
-            du -h $selection
+        input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
+        output_path=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_noweight.npy
+        du -h $input_path
+        
+        if [ ! -f $output_path ]
+        then
             echo $output_path
-            srun -n 4 python $cl -d ${input_path} -o ${output_path} -s ${selection}            
-        done
-    done
+            srun -n 1 python $cl -d ${input_path} -o ${output_path}
+        fi
+
+        output_path=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_nn_${maps}.npy
+        selection=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/nn-weights.fits
+        du -h $selection
+        echo $output_path
+        srun -n 1 python $cl -d ${input_path} -o ${output_path} -s ${selection}            
 fi
 
 

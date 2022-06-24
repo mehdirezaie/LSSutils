@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=mcmc
+#SBATCH --job-name=nbar
 #SBATCH --account=PHS0336 
-#SBATCH --time=03:00:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -22,12 +22,12 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false   #
-do_nn=false      # 5 h
-do_nbar=false   # 10 m x 4
-do_cl=false     # 10 m x 4
+do_nn=true      # 5 h
+do_nbar=true   # 10 m x 4
+do_cl=true     # 10 m x 4
 do_clfull=false # 10 m x 14
 do_mcmc=false   #  3 h x 14
-do_mcmc_cont=true
+do_mcmc_cont=false # 
 do_mcmc_joint=false # 3hx14
 do_mcmc_joint3=false # 5x14
 do_mcmc_scale=false
@@ -35,11 +35,11 @@ do_bfit=false   #  3 h x 14
 
 mockid=1 # for debugging
 #printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
-#echo ${mockid}
+echo ${mockid}
 bsize=4098
 region="bmzls" # bmzls, ndecals, sdecals
 iscont=1
-maps=$1 #"known7"
+maps="known3" #"known7"
 target="lrg"
 fnltag="zero" #zero, po100
 ver=v2 # 
@@ -82,10 +82,10 @@ function get_axes(){
         axes=(0)   # ebv
     elif [ $1 = "known2" ]
     then
-        axes=(0 11)   # ebv, psfsize-g 
+        axes=(0 6)   # ebv, psfdepth-g 
     elif [ $1 = "known3" ]
     then
-        axes=(0 3 11) # ebv, gdepth-g, psfs-g
+        axes=(0 1 6) # ebv, nstar, psfdepth-g
     elif [ $1 = "known4" ]
     then
         axes=(0 3) # ebv, gdepth-g
@@ -189,12 +189,15 @@ then
     # no weight
     output_path=${root_dir}/clustering/nbarmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_noweight.npy                
     echo $output_path
-    #srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
+    if [ ! -f $output_path ]
+    then
+        srun -n 1 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
+    fi
 
     # nn weight
     output_path=${root_dir}/clustering/nbarmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}.npy                
     echo $output_path
-    srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
+    srun -n 1 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
 fi
 
 if [ "${do_cl}" = true ]
@@ -217,13 +220,13 @@ then
     if [ ! -f $output_path ]
     then
         echo $output_path
-        srun -n 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path}
+        srun -n 1 python $cl -d ${input_path} -m ${input_map} -o ${output_path}
     fi
 
     # nn weight
     output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}.npy                
     echo $output_path
-    srun -n 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
+    srun -n 1 python $cl -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
 fi
 
 
@@ -257,9 +260,9 @@ fi
 if [ "${do_mcmc_cont}" = true ]
 then
     # /fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_1_1_lrg_zero_bmzls_256_noweight.npy
-    path_cl=${root_dir}/clustering/clmock_1_1_lrg_${fnltag}_${region}_256_${maps}.npy
+    path_cl=${root_dir}/clustering/clmock_${iscont}_1_lrg_${fnltag}_${region}_256_${maps}.npy
     path_cov=${root_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
-    output_mcmc=${root_dir}/mcmc/mcmc_1_1_${target}_${fnltag}_${region}_${maps}_steps10k_walkers50.npz
+    output_mcmc=${root_dir}/mcmc/mcmc_${iscont}_1_${target}_${fnltag}_${region}_${maps}_steps10k_walkers50.npz
         
     du -h $path_cl $path_cov
     echo $target $region $maps $output_mcmc
