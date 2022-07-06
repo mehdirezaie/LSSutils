@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=nbar
+#SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
 #SBATCH --time=10:00:00
 #SBATCH --nodes=1
@@ -18,28 +18,27 @@ export NUMEXPR_MAX_THREADS=1
 export OMP_NUM_THREADS=1
 
 source activate sysnet
-
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
-do_prep=false   #
-do_nn=true      # 5 h
-do_nbar=true   # 10 m x 4
-do_cl=true     # 10 m x 4
-do_clfull=false # 10 m x 14
-do_mcmc=false   #  3 h x 14
-do_mcmc_cont=false # 
-do_mcmc_joint=false # 3hx14
+do_prep=false    #
+do_nn=true       # 10 h
+do_nbar=false    # 10 m x 4
+do_cl=false      # 10 m x 4
+do_clfull=false  # 10 m x 14
+do_mcmc=false    #  3 h x 14
+do_mcmc_cont=false   # 
+do_mcmc_joint=false  # 3hx14
 do_mcmc_joint3=false # 5x14
-do_mcmc_scale=false
-do_bfit=false   #  3 h x 14
+do_mcmc_scale=false  #
+do_bfit=false        #  3 h x 14
 
-mockid=1 # for debugging
-#printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
+#mockid=1 # for debugging
+printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=4098
-region="bmzls" # bmzls, ndecals, sdecals
+region="sdecals" # bmzls, ndecals, sdecals
 iscont=1
-maps="known4" #"known7"
+maps="all" #e.g., "known5" or "all"
 target="lrg"
 fnltag="zero" #zero, po100
 ver=v2 # 
@@ -91,13 +90,7 @@ function get_axes(){
         axes=(0 1 6 11) # ebv, nstar, psfdepth-g, psfsize-g
     elif [ $1 = "known5" ]
     then
-        axes=(0 1 3) # ebv, nstar, gdepth-g
-    elif [ $1 = "known6" ]
-    then
-        axes=(0 1 3 11) # ebv, nstar, gdepth-g, psf-g
-    elif [ $1 = "known7" ]
-    then
-        axes=(0 1 2 3 4 11) # ebv, nstar, gdepth-rgz, psf-g
+        axes=(0 1 4 6 11) # ebv, nstar, galdepth-z, psfdepth-g, psfsize-g
     elif [ $1 = "all2" ]
     then
         axes=({0..12})
