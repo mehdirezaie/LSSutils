@@ -37,6 +37,48 @@ class MCMC(MCSamples):
             self.stats, chains = read_chain(path_to_mcmc, **read_kw)
             MCSamples.__init__(self, samples=chains, **mc_kw)
             
+            
+def bin_clmock(fnl, survey, iscont, method):
+    p = '/fs/ess/PHS0336/data/lognormal/v2/clustering/'
+    ell_edges = np.array([2, 6, 10, 14, 18, 22, 26] 
+                       + [10*i for i in range(3,10)] \
+                       + [100+i*20 for i in range(5)] \
+                       + [200+i*50 for i in range(3)])
+    cl_files = glob(f'{p}clmock_{iscont}_*_lrg_{fnl}_{survey}_256_{method}.npy')
+    print(fnl, survey, iscont, method)
+    file_out = f'{p}clmock_{iscont}_lrg_{fnl}_{survey}_256_{method}_mean.npz'
+    print(len(cl_files), cl_files[0])
+    assert len(cl_files) == 1000
+    
+    cl_gg = []
+    cl_ggb = []
+    
+    for file_i in cl_files:
+        cl_i = np.load(file_i, allow_pickle=True).item()
+        cl_gg.append(cl_i['cl_gg']['cl'])
+        
+        lb, clb = histogram_cell(cl_i['cl_gg']['l'], cl_i['cl_gg']['cl'], bins=ell_edges)
+        cl_ggb.append(clb)
+
+    cl_gg = np.array(cl_gg)
+    cl_ggb = np.array(cl_ggb)   
+    nmocks, nell = cl_gg.shape
+    
+    
+    plt.figure()
+    plt.plot(cl_gg.mean(axis=0))
+    plt.plot(lb, cl_ggb.mean(axis=0), marker='o', mfc='w')
+    plt.fill_between(np.arange(nell), *np.percentile(cl_gg, [0, 100], axis=0), alpha=0.1)
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.ylim(1.0e-8, 1.0e-2)
+    
+    np.savez(file_out, **{'el_edges':ell_edges, 'el_bin':lb, 'cl':cl_ggb.mean(axis=0)})
+    print('wrote', file_out)
+
+
+    
+    
 def plot_ngmoll():
     desi = ft.read('/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desi_256.fits')
     ng  = make_hp(256, desi['hpix'], desi['label']/(desi['fracgood']*hp.nside2pixarea(256, True)), np.inf)
@@ -462,21 +504,24 @@ def get_chi2t_mocks(cap, iscont, fnl):
     return np.array(chi2s), invcov_    
 
 
-def plot_chi2hist_mock(names, labels):
-    if os.path.exists('./tmp_nbarmock_chi2_iscont0_bmzls.npz'):
-        chi2ss = np.load('./tmp_nbarmock_chi2_iscont0_bmzls.npz', allow_pickle=True)
+def plot_chi2hist_mock(names, labels, imock=1, region='bmzls', fnltag='zero'):
+    if os.path.exists(f'./tmp_nbarmock_chi2_iscont0_{region}.npz'):
+        chi2ss = np.load(f'./tmp_nbarmock_chi2_iscont0_{region}.npz', allow_pickle=True)
         print(chi2ss.files)
         chi2s = chi2ss['0']
         chi2f = chi2ss['100']
+        invcov = chi2s[1] if fnltag=='zero' else chi2f[1]
     else:
-        chi2s = get_chi2t_mocks('bmzls', 0, 'zero')
-        chi2f = get_chi2t_mocks('bmzls', 0, 'po100')
-        np.savez('./tmp_nbarmock_chi2_iscont0_bmzls.npz', **{'0':chi2s, '100':chi2f})
+        chi2s = get_chi2t_mocks(region, 0, 'zero')
+        chi2f = get_chi2t_mocks(region, 0, 'po100')
+        invcov = chi2s[1] if fnltag=='zero' else chi2f[1]
+        np.savez(f'./tmp_nbarmock_chi2_iscont0_{region}.npz', **{'0':chi2s, '100':chi2f})
 
     chi2c = {}
     p_ = '/fs/ess/PHS0336/data/lognormal/v2/clustering/'
+    print(f'imock: {imock}')
     for i, n in enumerate(names):
-        chi2c[names[i]] = get_chi2t(f'{p_}nbarmock_1_1_lrg_zero_bmzls_256_{n}.npy', chi2s[1])
+        chi2c[names[i]] = get_chi2t(f'{p_}nbarmock_1_{imock}_lrg_{fnltag}_{region}_256_{n}.npy', invcov)
 
     plt.figure()    
     plt.hist(chi2s[0], histtype='step', range=(50., 200.), bins=25)
@@ -491,3 +536,35 @@ def plot_chi2hist_mock(names, labels):
     plt.show()
     # plt.savefig('figs/nbar_chi2_mock1.pdf', bbox_inches='tight')
     # plt.yscale('log')        
+    
+    
+def plot_chi2hist_mocks(name, label, region='bmzls', fnltag='zero'):
+    if os.path.exists(f'./tmp_nbarmock_chi2_iscont0_{region}.npz'):
+        chi2ss = np.load(f'./tmp_nbarmock_chi2_iscont0_{region}.npz', allow_pickle=True)
+        print(chi2ss.files)
+        chi2s = chi2ss['0']
+        chi2f = chi2ss['100']
+        invcov = chi2s[1] if fnltag=='zero' else chi2f[1]
+    else:
+        chi2s = get_chi2t_mocks(region, 0, 'zero')
+        chi2f = get_chi2t_mocks(region, 0, 'po100')
+        invcov = chi2s[1] if fnltag=='zero' else chi2f[1]
+        np.savez(f'./tmp_nbarmock_chi2_iscont0_{region}.npz', **{'0':chi2s, '100':chi2f})
+
+    chi2c = []
+    p_ = '/fs/ess/PHS0336/data/lognormal/v2/clustering/'
+    for imock in range(1, 1001):
+        chi2c.append(get_chi2t(f'{p_}nbarmock_1_{imock}_lrg_{fnltag}_{region}_256_{name}.npy', invcov))
+
+    plt.figure()    
+    plt.hist(chi2s[0], histtype='step', range=(50., 200.), bins=25)
+    plt.hist(chi2f[0], histtype='step', range=(50., 200.), bins=25)
+    plt.hist(chi2c, histtype='step', label=label)
+    plt.legend(loc=(1., 0.2))
+    plt.text(120, 150, r'Mocks $f_{\rm NL}$=0')
+    plt.text(120, 135, r'Mocks $f_{\rm NL}$=100', color='C1')
+    plt.xlabel(r'Mean Density Contrast $\chi^{2}$')
+    plt.xscale('log')
+    plt.show()
+    # plt.savefig('figs/nbar_chi2_mock1.pdf', bbox_inches='tight')
+    # plt.yscale('log')            

@@ -30,6 +30,13 @@ def main(args, comm=None):
             s_ = ft.read(args.selection)           
             selection_fn = make_hp(nside, s_['hpix'], np.median(s_['weight'], axis=1))#.mean(axis=1))
             print(np.percentile(selection_fn[mask], [0, 1, 99, 100]))
+            selection_median = np.median(selection_fn[mask])
+            selection_fn = selection_fn / selection_median
+            is_neg = ((selection_fn < 0.5) | (selection_fn > 2.0)) & mask
+            if is_neg.sum() !=0:
+                print(f"changing neg. selection function pixels: {is_neg.sum()} to 1")
+                selection_fn[is_neg] = 1.0
+
         else:
             selection_fn = None
         

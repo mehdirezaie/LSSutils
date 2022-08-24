@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:10:00
+#SBATCH --time=03:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -22,25 +22,26 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false    #
 do_nn=false       # 10 h
-do_nbar=true    # 10 m x 4
+do_nbar=false    # 10 m x 4
 do_cl=false      # 10 m x 4
 do_clfull=false  # 10 m x 14
-do_mcmc=false    #  3 h x 14
+do_mcmc=true    #  3 h x 14
 do_mcmc_cont=false   # 
 do_mcmc_joint=false  # 3hx14
 do_mcmc_joint3=false # 5x14
 do_mcmc_scale=false  #
 do_bfit=false        #  3 h x 14
 
-mockid=1 # for debugging
+#mockid=1 # for debugging
 #printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=4098
-region="ndecals" # bmzls, ndecals, sdecals
+region="bmzls" # bmzls, ndecals, sdecals
 iscont=1
-maps="known5" #e.g., "known5" or "all"
+maps=$1 #"known5" #e.g., "known5" or "all"
+method=$1 # noweight, nn_all
 target="lrg"
-fnltag="zero" #zero, po100
+fnltag="po100" #zero, po100
 ver=v2 # 
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
 root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys/tables
@@ -163,7 +164,6 @@ then
 fi
 
 
-
 if [ "${do_nbar}" = true ]
 then
     if [ $iscont = 1 ]
@@ -185,14 +185,18 @@ then
     if [ ! -f $output_path ]
     then
         echo "running w/o weights"
-        #python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
+        srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
     fi
 
-    # nn weight
-    output_path=${root_dir}/clustering/nbarmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}.npy                
-    echo $output_path
-    python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
+    if [ $iscont = 1 ]
+    then
+        # nn weight
+        output_path=${root_dir}/clustering/nbarmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}.npy                
+        echo $output_path
+        srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
+    fi
 fi
+
 
 if [ "${do_cl}" = true ]
 then
@@ -214,13 +218,16 @@ then
     if [ ! -f $output_path ]
     then
         echo $output_path
-        srun -n 1 python $cl -d ${input_path} -m ${input_map} -o ${output_path}
+        srun -n 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path}
     fi
 
-    # nn weight
-    output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}.npy                
-    echo $output_path
-    srun -n 1 python $cl -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
+    if [ $iscont = 1 ]
+    then
+        # nn weight
+        output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}.npy                
+        echo $output_path
+        srun -n 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
+    fi
 fi
 
 
@@ -236,20 +243,21 @@ then
     srun -n 14 python $clfull -m ${indir} -o ${oudir} -t ${fnltag} -r $region
 fi
 
+
 if [ "${do_mcmc}" = true ]
 then
-    region=$1
-    method=noweight
-    path_cl=${root_dir}/clustering/clmock_${fnltag}_${region}_mean.npz
+    # /fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_1_lrg_zero_bmzls_256_nn_known1_mean.npy
+    path_cl=${root_dir}/clustering/clmock_${iscont}_${target}_${fnltag}_${region}_256_${method}_mean.npz
     path_cov=${root_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
 
     
-    output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
+    output_mcmc=${root_dir}/mcmc/mcmc_${iscont}_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
         
     du -h $path_cl $path_cov
     echo $target $region $method $output_mcmc
     python $mcmc $path_cl $path_cov $region $output_mcmc
 fi
+
 
 if [ "${do_mcmc_cont}" = true ]
 then
