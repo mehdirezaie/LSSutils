@@ -2,6 +2,7 @@
     Sample from the posterior distribution of linear models
 
 """
+import sys
 import os
 import numpy as np
 import fitsio as ft
@@ -44,12 +45,27 @@ class Chains:
 
 
 #--- read mcmc chains
+from argparse import ArgumentParser
+ap = ArgumentParser(description='Linear Regression')
+ap.add_argument('-o', '--output_path', required=True)
+ap.add_argument('-m', '--maps', required=True)
+ap.add_argument('-ax', '--axes', nargs='*', type=int) 
+ns = ap.parse_args()
+
+
+
 np.random.seed(85)
-nside = 1024     #
-nwindows = 1000  # 
-version = 'v5'
+nside = 256
+model = 'linp'
+tag_d = '0.57.0'
 regions = ['bmzls', 'ndecals', 'sdecals']
-axes = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
+axes = ns.axes #[0, 2, 3, 4, 5, 6, 7, 8]
+root_dir = '/fs/ess/PHS0336/data/rongpu/imaging_sys'
+target = 'lrg'
+maps = ns.maps #'all'
+output_path = ns.output_path #f'{root_dir}/regression/{tag_d}/{model}_{target}_{maps}.hp{nside}.fits'
+
+
 
 hpix = {}
 features = {}
@@ -57,44 +73,30 @@ params = {}
 stats = {}
 
 for region in regions:
+    input_path=f'{root_dir}/tables/{tag_d}/n{target}_features_{region}_{nside}.fits'
+    chain_path=f'{root_dir}/regression/{tag_d}/{model}_{target}_{region}_{nside}_{maps}/mcmc_{region}_{maps}.npz'
+    df = ft.read(input_path)    
+    ch1 = Chains(chain_path)
 
-    df = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/{version}/nelg_features_{region}_{nside}.fits')    
-    ch1 = Chains(f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_linearp/mcmc_{region}_{nside}.npz')
-
-    params[region] = ch1.get_sample(skip_rows=1000)
+    params[region] = ch1.get_sample(skip_rows=1000).mean(axis=0)
     stats[region] = ch1.stats
     features[region] = (df['features'][:, axes] - ch1.stats['x'][0]) / ch1.stats['x'][1]
     hpix[region] = df['hpix']
 
-npoints = params['bmzls'].shape[0]
-print(f'# points: {npoints}')
-ix = np.random.choice(np.arange(npoints), size=nwindows, replace=False)
 
-for j, i in enumerate(ix):
+window_i = np.zeros(12*nside*nside)
+count_i = np.zeros_like(window_i)
+for region in regions:
+    wind_ = modelp(features[region], params[region])
+    window_i[hpix[region]] += wind_
+    count_i[hpix[region]] += 1.0
     
-    window_i = np.zeros(12*nside*nside)
-    count_i = np.zeros_like(window_i)
+output_dir = os.path.dirname(output_path)
+if not os.path.exists(output_dir):
+     os.makedirs(output_dir)
 
-    for region in regions:
-        
-        # Poisson
-        wind_ = modelp(features[region], params[region][i, :])
-        window_i[hpix[region]] += wind_
-        count_i[hpix[region]] += 1.0
-        
-
-    print('.', end='')
-    if (j+1)%100==0:
-        print()
-    output_path = f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_linearp/windows/linwindow_{j}.hp{nside}.fits'
-
-    output_dir = os.path.dirname(output_path)
-    if not os.path.exists(output_dir):
-         os.makedirs(output_dir)
-
-    is_good = count_i > 0.0
-    window_i[is_good] = window_i[is_good] / count_i[is_good]
-    window_i[~is_good] = hp.UNSEEN
-    hp.write_map(output_path, window_i, dtype=np.float64, fits_IDL=False, overwrite=True)
-
-print("done!!!")
+is_good = count_i > 0.0
+window_i[is_good] = window_i[is_good] / count_i[is_good]
+window_i[~is_good] = hp.UNSEEN
+hp.write_map(output_path, window_i, dtype=np.float64, fits_IDL=False, overwrite=True)
+print(f"done writing {output_path}")

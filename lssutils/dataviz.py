@@ -68,7 +68,7 @@ def setup_color():
     mpl.rcParams['ytick.minor.size'] = 6.0
     mpl.rcParams['ytick.right'] = True
     mpl.rcParams['xtick.top'] = True
-    mpl.rcParams['font.family'] = "Nimbus Sans Narrow" #'DejaVu Sans'
+    #mpl.rcParams['font.family'] = "Nimbus Sans Narrow" #'DejaVu Sans'
     mpl.rcParams['font.size'] = 18
     mpl.rcParams['axes.linewidth'] = 2       
     mpl.rcParams['legend.frameon'] = False
@@ -351,6 +351,9 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
         for axi in [ax0, ax1, ax2, ax3]:axi.set(xticks=[], yticks=[])
         
     '''    
+    is_good = (m != hp.UNSEEN)
+    m[~is_good] = np.nan
+    
     nside     = hp.npix2nside(len(m))
     rotatedeg = np.degrees(rotate)    
     ysize     = int(xsize/2.)                      # ratio is always 1/2
@@ -437,7 +440,7 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
     # colorbar
     if colorbar:
         #cax = plt.axes([.9, 0.2, 0.02, 0.6])  # vertical
-        cax = plt.axes([0.2, 0.02, 0.6, 0.02])  # horizontal
+        cax = plt.axes([0.2, 0.03, 0.6, 0.04])  # horizontal
         cb  = fig.colorbar(image, cax=cax, label=unit, fraction=0.15,
                            shrink=0.6, pad=0.05, ticks=[vmin, vmax], # 0.5*(vmax+vmin), 
                            orientation='horizontal', extend=extend)        
@@ -1068,7 +1071,7 @@ def plot_clxi(filen, filen2, ax, labels, hold=False, bins=None, saveto=None):
         
 def plot_nnbar(nnbars, title=None, axes=[i for i in range(17)],
                figax=None, annot=False, lb=None, cl=None, err=False,
-              hold=False, lgannot=False):
+              hold=False, lgannot=False, ylim=(0.9, 1.1), delaxes=None):
     '''
     All:
         dataviz.plot_nnbar(['/home/mehdi/data/eboss/v6/results_ngc.all/clustering/nnbar_NGC_v6_z0.8.npy',
@@ -1121,29 +1124,24 @@ def plot_nnbar(nnbars, title=None, axes=[i for i in range(17)],
     if len(axes)%4!=0:nrows +=1
     if figax is None:
         fig, ax = plt.subplots(ncols=4, nrows=nrows, figsize=(20, 4*nrows), sharey=True)
-        plt.subplots_adjust(hspace=0.3, wspace=0.1)
+        plt.subplots_adjust(hspace=0.3, wspace=0.05)
         ax = ax.flatten()    
     else:
         fig, ax = figax
-    #if title is not None:fig.suptitle(title)     
     if title is not None:ax[0].text(0.1, 0.9, title, transform=ax[0].transAxes)
     if cl is None:cl=plt.cm.Blues
     chi2 = lambda y1, y2, ye: np.sum((y1-y2)*(y1-y2)/(ye*ye))/ye.size
-    #lt = ['lin', 'NN+Ablation', 'NN', 'quad', 'No Correction']
-    #cl = ['r', 'b', 'k', 'g', 'purple']
     ls = ['--', ':', '-', '-.', '-']
     n  = len(nnbars)
     for j,nnbar_i in enumerate(nnbars):
-        nnbar = np.load(nnbar_i, allow_pickle=True).item()
+        nnbar = np.load(nnbar_i, allow_pickle=True) #.item()
         lt = lb[j]
-        #lt = '_'.join([nnbar_i.split('/')[-1].split('_')[1], nnbar_i.split('/')[-1].split('_')[-1][:-4]])
-        #print(lt, end=' ')
         c  = cl((j+2)/(n+1))        
         chi2tot = 0.0
         m = 0
         for ji,i in enumerate(axes):
-            mynnb = nnbar['nnbar'][i]
-            x     = 0.5*(mynnb['bin_edges'][1:]+mynnb['bin_edges'][:-1])
+            mynnb = nnbar[i]
+            x     = mynnb['bin_avg']
             y     = mynnb['nnbar']
             ye    = mynnb['nnbar_err']
             chi2i = chi2(y, 1.0, ye)
@@ -1164,16 +1162,20 @@ def plot_nnbar(nnbars, title=None, axes=[i for i in range(17)],
                                  bbox_to_anchor=(0, 1.1, 3, 0.4), loc="lower left",
                                  mode="expand", borderaxespad=0, fontsize=20))
                 #ax[0].set_xlim(1, 3)
-                ax[ji].set_ylim(0.9, 1.1)
-                ax[ji].set_xlabel(nnbar['xlabels'][i])
+                ax[ji].set_ylim(*ylim)
+                ax[ji].set_xlabel(mynnb['sys'])
                 ax[ji].grid()
                 if ji==0:ax[ji].set_ylabel(r'$\frac{n}{\overline{n}}$')
             m +=1
         print('%.1f  %d  %.1f'%(chi2tot, m, chi2tot/m))
         if annot:ax[-1].text(0.05, 0.9-0.1*j, '%.1f %d %.1f'%(chi2tot, m, chi2tot/m),
                              color=c, transform=ax[-1].transAxes)
-    if not hold:plt.show()                            
-
+     
+    if delaxes is not None:
+        for i in delaxes:
+            fig.delaxes(ax[i])
+    if not hold:plt.show() 
+        
 def plot_loss_epoch(mt, color, ls):
     """ Plot loss vs epoch given metrics file (mt)
     """

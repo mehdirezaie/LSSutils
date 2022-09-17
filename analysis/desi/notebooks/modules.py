@@ -21,8 +21,7 @@ import sysnet.sources as src
 from lssutils.dataviz import setup_color, add_locators, mollview, mycolor
 from lssutils.utils import (histogram_cell, maps_dr9, make_hp,
                             chi2_fn, get_chi2pdf, get_inv, hpix2radec, shiftra, make_overdensity)
-from lssutils.io import (read_nbmocks, read_nnbar, read_clx, read_clxmocks, 
-                         read_clmocks, read_window, read_window, read_chain)
+from lssutils.io import (read_nbmocks, read_nnbar, read_window, read_chain)
 from lssutils.theory.cell import (dNdz_model, init_sample, SurveySpectrum, Spectrum, bias_model_lrg)
 from lssutils.extrn.mcmc import Posterior
 from lssutils.extrn import corner
@@ -31,6 +30,11 @@ from lssutils.stats.pcc import pcc
 
 import getdist
 from getdist import plots, MCSamples
+
+ell_edges = np.array([2, 6, 10, 14, 18, 22, 26] 
+                   + [10*i for i in range(3,10)] \
+                   + [100+i*20 for i in range(5)] \
+                   + [200+i*50 for i in range(3)])
 
 class MCMC(MCSamples):
      def __init__(self, path_to_mcmc, read_kw=dict(), mc_kw=dict()):
@@ -263,6 +267,85 @@ def plot_mcmc_mocks():
     g.fig.savefig('figs/fnl2dmocks_po100.pdf', bbox_inches='tight')    
     return pstats
 
+
+def plot_mcmc_mocks_wsys(region, fnltag='zero'):
+    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15,
+           'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
+    mc_kw = dict(names=['fnl', 'b', 'n0'], 
+                 labels=['f_{NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+
+    read_kw = dict(ndim=3, iscale=[2])
+
+
+
+    fnl_ = 0. if fnltag=='zero' else 100.
+    mcmcs = {}
+
+
+        
+    names = ['Truth', 'No correction', 'All Maps'] # 'I: EBV', 'II: I+psfdepthg', 'III: II+nstar', 'IV: III+psfsize-g', 'V:IV+galdepthz', 
+    keys  = ['noweight',  'nn_all'] # 'nn_known1', 'nn_known2', 'nn_known3', 'nn_known4', 'nn_known5',
+
+    if region == 'bmzls':
+        names += ['I: EBV',   'II: I+psfdepthg', 'III: II+nstar', 'IV: III+psfsize-g', 'V:IV+galdepthz']
+        keys += ['nn_known1', 'nn_known2',       'nn_known3',     'nn_known4',         'nn_known5']
+    if region == 'ndecals':
+        names += ['V']
+        keys += ['nn_known5']
+    # keys = ['noweight', 'nn_known1', 'nn_known4', 
+    #         'nn_known5', 'nn_known6', 'nn_known7', 'nn_all']
+    # names = ['Truth', 'Contaminated', 'I: EBV', 'II: I+gdepthg', 'III: II+nstar',
+    #          'IV: III+psfsize-g', 'V:IV+gdepth-rz', 'All maps']
+
+    mcmcs['Truth'] = MCMC(f'/fs/ess/PHS0336/data/lognormal/v2/mcmc/mcmc_0_lrg_{fnltag}_{region}_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+    for key in keys:
+        mcmcs[key] = MCMC(f'/fs/ess/PHS0336/data/lognormal/v2/mcmc/mcmc_1_lrg_{fnltag}_{region}_{key}_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+
+    y = []
+    for n,v in mcmcs.items():
+        y.append(v)
+
+
+
+    # Triangle plot
+    g = plots.get_single_plotter(width_inch=4*1.5)
+    g.settings.legend_fontsize = 14
+
+    g.plot_2d(y, 'fnl', 'b', filled=False)
+    g.add_x_marker(fnl_)
+    g.add_y_marker(1.43)
+    g.add_legend(names, colored_text=True)
+    #prsubplots(g.subplots[0, 0].get_xlim())
+    # g.subplots[0, 0].set_xticklabels([])
+    g.fig.align_labels()
+    # g.fig.savefig('figs/fnl2dmocks_mock1.pdf', bbox_inches='tight')    
+    
+    # Triangle plot
+    g = plots.get_single_plotter(width_inch=4*1.5)
+    g.settings.legend_fontsize = 14
+
+    g.plot_1d(y, 'fnl', filled=False)
+    g.add_x_marker(fnl_)
+    # g.add_y_marker(1.43)
+    g.add_legend(names, colored_text=True)
+    #prsubplots(g.subplots[0, 0].get_xlim())
+    # g.subplots[0, 0].set_xticklabels([])
+    g.fig.align_labels()
+    # g.fig.savefig('figs/fnl2dmocks_mock1.pdf', bbox_inches='tight')        
+    
+    
+    stats = {}
+    for i, (n,v) in enumerate(mcmcs.items()):
+        stats[names[i]] = v.stats
+
+    pstats = pd.DataFrame(stats,
+                      index=['MAP [scipy]', 'MAP [chain]', 'Mean [chain]',
+                             'Median [chain]', '16th', '84th']).T
+
+    return pstats
+
+
+
 def add_scale(ax):
     xx = ax.get_xticks()
     dx = xx[1]-xx[0]
@@ -456,7 +539,72 @@ def plot_nbar_mock(names, labels):
         # plt.plot(nbars['noweight'])
         fg.show()        
         
-        
+    
+def plot_clmocks_wsys():
+    survey = 'bmzls'
+    p = '/fs/ess/PHS0336/data/lognormal/v2/clustering/'
+    def add_plot(ax1, ax2, fnl, iscont, method, **kwargs):
+        file_out = f'{p}clmock_{iscont}_lrg_{fnl}_{survey}_256_{method}_mean.npz'
+        cl = np.load(file_out)
+        ax1.plot(cl['el_bin'], cl['cl'], **kwargs)
+
+        file_out = f'{p}clmock_0_lrg_{fnl}_{survey}_256_noweight_mean.npz'
+        cl_ = np.load(file_out)
+        ax2.plot(cl['el_bin'], cl['cl']/cl_['cl'], **kwargs)
+
+
+    labels = ['No correction', 'I: EBV', 'II: I+psfdepthg', 
+              'III: II+nstar', 'IV: III+psfsize-g', 'V:IV+galdepthz', 'All Maps']
+    fig = plt.figure(figsize=(16, 8), constrained_layout=False)
+    gs = GridSpec(3, 2, figure=fig)
+
+    ax1 = fig.add_subplot(gs[:2, 0])
+    ax2 = fig.add_subplot(gs[2, 0])
+
+    ax3 = fig.add_subplot(gs[:2, 1])
+    ax4 = fig.add_subplot(gs[2, 1])
+
+
+    # fnl=0
+    add_plot(ax1, ax2, 'zero', 0, 'noweight',  label='Truth',   marker='', alpha=0.5, lw=4)
+    add_plot(ax1, ax2, 'zero', 1, 'noweight',  label='Cont',    marker='x', alpha=0.8)
+    add_plot(ax1, ax2, 'zero', 1, 'nn_known1', label=labels[1], marker='+', alpha=0.8)
+    add_plot(ax1, ax2, 'zero', 1, 'nn_known2', label=labels[2], marker='s', alpha=0.8)
+    add_plot(ax1, ax2, 'zero', 1, 'nn_known3', label=labels[3], marker='<', alpha=0.8)
+    add_plot(ax1, ax2, 'zero', 1, 'nn_known4', label=labels[4], marker='.', alpha=0.8)
+    add_plot(ax1, ax2, 'zero', 1, 'nn_known5', label=labels[5], marker='*', alpha=0.8)
+    add_plot(ax1, ax2, 'zero', 1, 'nn_all',    label=labels[6], marker='>', alpha=0.8)
+
+    # fnl=100
+    add_plot(ax3, ax4, 'po100', 0, 'noweight',  label='Truth',   marker='', alpha=0.5, lw=4)
+    add_plot(ax3, ax4, 'po100', 1, 'noweight',  label='Cont',    marker='x', alpha=0.8)
+    add_plot(ax3, ax4, 'po100', 1, 'nn_known1', label=labels[1], marker='+', alpha=0.8)
+    add_plot(ax3, ax4, 'po100', 1, 'nn_known2', label=labels[2], marker='s', alpha=0.8)
+    add_plot(ax3, ax4, 'po100', 1, 'nn_known3', label=labels[3], marker='<', alpha=0.8)
+    add_plot(ax3, ax4, 'po100', 1, 'nn_known4', label=labels[4], marker='.', alpha=0.8)
+    add_plot(ax3, ax4, 'po100', 1, 'nn_known5', label=labels[5], marker='*', alpha=0.8)
+    add_plot(ax3, ax4, 'po100', 1, 'nn_all',    label=labels[6], marker='>', alpha=0.8)
+
+
+    for ax, ax_ in [(ax1, ax2), (ax3, ax4)]:
+        ax.set(xscale='log', yscale='log',  xlim=(3, 310), ylim=(1.1e-6, 4.2e-4))
+        ax_.set(xscale='log', xlabel=r'$\ell$', xlim=(3, 310), ylim=(-0.1, 2.1))
+        ax.set_xticklabels([])
+
+    ax1.grid(True, which='both', alpha=0.2)
+    ax3.grid(True, which='both', alpha=0.2)
+    ax1.set_ylabel(r'$C_{\ell}$')
+    ax2.set_ylabel(r'$C_{X}/C_{\rm Truth}$')
+
+    ax1.legend(loc=1, ncol=2, title=r'$f_{\rm NL}=0$')
+    ax3.legend(loc=1, ncol=2, title=r'$f_{\rm NL}=100$')
+
+
+    fig.subplots_adjust(hspace=0.0, wspace=0.1)
+    fig.align_labels()
+
+    fig.savefig('./figs/cl_mocks.png', dpi=300)    
+    
         
 ## Mean Density Test
 def chi2_fn(y, invcov):
@@ -568,3 +716,56 @@ def plot_chi2hist_mocks(name, label, region='bmzls', fnltag='zero'):
     plt.show()
     # plt.savefig('figs/nbar_chi2_mock1.pdf', bbox_inches='tight')
     # plt.yscale('log')            
+    
+    
+
+def read_clx(fn, bins=None):
+
+    cl = np.load(fn, allow_pickle=True).item()
+    
+    cl_cross = []
+    cl_ss = []
+
+    for i in range(len(cl['cl_sg'])):    
+        __, cl_sg_ = histogram_cell(cl['cl_sg'][i]['l'], cl['cl_sg'][i]['cl'], bins=bins)
+        __, cl_ss_ = histogram_cell(cl['cl_ss'][i]['l'], cl['cl_ss'][i]['cl'], bins=bins)
+
+        cl_ss.append(cl_ss_)
+        cl_cross.append(cl_sg_**2/cl_ss_)    
+
+    return np.array(cl_cross).flatten()
+
+
+def read_clxmocks(list_clx, bins=None):
+    
+    err_mat = []    
+    for i, clx_i in enumerate(list_clx):
+        
+        err_i  = read_clx(clx_i, bins=bins)
+        err_mat.append(err_i)
+        
+        if (i % (len(list_clx)//10)) == 0:
+            print(f'{i}/{len(list_clx)}')
+
+    err_mat = np.array(err_mat)
+    print(err_mat.shape)
+    return err_mat
+
+
+def make_chi2clx(fnl='zero'):
+    
+    p = '/fs/ess/PHS0336/data/lognormal/v2/clustering/'
+    err_truth = read_clxmocks(glob(f'{p}clmock_0_*_lrg_{fnl}_bmzls_256_noweight.npy'),
+                            ell_edges[:4])
+    err_cont = read_clxmocks(glob(f'{p}clmock_1_*_lrg_{fnl}_bmzls_256_noweight.npy'),
+                            ell_edges[:4])
+    err_known5 = read_clxmocks(glob(f'{p}clmock_1_*_lrg_{fnl}_bmzls_256_nn_known5.npy'),
+                            ell_edges[:4])
+
+    chi2_truth = get_chi2pdf(err_truth)
+    chi2_cont = get_chi2pdf(err_cont)
+    chi2_known5 = get_chi2pdf(err_known5)
+
+    for chi2_i in [chi2_truth, chi2_cont, chi2_known5]:
+        plt.hist(chi2_i, histtype='step', range=(0, 600), bins=60)    
+    plt.show()

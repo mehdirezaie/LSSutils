@@ -27,8 +27,9 @@ def main(args, comm=None):
         sysm[data['hpix'], :] = data['features']
         
         if args.selection is not None:
-            s_ = ft.read(args.selection)           
-            selection_fn = make_hp(nside, s_['hpix'], np.median(s_['weight'], axis=1))#.mean(axis=1))
+            #s_ = ft.read(args.selection)           
+            #selection_fn = make_hp(nside, s_['hpix'], np.median(s_['weight'], axis=1))#.mean(axis=1))
+            selection_fn = hp.read_map(args.selection, verbose=False)
             print(np.percentile(selection_fn[mask], [0, 1, 99, 100]))
             selection_median = np.median(selection_fn[mask])
             selection_fn = selection_fn / selection_median

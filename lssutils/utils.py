@@ -45,11 +45,17 @@ maps_dr9sv3 = ['stardens', 'ebv', 'loghi',
            'psfsize_g', 'psfsize_r', 'psfsize_z', 
            'psfdepth_w1', 'psfdepth_w2']
 
-maps_dr9 = ['EBV', 'STARDENS']\
-          + [f'galdepth_{b}mag_ebv' for b in ['r', 'g', 'z']]\
-          + [f'psfdepth_{b}mag_ebv' for b in ['r', 'g', 'z', 'w1', 'w2']] \
-          + [f'PSFSIZE_{b}' for b in ['R', 'G', 'Z']]
+maps_dr9 = ['EBV', 
+            'STARDENS',
+            'GALDEPTH_GMAG_EBV',
+            'GALDEPTH_RMAG_EBV',
+            'GALDEPTH_ZMAG_EBV',
+            'PSFDEPTH_W1MAG_EBV',
+            'PSFSIZE_G',
+            'PSFSIZE_R',
+            'PSFSIZE_Z']
 
+ell_edges = np.arange(2, 402, 10)
 
 # z range
 z_bins = {'main':(0.8, 2.2),
@@ -859,11 +865,11 @@ def select_region(ra, dec, reg):
     
     if reg == 'ndecals':
         w = dec < 32.375 # BASS
-        w &= dec > -11.0 # spurios islands 
+        #w &= dec > -11.0 # spurios islands 
         w &= wra
     elif reg == 'sdecals':
         w = ~wra
-        w &= dec > -30.0
+        #w &= dec > -30.0
     else:
         raise ValueError(f'{reg} not implemented')
     return w

@@ -21,16 +21,12 @@ def load_cl(path_cl):
     if hasattr(d, 'files'):
         return d
     else:
-        from lssutils.utils import histogram_cell
+        from lssutils.utils import histogram_cell, ell_edges
         cl = d.item()
-        ell_edges = np.array([2, 6, 10, 14, 18, 22, 26] \
-                   + [10*i for i in range(3,10)] \
-                  + [100+i*20 for i in range(5)] \
-                 + [200+i*50 for i in range(3)])
         lb, clb = histogram_cell(cl['cl_gg']['l'], cl['cl_gg']['cl'], bins=ell_edges)
         return {'el_edges':ell_edges, 'el_bin':lb, 'cl':clb}
 
-def read_inputs(path_cl, path_cov):
+def read_inputs(path_cl, path_cov, scale=True):
     
     dcl_obs = load_cl(path_cl)
     dclcov_obs = np.load(path_cov)
@@ -38,8 +34,11 @@ def read_inputs(path_cl, path_cov):
     
     el_edges = dcl_obs['el_edges']
     cl_obs = dcl_obs['cl']
-    invcov_obs = np.linalg.inv(dclcov_obs['clcov'])
-
+    clcov = dclcov_obs['clcov']
+    if scale:
+        clcov *= 1000.
+    
+    invcov_obs = np.linalg.inv(clcov)
     return el_edges, cl_obs, invcov_obs
 
 def read_mask(region):
@@ -67,6 +66,7 @@ path_cl  = sys.argv[1]
 path_cov = sys.argv[2]
 region   = sys.argv[3]  # for window
 output   = sys.argv[4]
+scale    = float(sys.argv[5]) > 0
 
 nsteps   = 10000   # int(sys.argv[2])
 ndim     = 3      # Number of parameters/dimensions
@@ -75,12 +75,13 @@ assert nwalkers > 2*ndim
 
 ncpu = cpu_count()
 print("{0} CPUs".format(ncpu))    
+print("scale it", scale)
 
 if not os.path.exists(os.path.dirname(output)):
     print(f'create {os.path.dirname(output)}')
     os.makedirs(os.path.dirname(output))
 
-el_edges, cl_obs, invcov_obs = read_inputs(path_cl, path_cov)
+el_edges, cl_obs, invcov_obs = read_inputs(path_cl, path_cov, scale)
 weight, mask = read_mask(region)
 
 z, b, dNdz = init_sample(kind='lrg')

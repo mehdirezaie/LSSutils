@@ -50,7 +50,7 @@ if tag_d=='0.57.0':
 elif tag_d=='1.0.0':
     data_ng = ft.read(f'{path}/density_maps/{tag_d}/resolve/density_map_{kind}_{cap}_nside_{nside}_minobs_1_maskbits_{mb}.fits')
 
-data_tmp = ft.read(f'{path}/randoms_stats/{tag_r}/resolve/combined/pixmap_{cap}_nside_{nside}_minobs_1_maskbits_{mb}.fits')
+data_tmp = ft.read(f'{path}/randoms_stats/{tag_r}/resolve/combined/pixmap_{cap}_nside_{nside}_minobs_1_maskbits_{mb}.fits', upper=True)
 
 # split south into sdecals and ndecals
 if region in ['ndecals', 'sdecals']:
@@ -76,7 +76,7 @@ data_nn = ut.to_numpy(label, features, fracgood, hpix)
 for name in data_nn.dtype.names:
     assert (~np.isfinite(data_nn[name])).sum() == 0, f'{name} is bad'
     
-if region=='ndecals':
-    data_nn = ut.remove_islands(data_nn, nside)
+#if region=='ndecals':
+#    data_nn = ut.remove_islands(data_nn, nside)
     
 ft.write(path_out, data_nn, clobber=True)

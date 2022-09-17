@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=nnsam
+#SBATCH --job-name=nnfit
 #SBATCH --account=PHS0336 
 #SBATCH --time=01:00:00
 #SBATCH --nodes=1
@@ -20,9 +20,9 @@ cd ${HOME}/github/LSSutils/analysis/lssxcmb/scripts/
 
 do_linfit=false    # 10 h x 14
 do_nnfit=false     # 10 m lr finder, 120 h fit 
-do_linsamp=false   # 1 h x 1
+do_linsamp=true   # 1 h x 1
 do_nnsamp=false     # 3h x 10tpn
-do_nnpull=true    # 1 h
+do_nnpull=false    # 1 h
 do_lincell=false   # 5hx14tpn
 do_nncell=false    # 5hx14tpn
 do_cl=false        #
@@ -32,7 +32,7 @@ do_clx=false       # 10min x 6tpn
 target=elg
 region=$1   # options are bmzls, ndecals, sdecals
 nside=1024
-version=v4
+version=v5
 #printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 #mockid=$2
 echo $mockid

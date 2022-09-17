@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=03:00:00
+#SBATCH --time=05:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
@@ -20,12 +20,13 @@ export OMP_NUM_THREADS=1
 source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
-do_prep=false    #
-do_nn=false       # 10 h
-do_nbar=false    # 10 m x 4
-do_cl=false      # 10 m x 4
-do_clfull=false  # 10 m x 14
-do_mcmc=true    #  3 h x 14
+do_prep=false        #
+do_nn=false          # 10 h
+do_regrs=false       # 25 min
+do_nbar=false        # 10 m x 4
+do_cl=false           # 10 m x 4
+do_clfull=false      # 10 m x 14
+do_mcmc=true        #  3 h x 14
 do_mcmc_cont=false   # 
 do_mcmc_joint=false  # 3hx14
 do_mcmc_joint3=false # 5x14
@@ -33,16 +34,16 @@ do_mcmc_scale=false  #
 do_bfit=false        #  3 h x 14
 
 #mockid=1 # for debugging
-#printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
+printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
-bsize=4098
-region="bmzls" # bmzls, ndecals, sdecals
-iscont=1
-maps=$1 #"known5" #e.g., "known5" or "all"
-method=$1 # noweight, nn_all
+bsize=5000
+region="desi" #$1 # bmzls, ndecals, sdecals
+iscont=0
+maps="noweight" #e.g., "known5" or "all"
+method="noweight" # noweight, nn_all
 target="lrg"
-fnltag="po100" #zero, po100
-ver=v2 # 
+fnltag=$1 #"zero" #zero, po100
+ver=v3 # 
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
 root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys/tables
 nside=256
@@ -56,6 +57,7 @@ lr=0.2
 
 
 prep=${HOME}/github/LSSutils/analysis/desi/scripts/prep_mocks.py
+regrs=${HOME}/github/LSSutils/analysis/desi/scripts/run_regressis.py
 cl=${HOME}/github/LSSutils/analysis/desi/scripts/run_cell_mocks.py
 clfull=${HOME}/github/LSSutils/analysis/desi/scripts/run_cell_mocks_mpi.py
 nbar=${HOME}/github/LSSutils/analysis/desi/scripts/run_nnbar_mocks.py
@@ -105,47 +107,6 @@ function get_axes(){
 }
 
 
-
-
-function get_reg(){
-    if [ $1 = 'NBMZLS' ]
-    then
-        reg='bmzls'
-    elif [ $1 = 'NDECALS' ]
-    then
-        reg='ndecals'
-    elif [ $1 = 'SDECALS' ]
-    then
-        reg='sdecals'
-    elif [ $1 = 'SDECALS_noDES' ]
-    then
-        reg='sdecals'
-    elif [ $1 = 'DES_noLMC' ]
-    then
-        reg='sdecals'
-    elif [ $1 = 'DES' ]
-    then
-        reg='sdecals'
-    fi
-    echo $reg
-}
-
-
-if [ "${do_prep}" = true ]
-then
-    for region in ${regions}
-    do
-        echo $region
-        input_path=${root_dir}/lrg-${mockid}-f1z1.fits
-        output_path=${root_dir}/tables/${region}/nlrg-${mockid}-${region}.fits
-
-        du -h $input_path
-        echo $output_path
-        srun -n 1 python $prep $input_path $output_path ${region}
-    done
-fi
-
-
 if [ "${do_nn}" = true ]
 then
     lr=$(get_lr ${target})
@@ -161,6 +122,27 @@ then
     echo $output_path	
     #python $nnfit -i ${input_path} ${input_map} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]}  -fl
     srun -n 1 python $nnfit -i ${input_path} ${input_map} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]}  -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain --do_tar -k
+fi
+
+
+if [ "${do_regrs}" = true ]
+then
+    if [ $iscont = 1 ]
+    then
+        input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1-contaminated.fits
+    else
+        input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1.fits
+    fi
+    echo $target $region $iscont $maps
+    
+    du -h $input_map
+
+    if [ $iscont = 1 ]
+    then
+        output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}_regrslin.npz 
+        echo $output_path
+        srun -n 1 python $regrs ${input_map} ${output_path} Linear
+    fi
 fi
 
 
@@ -204,6 +186,7 @@ then
     then
         input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1-contaminated.fits
         input_wsys=${root_dir}/regression/fnl_${fnltag}/cont/${mockid}/${region}/nn_${maps}/nn-weights.fits
+        #input_wsys=/fs/ess/PHS0336/data/lognormal/v2/regression/fnl_zero_cont_bmzls_nn_known5.fits
     else
         input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1.fits
         input_wsys=${root_dir}/regression/fnl_${fnltag}/null/${mockid}/${region}/nn_${maps}/nn-weights.fits
@@ -225,22 +208,10 @@ then
     then
         # nn weight
         output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}.npy                
+        #output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}_avgwsys0.npy                
         echo $output_path
         srun -n 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
     fi
-fi
-
-
-if [ "${do_clfull}" = true ]
-then
-    region=$1
-    indir=${root_dir}/hpmaps/
-    oudir=${root_dir}/clustering/clmock_${fnltag}_${region}.npy
-    echo $region
-    echo $indir
-    echo $oudir
-
-    srun -n 14 python $clfull -m ${indir} -o ${oudir} -t ${fnltag} -r $region
 fi
 
 
@@ -248,10 +219,8 @@ if [ "${do_mcmc}" = true ]
 then
     # /fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_1_lrg_zero_bmzls_256_nn_known1_mean.npy
     path_cl=${root_dir}/clustering/clmock_${iscont}_${target}_${fnltag}_${region}_256_${method}_mean.npz
-    path_cov=${root_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
-
-    
-    output_mcmc=${root_dir}/mcmc/mcmc_${iscont}_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
+    path_cov=${root_dir}/clustering/clmock_${iscont}_${target}_${fnltag}_${region}_256_${method}_cov.npz
+    output_mcmc=${root_dir}/mcmc/mcmc_${iscont}_${target}_${fnltag}_${region}_256_${method}_steps10k_walkers50.npz
         
     du -h $path_cl $path_cov
     echo $target $region $method $output_mcmc
