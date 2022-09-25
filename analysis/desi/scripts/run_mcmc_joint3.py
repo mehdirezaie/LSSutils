@@ -17,7 +17,7 @@ from lssutils.extrn.mcmc import Posterior
 
 SEED = 85
 
-def read_inputs(path_cl, path_cov):
+def read_inputs(path_cl, path_cov, scale=True):
     
     dcl_obs = np.load(path_cl)
     dclcov_obs = np.load(path_cov)
@@ -25,7 +25,12 @@ def read_inputs(path_cl, path_cov):
     
     el_edges = dcl_obs['el_edges']
     cl_obs = dcl_obs['cl']
-    invcov_obs = np.linalg.inv(dclcov_obs['clcov'])
+    clcov = dclcov_obs['clcov']
+    if scale:
+        clcov *= 1000.
+ 
+
+    invcov_obs = np.linalg.inv(clcov)
 
     return el_edges, cl_obs, invcov_obs
 
@@ -54,10 +59,12 @@ path_cl  = sys.argv[1:4]
 path_cov = sys.argv[4:7]
 region   = sys.argv[7:10]  # for window
 output   = sys.argv[10]
+scale    = float(sys.argv[11]) > 0
 
 print(path_cl)
 print(path_cov)
 print(region)
+print(scale)
 
 
 
@@ -76,7 +83,7 @@ if not os.path.exists(os.path.dirname(output)):
 z, b, dNdz = init_sample(kind='lrg')
 
 # region 1
-el_edges, cl_obs, invcov_obs = read_inputs(path_cl[0], path_cov[0])
+el_edges, cl_obs, invcov_obs = read_inputs(path_cl[0], path_cov[0], scale)
 weight, mask = read_mask(region[0])
 
 model = SurveySpectrum()
@@ -87,7 +94,7 @@ model.add_window(weight, mask, np.arange(2048), ngauss=2048)
 lg = Posterior(model, cl_obs, invcov_obs, el_edges)
 
 # region 2
-el_edges2, cl_obs2, invcov_obs2 = read_inputs(path_cl[1], path_cov[1])
+el_edges2, cl_obs2, invcov_obs2 = read_inputs(path_cl[1], path_cov[1], scale)
 weight, mask = read_mask(region[1])
 
 model2 = SurveySpectrum()
@@ -98,7 +105,7 @@ model2.add_window(weight, mask, np.arange(2048), ngauss=2048)
 lg2 = Posterior(model2, cl_obs2, invcov_obs2, el_edges2)
 
 # region 3
-el_edges3, cl_obs3, invcov_obs3 = read_inputs(path_cl[2], path_cov[2])
+el_edges3, cl_obs3, invcov_obs3 = read_inputs(path_cl[2], path_cov[2], scale)
 weight, mask = read_mask(region[1])
 
 model3 = SurveySpectrum()

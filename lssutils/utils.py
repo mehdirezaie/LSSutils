@@ -55,7 +55,10 @@ maps_dr9 = ['EBV',
             'PSFSIZE_R',
             'PSFSIZE_Z']
 
-ell_edges = np.arange(2, 402, 10)
+ell_edges = np.array([2, 6, 10, 14, 18, 22, 26] \
+                   + [10*i for i in range(3,10)] \
+                   + [100+i*20 for i in range(5)] \
+                   + [200+i*50 for i in range(3)]) #np.arange(2, 402, 10)
 
 # z range
 z_bins = {'main':(0.8, 2.2),

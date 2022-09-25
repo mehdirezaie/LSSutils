@@ -278,7 +278,7 @@ def cm2inch(cm):
     return cm *0.393701
 
 
-def mollview(m, vmin, vmax, unit, use_mask=False, 
+def mollview(m, vmin=None, vmax=None, unit='', use_mask=False, 
              maskname=None, rotate=2/3*np.pi, xsize=1000,
              width=7, figax=None, colorbar=False, cmap=plt.cm.bwr,
              galaxy=False, extend='both',**kwargs):
@@ -353,6 +353,9 @@ def mollview(m, vmin, vmax, unit, use_mask=False,
     '''    
     is_good = (m != hp.UNSEEN)
     m[~is_good] = np.nan
+    
+    if (vmin is None) or (vmax is None):
+        vmin, vmax = np.percentile(m[is_good], [1, 99])
     
     nside     = hp.npix2nside(len(m))
     rotatedeg = np.degrees(rotate)    
