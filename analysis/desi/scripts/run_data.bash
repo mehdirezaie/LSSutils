@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=nn
+#SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=20:00:00
+#SBATCH --time=03:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -20,23 +20,23 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
-do_fit=true       # linmcmc:20m x 14, nn:20 h x 1 tpn
+do_fit=false       # linmcmc:20m x 14, nn:20 h x 1 tpn
 do_linsam=false   # 10 min x 1
 do_rfe=false       
 do_assign=false
 do_nbar=false     # 10 min x 4 tpn
 do_cl=false       # 20 min x 4 tpn
-do_mcmc=false     # 3 h x 14 tpn
+do_mcmc=true     # 3 h x 14 tpn
 do_mcmc_joint=false # 3x14
 do_mcmc_joint3=false # 5x14
 
 bsize=5000    # 
 target='lrg'  # lrg
-region=$1     # bmzls, ndecals, sdecals, or desi
+region="desi"     # bmzls, ndecals, sdecals, or desi
 maps="known2" # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
-method="dnnp_known1"       # dnnp_known1, linp_known, or noweight
+method="dnnp_known2"       # dnnp_known1, linp_known, or noweight
 fnltag="zero"
 model=dnnp    # dnnp, linp
 loss=pnll
@@ -160,21 +160,21 @@ fi
 
 if [ "${do_nbar}" = true ]
 then
-        input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
-        output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_noweight.npy
-        du -h $input_path
-        
-        if [ ! -f $output_path ] 
-        then
-            echo $output_path
-            srun -n 4 python $nbar -d ${input_path} -o ${output_path}
-        fi
-        
-        output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_${model}_${maps}.npy
-        selection=${root_dir}/regression/${tag_d}/${model}_${target}_${maps}.hp${nside}.fits
-        du -h $selection
+    input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
+    output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_noweight.npy
+    du -h $input_path
+    
+    if [ ! -f $output_path ] 
+    then
         echo $output_path
-        srun -n 4 python $nbar -d ${input_path} -o ${output_path} -s ${selection}            
+        srun -n 4 python $nbar -d ${input_path} -o ${output_path}
+    fi
+    
+    output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_${model}_${maps}.npy
+    selection=${root_dir}/regression/${tag_d}/${model}_${target}_${maps}.hp${nside}.fits
+    du -h $selection
+    echo $output_path
+    srun -n 4 python $nbar -d ${input_path} -o ${output_path} -s ${selection}            
 fi
 
 if [ "${do_cl}" = true ]
