@@ -24,20 +24,20 @@ do_prep=false        #
 do_nn=false          # 10 h
 do_regrs=false       # 25 min
 do_nbar=false        # 10 m x 4
-do_cl=false           # 10 m x 4
+do_cl=false          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        #  3 h x 14
 do_mcmc_cont=false   # 
 do_mcmc_joint=false  # 3hx14
-do_mcmc_joint3=true # 5x14
-do_mcmc_scale=false  #
+do_mcmc_joint3=false # 5x14
+do_mcmc_scale=true   #
 do_bfit=false        #  3 h x 14
 
 #mockid=1 # for debugging
-printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
+#printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=5000
-region=$1 # desi, bmzls, ndecals, sdecals
+region="desi" # desi, bmzls, ndecals, sdecals
 iscont=0
 maps="noweight" #e.g., "known5" or "all"
 method="noweight" # noweight, nn_all
@@ -243,17 +243,13 @@ fi
 
 if [ "${do_mcmc_scale}" = true ]
 then
-    region=fullskyscaled
-    fnltag=zero
-    method=noweight
-    path_cl=${root_dir}/clustering/clmock_${fnltag}_fullsky_mean.npz
-    path_cov=${root_dir}/clustering/clmock_${fnltag}_bmzls_cov.npz
-    
-    output_mcmc=${root_dir}/mcmc/mcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
+    path_cl=${root_dir}/clustering/clmock_${iscont}_${target}_po100_${region}_256_${method}_mean.npz
+    path_cov=${root_dir}/clustering/clmock_${iscont}_${target}_zero_${region}_256_${method}_cov.npz
+    output_mcmc=${root_dir}/mcmc/mcmc_${iscont}_${target}_scaled_${region}_256_${method}_steps10k_walkers50.npz
         
     du -h $path_cl $path_cov
     echo $target $region $method $output_mcmc
-    python $mcmc $path_cl $path_cov $region $output_mcmc
+    python $mcmc $path_cl $path_cov $region $output_mcmc -1 
 fi
 
 

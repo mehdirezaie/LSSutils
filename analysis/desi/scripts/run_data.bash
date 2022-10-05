@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=mcmc
+#SBATCH --job-name=nn
 #SBATCH --account=PHS0336 
-#SBATCH --time=05:00:00
+#SBATCH --time=20:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -20,20 +20,20 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
-do_fit=false       # linmcmc:20m x 14, nn:20 h x 1 tpn
+do_fit=true       # linmcmc:20m x 14, nn:20 h x 1 tpn
 do_linsam=false   # 10 min x 1
 do_rfe=false       
 do_assign=false
 do_nbar=false     # 10 min x 4 tpn
 do_cl=false       # 20 min x 4 tpn
-do_mcmc=true     # 3 h x 14 tpn
+do_mcmc=false     # 3 h x 14 tpn
 do_mcmc_joint=false # 3x14
 do_mcmc_joint3=false # 5x14
 
 bsize=5000    # 
 target='lrg'  # lrg
 region=$1     # bmzls, ndecals, sdecals, or desi
-maps="known1" # known, all
+maps="known2" # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
 method="dnnp_known1"       # dnnp_known1, linp_known, or noweight
@@ -74,10 +74,14 @@ function get_lr(){
 function get_axes(){
     if [ $1 = "known" ]
     then
-        axes=(0 4)   # EBV
+        axes=(0 4)   # EBV, galdepth-z
     elif [ $1 = "known1" ]
     then
-        axes=(0 4 7)
+        axes=(0 4 7) # EBV, galdepth-z, psfsize-r
+    elif [ $1 = "known2" ]
+    then
+        axes=(0 2 3 4) # EBV,galdepth-grz
+
     elif [ $1 = "all" ]
     then
         axes=(0 2 3 4 5 6 7 8) # all maps
