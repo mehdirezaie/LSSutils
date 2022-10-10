@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=cell
+#SBATCH --job-name=linfit
 #SBATCH --account=PHS0336 
-#SBATCH --time=05:00:00
+#SBATCH --time=00:30:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
@@ -21,25 +21,25 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
 do_fit=false       # linmcmc:20m x 14, nn:20 h x 1 tpn
-do_linsam=false   # 10 min x 1
+do_linsam=true   # 10 min x 1
 do_rfe=false       
 do_assign=false
 do_nbar=false     # 10 min x 4 tpn
 do_cl=false       # 20 min x 4 tpn
-do_mcmc=true     # 3 h x 14 tpn
+do_mcmc=false     # 3 h x 14 tpn
 do_mcmcf=false
 do_mcmc_joint=false # 3x14
 do_mcmc_joint3=false # 5x14
 
 bsize=5000    # 
 target='lrg'  # lrg
-region=$1     # bmzls, ndecals, sdecals, or desi
-maps="known1c" # known, all, known1, known2
+region="desic"     # bmzls, ndecals, sdecals, or desi
+maps=$1 # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
-method="dnnp_known1c"       # dnnp_known1, linp_known, or noweight
+method="linp_known1"       # dnnp_known1, linp_known, or noweight
 fnltag="zero"
-model=dnnp    # dnnp, linp
+model=linp    # dnnp, linp
 loss=pnll
 nns=(4 20)
 nepoch=70  # v0 with 71
@@ -143,19 +143,19 @@ then
         axes=$(get_axes ${maps})
         echo ${target} ${region} $lr ${axes[@]} $maps
         input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
-        #output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/mcmc_${region}_${maps}.npz
-        output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/
+        output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/mcmc_${region}_${maps}.npz
+        #output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/
         echo $output_path 
         du -h $input_path
-        srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain
-        #python $linfit -d $input_path -o $output_path -ax ${axes[@]}
+        #srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain
+        python $linfit -d $input_path -o $output_path -ax ${axes[@]}
 fi
 
 
 if [ "${do_linsam}" = true ]
 then
     axes=$(get_axes ${maps})
-    output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${maps}.hp${nside}.fits
+    output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${maps}.hp${nside}.fits
     echo $output_path
     python $linsam -o $output_path -m $maps -ax $axes
 fi

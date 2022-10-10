@@ -281,7 +281,7 @@ def cm2inch(cm):
 def mollview(m, vmin=None, vmax=None, unit='', use_mask=False, 
              maskname=None, rotate=2/3*np.pi, xsize=1000,
              width=7, figax=None, colorbar=False, cmap=plt.cm.bwr,
-             galaxy=False, extend='both',**kwargs):
+             galaxy=False, extend='both', in_deg=False, nside=256, **kwargs):
     '''
         (c)Andrea Zonca, https://github.com/zonca/paperplots 
         modified by Mehdi Rezaie for galaxy counts
@@ -351,8 +351,12 @@ def mollview(m, vmin=None, vmax=None, unit='', use_mask=False,
         for axi in [ax0, ax1, ax2, ax3]:axi.set(xticks=[], yticks=[])
         
     '''    
+    m = m.copy()
     is_good = (m != hp.UNSEEN)
     m[~is_good] = np.nan
+    
+    if in_deg:
+        m[is_good] /= hp.nside2pixarea(nside, True)
     
     if (vmin is None) or (vmax is None):
         vmin, vmax = np.percentile(m[is_good], [1, 99])

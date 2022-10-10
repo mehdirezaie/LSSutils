@@ -58,7 +58,7 @@ np.random.seed(85)
 nside = 256
 model = 'linp'
 tag_d = '0.57.0'
-regions = ['bmzls', 'ndecals', 'sdecals']
+regions = ['bmzls', 'ndecalsc', 'sdecalsc']
 axes = ns.axes #[0, 2, 3, 4, 5, 6, 7, 8]
 root_dir = '/fs/ess/PHS0336/data/rongpu/imaging_sys'
 target = 'lrg'

@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=mcmc
+#SBATCH --job-name=stats
 #SBATCH --account=PHS0336 
-#SBATCH --time=05:00:00
+#SBATCH --time=00:30:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -23,21 +23,21 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 do_prep=false        #
 do_nn=false          # 10 h
 do_regrs=false       # 25 min
-do_nbar=false        # 10 m x 4
-do_cl=false          # 10 m x 4
+do_nbar=true        # 10 m x 4
+do_cl=true          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        #  3 h x 14
 do_mcmc_cont=false   # 
 do_mcmc_joint=false  # 3hx14
 do_mcmc_joint3=false # 5x14
-do_mcmc_scale=true   #
+do_mcmc_scale=false   #
 do_bfit=false        #  3 h x 14
 
 #mockid=1 # for debugging
-#printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
+printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=5000
-region="desi" # desi, bmzls, ndecals, sdecals
+region=$1 # desi, bmzls, ndecals, sdecals
 iscont=0
 maps="noweight" #e.g., "known5" or "all"
 method="noweight" # noweight, nn_all
@@ -175,7 +175,7 @@ then
         # nn weight
         output_path=${root_dir}/clustering/nbarmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}.npy                
         echo $output_path
-        #srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
+        srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
     fi
 fi
 
