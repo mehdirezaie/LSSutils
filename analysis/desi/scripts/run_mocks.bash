@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=stats
+#SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:30:00
+#SBATCH --time=05:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -23,15 +23,15 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 do_prep=false        #
 do_nn=false          # 10 h
 do_regrs=false       # 25 min
-do_nbar=true        # 10 m x 4
-do_cl=true          # 10 m x 4
+do_nbar=false        # 10 m x 4
+do_cl=false          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        #  3 h x 14
+do_mcmc_scale=false   #
+do_bfit=true        #  3 h x 14
 do_mcmc_cont=false   # 
 do_mcmc_joint=false  # 3hx14
 do_mcmc_joint3=false # 5x14
-do_mcmc_scale=false   #
-do_bfit=false        #  3 h x 14
 
 #mockid=1 # for debugging
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
@@ -47,8 +47,8 @@ ver=v3 #
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
 root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys/tables
 nside=256
-model=dnn
-loss=mse
+model=dnnp
+loss=pnll
 nns=(4 20)
 nepoch=70 # or 150
 nchain=20
@@ -228,19 +228,6 @@ then
 fi
 
 
-if [ "${do_mcmc_cont}" = true ]
-then
-    # /fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_1_1_lrg_zero_bmzls_256_noweight.npy
-    path_cl=${root_dir}/clustering/clmock_${iscont}_1_lrg_${fnltag}_${region}_256_${maps}.npy
-    path_cov=${root_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
-    output_mcmc=${root_dir}/mcmc/mcmc_${iscont}_1_${target}_${fnltag}_${region}_${maps}_steps10k_walkers50.npz
-        
-    du -h $path_cl $path_cov
-    echo $target $region $maps $output_mcmc
-    python $mcmc $path_cl $path_cov $region $output_mcmc
-fi
-
-
 if [ "${do_mcmc_scale}" = true ]
 then
     path_cl=${root_dir}/clustering/clmock_${iscont}_${target}_po100_${region}_256_${method}_mean.npz
@@ -304,11 +291,10 @@ fi
 if [ "${do_bfit}" = true ]
 then
     # options are fullsky, bmzls, ndecals, sdecals
-    region=$1
-    method=noweight
-    path_cl=${root_dir}/clustering/clmock_${fnltag}_${region}.npy
-    path_cov=${root_dir}/clustering/clmock_${fnltag}_${region}_cov.npz
-    output_bestfit=${root_dir}/mcmc/bestfit_${target}_${fnltag}_${region}_${method}.npz
+    path_cov=${root_dir}/clustering/clmock_${iscont}_${target}_${fnltag}_${region}_256_${method}_cov.npz
+    output_bestfit=${root_dir}/mcmc/bestfit_${iscont}_${target}_${fnltag}_${region}_256_${method}.npz
 
-    srun -n 14 python $bfit $region $path_cl $path_cov $output_bestfit
+    du -h $path_cov 
+    echo $output_bestfit $region
+    srun -n 14 python $bfit $region $path_cov $output_bestfit
 fi

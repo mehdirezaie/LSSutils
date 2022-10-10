@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=linfit
+#SBATCH --job-name=stats
 #SBATCH --account=PHS0336 
 #SBATCH --time=00:30:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -21,11 +21,11 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
 do_fit=false       # linmcmc:20m x 14, nn:20 h x 1 tpn
-do_linsam=true   # 10 min x 1
+do_linsam=false   # 10 min x 1
 do_rfe=false       
 do_assign=false
-do_nbar=false     # 10 min x 4 tpn
-do_cl=false       # 20 min x 4 tpn
+do_nbar=true     # 10 min x 4 tpn
+do_cl=true       # 20 min x 4 tpn
 do_mcmc=false     # 3 h x 14 tpn
 do_mcmcf=false
 do_mcmc_joint=false # 3x14
@@ -33,13 +33,13 @@ do_mcmc_joint3=false # 5x14
 
 bsize=5000    # 
 target='lrg'  # lrg
-region="desic"     # bmzls, ndecals, sdecals, or desi
-maps=$1 # known, all, known1, known2
+region=$1     # bmzls, ndecals, sdecals, or desi
+maps="known1" # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
-method="linp_known1"       # dnnp_known1, linp_known, or noweight
 fnltag="zero"
-model=linp    # dnnp, linp
+model="dnnp"    # dnnp, linp
+method=${model}_$maps       # dnnp_known1, linp_known, or noweight
 loss=pnll
 nns=(4 20)
 nepoch=70  # v0 with 71
@@ -173,7 +173,7 @@ then
     fi
     
     output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_${model}_${maps}.npy
-    selection=${root_dir}/regression/${tag_d}/${model}_${target}_${maps}.hp${nside}.fits
+    selection=${root_dir}/regression/${tag_d}/${model}_${target}_desic_${maps}.hp${nside}.fits
     du -h $selection
     echo $output_path
     srun -n 4 python $nbar -d ${input_path} -o ${output_path} -s ${selection}            
@@ -193,7 +193,7 @@ then
     fi
 
     output_path=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${model}_${maps}.npy
-    selection=${root_dir}/regression/${tag_d}/${model}_${target}_${maps}.hp${nside}.fits
+    selection=${root_dir}/regression/${tag_d}/${model}_${target}_desic_${maps}.hp${nside}.fits
     du -h $selection
     echo $output_path
     srun -n 4 python $cl -d ${input_path} -o ${output_path} -s ${selection}           

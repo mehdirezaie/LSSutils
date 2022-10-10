@@ -51,13 +51,14 @@ def read_mask(region):
         # read survey geometry
         data_path = '/fs/ess/PHS0336/data/'    
         dt = ft.read(f'{data_path}/rongpu/imaging_sys/tables/0.57.0/nlrg_features_{region}_256.fits')
-        mask_  = make_hp(256, dt['hpix'], 1.0) > 0.5
-        mask   = hp.ud_grade(mask_, 1024)
+        weight_ = make_hp(256, dt['hpix'], dt['fracgood'])
+        weight  = hp.ud_grade(weight_, 1024)
+        
     else:
         # full sky
-        mask = np.ones(12*1024*1024, '?')
+        weight = np.ones(12*1024*1024, 'f8')
 
-    return mask*1.0, mask
+    return weight, weight > 0
 
     
 
@@ -83,6 +84,9 @@ if not os.path.exists(os.path.dirname(output)):
 
 el_edges, cl_obs, invcov_obs = read_inputs(path_cl, path_cov, scale)
 weight, mask = read_mask(region)
+
+if not scale:
+    weight[mask] = 1.0 # if scale is not activate, then it is a mock, no fpix needed
 
 z, b, dNdz = init_sample(kind='lrg')
 model = SurveySpectrum()

@@ -6,7 +6,7 @@ import sys
 import os
 import emcee
 import numpy as np
-
+from glob import glob
 from scipy.optimize import minimize
 from time import time
 from lssutils.utils import split_NtoM, histogram_cell
@@ -23,9 +23,8 @@ size = comm.Get_size()
 # read covariance and cls with root
 if rank==0:
     region = sys.argv[1]  # fullsky, bmzls, ndecals, sdecals ##for window
-    path_cl = sys.argv[2]
-    path_cov = sys.argv[3]
-    output = sys.argv[4]
+    path_cov = sys.argv[2]
+    output = sys.argv[3]
 
     method = 'noweight'
 
@@ -34,7 +33,8 @@ if rank==0:
         os.makedirs(os.path.dirname(output))
     print('will output ', output)
 
-    cl_mocks = np.load(path_cl)
+    # /fs/ess/PHS0336/data/lognormal/v3/clustering/clmock_0_104_lrg_po100_desic_256_noweight.npy
+    cl_mocks = glob(f'/fs/ess/PHS0336/data/lognormal/v3/clustering/clmock_0_*_lrg_zero_{region}_256_noweight.npy')
 
     if region=='fullsky':
         weight = np.ones(12*1024*1024, 'f8') # full sky
@@ -50,13 +50,13 @@ if rank==0:
 
 
 
-    print('cl mocks shape:', cl_mocks.shape)
+    print('cl mocks shape:', len(cl_mocks))
     print('sky coverage:', weight.mean())
     cl_cov_ = np.load(path_cov)
     el_edges = cl_cov_['el_edges']
     icov = np.linalg.inv(cl_cov_['clcov'])
-    
     zbdndz = init_sample(kind='lrg')
+    print('el edges:', el_edges)
 else:
     zbdndz = None
     cl_mocks = None
@@ -76,8 +76,7 @@ model.add_tracer(*zbdndz, p=1.0)
 model.add_kernels(model.el_model)
 model.add_window(weight, mask, np.arange(2048), ngauss=2048)
 
-nmocks, elmax = cl_mocks.shape
-el = np.arange(elmax)
+nmocks = len(cl_mocks)
 start, end = split_NtoM(nmocks, size, rank)
 
 params = []
@@ -85,8 +84,8 @@ neglog = []
 success = []
 
 for i in range(start, end+1):
-    cl_i = cl_mocks[i, :]
-    cl_obs = histogram_cell(el, cl_i, bins=el_edges)[1]
+    cl_i = np.load(cl_mocks[i], allow_pickle=True).item()['cl_gg']
+    cl_obs = histogram_cell(cl_i['l'], cl_i['cl'], bins=el_edges)[1]
 
     lg = Posterior(model, cl_obs, icov, el_edges)
     def neglogpost(foo):
