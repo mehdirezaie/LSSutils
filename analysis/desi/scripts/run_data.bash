@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=stats
+#SBATCH --job-name=nnfit
 #SBATCH --account=PHS0336 
 #SBATCH --time=00:30:00
 #SBATCH --nodes=1
@@ -32,7 +32,7 @@ do_mcmc_joint=false # 3x14
 do_mcmc_joint3=false # 5x14
 
 bsize=5000    # 
-target='lrg'  # lrg
+target="lrg"  # lrg
 region=$1     # bmzls, ndecals, sdecals, or desi
 maps="known1" # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
@@ -143,12 +143,12 @@ then
         axes=$(get_axes ${maps})
         echo ${target} ${region} $lr ${axes[@]} $maps
         input_path=${root_dir}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
-        output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/mcmc_${region}_${maps}.npz
-        #output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/
+        #output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/mcmc_${region}_${maps}.npz
+        output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/
         echo $output_path 
         du -h $input_path
-        #srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain
-        python $linfit -d $input_path -o $output_path -ax ${axes[@]}
+        srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain
+        #python $linfit -d $input_path -o $output_path -ax ${axes[@]}
 fi
 
 
@@ -173,7 +173,7 @@ then
     fi
     
     output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_${model}_${maps}.npy
-    selection=${root_dir}/regression/${tag_d}/${model}_${target}_desic_${maps}.hp${nside}.fits
+    selection=${root_dir}/regression/${tag_d}/${model}_${target}_desi_${maps}.hp${nside}.fits
     du -h $selection
     echo $output_path
     srun -n 4 python $nbar -d ${input_path} -o ${output_path} -s ${selection}            
@@ -193,7 +193,7 @@ then
     fi
 
     output_path=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${model}_${maps}.npy
-    selection=${root_dir}/regression/${tag_d}/${model}_${target}_desic_${maps}.hp${nside}.fits
+    selection=${root_dir}/regression/${tag_d}/${model}_${target}_desi_${maps}.hp${nside}.fits
     du -h $selection
     echo $output_path
     srun -n 4 python $cl -d ${input_path} -o ${output_path} -s ${selection}           

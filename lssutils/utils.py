@@ -55,7 +55,7 @@ maps_dr9 = ['EBV',
             'PSFSIZE_R',
             'PSFSIZE_Z']
 
-ell_edges = np.concatenate([np.arange(2, 102, 10), np.arange(102, 312, 20) ])
+ell_edges = np.concatenate([np.arange(2, 22, 2), np.arange(30, 301, 10)])
 # np.array([2, 6, 10, 14, 18, 22, 26] \
 #    + [10*i for i in range(3,10)] \
 #    + [100+i*20 for i in range(5)] \

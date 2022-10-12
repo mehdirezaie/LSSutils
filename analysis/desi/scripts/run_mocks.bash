@@ -26,9 +26,9 @@ do_regrs=false       # 25 min
 do_nbar=false        # 10 m x 4
 do_cl=false          # 10 m x 4
 do_clfull=false      # 10 m x 14
-do_mcmc=false        #  3 h x 14
-do_mcmc_scale=false   #
-do_bfit=true        #  3 h x 14
+do_mcmc=false        # 3 h x 14
+do_mcmc_scale=false  #
+do_bfit=true        # 3 h x 14
 do_mcmc_cont=false   # 
 do_mcmc_joint=false  # 3hx14
 do_mcmc_joint3=false # 5x14
@@ -37,7 +37,7 @@ do_mcmc_joint3=false # 5x14
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=5000
-region=$1 # desi, bmzls, ndecals, sdecals
+region="desic" # desi, bmzls, ndecals, sdecals
 iscont=0
 maps="noweight" #e.g., "known5" or "all"
 method="noweight" # noweight, nn_all

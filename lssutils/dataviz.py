@@ -69,10 +69,10 @@ def setup_color():
     mpl.rcParams['ytick.right'] = True
     mpl.rcParams['xtick.top'] = True
     #mpl.rcParams['font.family'] = "Nimbus Sans Narrow" #'DejaVu Sans'
-    mpl.rcParams['font.size'] = 18
+    mpl.rcParams['font.size'] = 16
     mpl.rcParams['axes.linewidth'] = 2       
     mpl.rcParams['legend.frameon'] = False
-    mpl.rcParams['legend.fontsize'] = 13
+    mpl.rcParams['legend.fontsize'] = 12
     mpl.rcParams['figure.facecolor'] = 'w' 
     
     

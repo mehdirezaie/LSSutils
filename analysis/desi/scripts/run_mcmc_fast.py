@@ -47,7 +47,8 @@ def read_mask(region):
     import healpy as hp
     from lssutils.utils import make_hp
 
-    if region in ['bmzls', 'ndecals', 'sdecals', 'ngc', 'desi']:
+    if region in ['bmzls', 'ndecals', 'sdecals', 'ngc', 'desi', 
+                  'desic', 'ndecalsc', 'sdecalsc']:
         # read survey geometry
         data_path = '/fs/ess/PHS0336/data/'    
         dt = ft.read(f'{data_path}/rongpu/imaging_sys/tables/0.57.0/nlrg_features_{region}_256.fits')
@@ -84,9 +85,13 @@ if not os.path.exists(os.path.dirname(output)):
 
 el_edges, cl_obs, invcov_obs = read_inputs(path_cl, path_cov, scale)
 weight, mask = read_mask(region)
+print('fsky', mask.mean())
 
 if not scale:
+    print('using mock window')
     weight[mask] = 1.0 # if scale is not activate, then it is a mock, no fpix needed
+else:
+    print('using data window')
 
 z, b, dNdz = init_sample(kind='lrg')
 model = SurveySpectrum()

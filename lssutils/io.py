@@ -10,16 +10,16 @@ def read_chain(chain_filename, skip=5000, ndim=3, ifnl=0, iscale=[2, ]):
     assert chain.shape[-1] == ndim
     
     map_bf = ch_['best_fit'][ifnl]   
-    map_chain = ch_['chain'].reshape(-1, ndim)[ch_['log_prob'].argmax()][ifnl]
+    #map_chain = ch_['chain'].reshape(-1, ndim)[ch_['log_prob'].argmax()][ifnl]
     
     sample = chain[skip:, :, :].flatten().reshape(-1, ndim)
     for icol in iscale:
         sample[:, icol] *= 1.0e7
     
     mean_chain = sample[:, ifnl].mean()
-    vmin, median, vmax = np.percentile(sample[:, ifnl], [16, 50, 84], axis=ifnl)
+    vmin2, vmin1, vmax1, vmax2 = np.percentile(sample[:, ifnl], [2.5, 16, 84, 97.5], axis=ifnl)
     
-    return [map_bf, map_chain, mean_chain, median, vmin, vmax], sample
+    return [map_bf, mean_chain, vmin1, vmax1, vmin2, vmax2], sample
 
 
 def read_window(region, nside=256):
