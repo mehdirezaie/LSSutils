@@ -9,7 +9,6 @@
 
 ## run with
 # sbatch --array=1-100 run_mocks.bash ndecals
-
 # manually add the path, later we will install the pipeline with `pip`
 source ${HOME}/.bashrc
 
@@ -28,6 +27,8 @@ do_cl=false          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        # 3 h x 14
 do_mcmc_scale=false  #
+do_mcmc_log=false
+do_mcmc_logscale=false
 do_bfit=true        # 3 h x 14
 do_mcmc_cont=false   # 
 do_mcmc_joint=false  # 3hx14
@@ -37,7 +38,7 @@ do_mcmc_joint3=false # 5x14
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=5000
-region="desic" # desi, bmzls, ndecals, sdecals
+region=$1 # desi, bmzls, ndecals, sdecals
 iscont=0
 maps="noweight" #e.g., "known5" or "all"
 method="noweight" # noweight, nn_all
@@ -63,9 +64,11 @@ clfull=${HOME}/github/LSSutils/analysis/desi/scripts/run_cell_mocks_mpi.py
 nbar=${HOME}/github/LSSutils/analysis/desi/scripts/run_nnbar_mocks.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
 mcmc=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_fast.py
+mcmclog=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_logfast.py
 mcmc_joint=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_joint.py
 mcmc_joint3=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_joint3.py
 bfit=${HOME}/github/LSSutils/analysis/desi/scripts/run_best_fit.py
+bfitlog=${HOME}/github/LSSutils/analysis/desi/scripts/run_best_logfit.py
 
 function get_lr(){
     if [ $1 = "lrg" ]
@@ -215,9 +218,46 @@ then
 fi
 
 
+
+
+if [ "${do_mcmc_log}" = true ]
+then
+    path_cl=${root_dir}/clustering/logclmock_${iscont}_${target}_${fnltag}_${region}_256_${method}_mean.npz
+    path_cov=${root_dir}/clustering/logclmock_${iscont}_${target}_${fnltag}_${region}_256_${method}_cov.npz
+    output_mcmc=${root_dir}/mcmc/logmcmc_${iscont}_${target}_${fnltag}_${region}_256_${method}_steps10k_walkers50.npz
+        
+    du -h $path_cl $path_cov
+    echo $target $region $method $output_mcmc
+    python $mcmclog $path_cl $path_cov $region $output_mcmc -1 
+fi
+
+
+if [ "${do_mcmc_logscale}" = true ]
+then
+    path_cl=${root_dir}/clustering/logclmock_${iscont}_${target}_po100_${region}_256_${method}_mean.npz
+    path_cov=${root_dir}/clustering/logclmock_${iscont}_${target}_zero_${region}_256_${method}_cov.npz
+    output_mcmc=${root_dir}/mcmc/logmcmc_${iscont}_${target}_pozero_${region}_256_${method}_steps10k_walkers50.npz
+        
+    du -h $path_cl $path_cov
+    echo $target $region $method $output_mcmc
+    python $mcmclog $path_cl $path_cov $region $output_mcmc -1 
+fi
+
+
+if [ "${do_bfit}" = true ]
+then
+    # options are fullsky, bmzls, ndecals, sdecals
+    path_cov=${root_dir}/clustering/logclmock_${iscont}_${target}_${fnltag}_${region}_256_${method}_cov.npz
+    output_bestfit=${root_dir}/mcmc/logbestfit_${iscont}_${target}_${fnltag}_${region}_256_${method}.npz
+
+    du -h $path_cov 
+    echo $output_bestfit $region
+    srun -n 14 python $bfitlog $region $path_cov $output_bestfit
+fi
+
+#--- fit C-ell other than log C-ell (above)
 if [ "${do_mcmc}" = true ]
 then
-    # /fs/ess/PHS0336/data/lognormal/v2/clustering/clmock_1_lrg_zero_bmzls_256_nn_known1_mean.npy
     path_cl=${root_dir}/clustering/clmock_${iscont}_${target}_${fnltag}_${region}_256_${method}_mean.npz
     path_cov=${root_dir}/clustering/clmock_${iscont}_${target}_${fnltag}_${region}_256_${method}_cov.npz
     output_mcmc=${root_dir}/mcmc/mcmc_${iscont}_${target}_${fnltag}_${region}_256_${method}_steps10k_walkers50.npz
@@ -232,12 +272,14 @@ if [ "${do_mcmc_scale}" = true ]
 then
     path_cl=${root_dir}/clustering/clmock_${iscont}_${target}_po100_${region}_256_${method}_mean.npz
     path_cov=${root_dir}/clustering/clmock_${iscont}_${target}_zero_${region}_256_${method}_cov.npz
-    output_mcmc=${root_dir}/mcmc/mcmc_${iscont}_${target}_scaled_${region}_256_${method}_steps10k_walkers50.npz
+    output_mcmc=${root_dir}/mcmc/mcmc_${iscont}_${target}_pozero_${region}_256_${method}_steps10k_walkers50.npz
         
     du -h $path_cl $path_cov
     echo $target $region $method $output_mcmc
     python $mcmc $path_cl $path_cov $region $output_mcmc -1 
 fi
+
+
 
 
 if [ "${do_mcmc_joint}" = true ]
@@ -286,15 +328,3 @@ then
     python $mcmc_joint3 $path_cl $path_cl1 $path_cl2 $path_cov $path_cov1 $path_cov2 $region $region1 $region2 $output_mcmc
 fi
 
-
-
-if [ "${do_bfit}" = true ]
-then
-    # options are fullsky, bmzls, ndecals, sdecals
-    path_cov=${root_dir}/clustering/clmock_${iscont}_${target}_${fnltag}_${region}_256_${method}_cov.npz
-    output_bestfit=${root_dir}/mcmc/bestfit_${iscont}_${target}_${fnltag}_${region}_256_${method}.npz
-
-    du -h $path_cov 
-    echo $output_bestfit $region
-    srun -n 14 python $bfit $region $path_cov $output_bestfit
-fi
