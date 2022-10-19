@@ -33,13 +33,13 @@ do_mcmc_joint3=false # 5x14
 
 bsize=5000    # 
 target="lrg"  # lrg
-region="desic"     # bmzls, ndecals, sdecals, or desi
-maps="known2" # known, all, known1, known2
+region=$1     # bmzls, ndecals, sdecals, or desi
+maps="known1" # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
 fnltag="zero"
 model="dnnp"    # dnnp, linp
-method=${model}_$maps       # dnnp_known1, linp_known, or noweight
+method="noweight" #${model}_$maps       # dnnp_known1, linp_known, or noweight
 loss=pnll
 nns=(4 20)
 nepoch=70  # v0 with 71
@@ -57,6 +57,7 @@ cl=${HOME}/github/LSSutils/analysis/desi/scripts/run_cell_sv3.py
 nbar=${HOME}/github/LSSutils/analysis/desi/scripts/run_nnbar_sv3.py
 assign=${HOME}/github/LSSutils/scripts/analysis/desi/fetch_weights.py
 mcmc=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_fast.py
+mcmclog=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_logfast.py
 mcmcf=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_frac.py
 mcmc_joint=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_joint.py
 mcmc_joint3=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_joint3.py
@@ -203,12 +204,12 @@ fi
 if [ "${do_mcmc}" = true ]
 then
     path_cl=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${method}.npy
-    path_cov=${mock_dir}/clustering/clmock_0_${target}_${fnltag}_${region}_256_noweight_cov.npz
-    output_mcmc=${root_dir}/mcmc/${tag_d}/mcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
+    path_cov=${mock_dir}/clustering/logclmock_0_${target}_${fnltag}_${region}_256_noweight_cov.npz
+    output_mcmc=${root_dir}/mcmc/${tag_d}/logmcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
         
     du -h $path_cl $path_cov
     echo $target $region $maps $output_mcmc
-    python $mcmc $path_cl $path_cov $region $output_mcmc 1.0
+    python $mcmclog $path_cl $path_cov $region $output_mcmc 1.0
 fi
 
 

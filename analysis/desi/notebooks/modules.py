@@ -411,9 +411,9 @@ def plot_clxtest():
     err_0e = np.diagonal(cov_0)**0.5
     err_100e = np.diagonal(cov_100)**0.5
 
-    ln1 = ax.fill_between(ell_b, 1.-(err_0e/err_0m), 1.+(err_0e/err_0m),  label=r'$f_{\rm NL}=0$', color='k', alpha=0.08)
-    ln2 = ax.fill_between(ell_b+0.1, (err_100m-err_100e)/err_0m, (err_100m+err_100e)/err_0m, label=r'$f_{\rm NL}=100$', color='k', alpha=0.04)
-    lgn1 = plt.legend(handles=[ln1, ln2], loc='lower right', title='Clean Mocks')
+    ln1 = ax.fill_between(ell_b, 0.0, 1.+(err_0e/err_0m),  label=r'$f_{\rm NL}=0$', color='k', alpha=0.08)
+    ln2 = ax.fill_between(ell_b+0.1, 0.0, (err_100m+err_100e)/err_0m, label=r'$f_{\rm NL}=100$', color='k', alpha=0.04)
+    lgn1 = plt.legend(handles=[ln1, ln2], loc='upper right', title='Clean Mocks')
 
     kw = dict()
     ln3, = ax.plot(ell_b, err_dr9/err_0m,      label='DR9 (Before)', )
@@ -427,17 +427,17 @@ def plot_clxtest():
 
     plt.gca().add_artist(lgn1)
     ax.set_yscale('symlog', linthreshy=10)
-    ax.set_yticks([-10, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200])
-
-    # ax.set_xlabel(r'$\ell$ bin index')
+    ax.set_yticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200])
     ax.set_ylabel(r'$C_{X, \ell}/C_{X, \ell}^{f_{\rm NL}=0~{\rm mocks}}$')
-    for xt in np.arange(0, 82, 9):
-        ax.axvline(xt, ls=':', lw=1, color='grey')
+    for xt in np.arange(0, 82, 9):ax.axvline(xt, ls=':', lw=1, color='grey')
     ax.set_xticks([4.5+i*9 for i in range(len(names))])
     ax.set_xticklabels(names, rotation=90)
+    ax.annotate("Linear", (-2, 0.0), (-2, 4), arrowprops=dict(arrowstyle='->', relpos=(0, 0.2)), rotation=90, fontsize=13, color='grey')
+    ax.annotate("", (-2, +10.0), (-2, 6.2), arrowprops=dict(arrowstyle='->'), rotation=90, color='grey')
+    ax.annotate("Logarithmic", (-2, 10.0), (-2, 25), arrowprops=dict(arrowstyle='->', relpos=(0, 0)), rotation=90, fontsize=13, color='grey')
+    ax.annotate("", (-2, 200.0), (-2, 85), arrowprops=dict(arrowstyle='->'), rotation=90, color='grey')  
     fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/clx_mocks.pdf', bbox_inches='tight')    
     plt.show()
-    
     
     plt.figure()
     ls = ['-', '--']
@@ -616,9 +616,75 @@ def plot_mcmc_mocks():
     ax.text(98, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
     g.fig.align_labels()  
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_po100.pdf', bbox_inches='tight')
-    print_stats(stats)
+    plt.show()
+    
+    
+    ze = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_zero_desic_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+    nd = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_zero_ndecalsc_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+    sd = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_zero_sdecalsc_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+    bm = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_zero_bmzls_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    
+    stats['0 [DESI]'] = ze.stats
+    stats['0 [DECaLS North]'] = nd.stats
+    stats['0 [DECaLS South]'] = sd.stats
+    stats['0 [BASS+MzLS]'] = bm.stats   
+    
+    g = plots.get_single_plotter(width_inch=4*1.5)
+    g.settings.legend_fontsize = 14
+    g.plot_2d([nd, sd, bm, ze], 'fnl', 'b', filled=True)
+    g.add_x_marker(0)
+    g.add_y_marker(1.43)
+    g.get_axes().set_ylim(1.426, 1.434)
+    g.get_axes().set_xlim(-2.2, 3.2)    
+    ax = g.get_axes()
+    ax.text(0.08, 0.92, r'Fitting the mean of $f_{\rm NL}$=0 mocks', 
+            transform=ax.transAxes, fontsize=13, color='grey', alpha=0.8)
+    ax.text(-2.0, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
+    
+    g.add_legend(['DECaLS North', 'DECaLS South', 'BASS+MzLS', r'DESI'], 
+                 colored_text=True, legend_loc='lower left')    
+    g.fig.align_labels()
+    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_zero.pdf', bbox_inches='tight')        
+    print_stats(stats)    
 
     
+def plot_bestfit():
+    
+    
+    bf = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_noweight.npz')
+    plt.scatter(*bf['params'][:, :2].T, s=2, marker='.', alpha=0.5, color='C0')
+    plt.scatter(*bf['params'].mean(axis=0)[:2],  s=300, marker='*', color='C1', alpha=0.8)
+    print(bf['params'].mean(axis=0))
+    print(bf['params'].std(axis=0))
+    plt.axvline(0, lw=1, ls=':', color='grey', zorder=-10)
+    plt.axhline(1.43, lw=1, ls=':', color='grey', zorder=-10)
+    plt.text(-75, 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
+    plt.xlabel(r'$f_{\rm NL}$')
+    plt.ylabel('b')
+    
+    plt.twinx()
+    plt.yticks([])
+    plt.hist(bf['params'][:, 0], zorder=-10, histtype='step', bins=24, color='C0')
+    plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/bestfit_zero.pdf', bbox_inches='tight')    
+    plt.show()
+    
+    
+    bf = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_po100_desic_256_noweight.npz')
+    plt.scatter(*bf['params'][:, :2].T, s=2, marker='.', alpha=0.5, color='C0')
+    plt.scatter(*bf['params'].mean(axis=0)[:2],  s=300, marker='*', color='C1', alpha=0.8)
+    print(bf['params'].mean(axis=0))
+    print(bf['params'].std(axis=0))
+    plt.axvline(100, lw=1, ls=':', color='grey', zorder=-10)
+    plt.axhline(1.43, lw=1, ls=':', color='grey', zorder=-10)
+    plt.text(50, 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
+    plt.xlabel(r'$f_{\rm NL}$')
+    plt.ylabel('b')
+    
+    plt.twinx()
+    plt.yticks([])
+    plt.hist(bf['params'][:, 0], zorder=-10, histtype='step', bins=24, color='C0')
+    plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/bestfit_po100.pdf', bbox_inches='tight')    
+
     
     
 # import sys

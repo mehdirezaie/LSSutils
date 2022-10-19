@@ -25,6 +25,7 @@ if rank==0:
     region = sys.argv[1]  # fullsky, bmzls, ndecals, sdecals ##for window
     path_cov = sys.argv[2]
     output = sys.argv[3]
+    fnl = sys.argv[4]
 
     method = 'noweight'
 
@@ -33,8 +34,7 @@ if rank==0:
         os.makedirs(os.path.dirname(output))
     print('will output ', output)
 
-    # /fs/ess/PHS0336/data/lognormal/v3/clustering/clmock_0_104_lrg_po100_desic_256_noweight.npy
-    cl_mocks = glob(f'/fs/ess/PHS0336/data/lognormal/v3/clustering/clmock_0_*_lrg_zero_{region}_256_noweight.npy')
+    cl_mocks = glob(f'/fs/ess/PHS0336/data/lognormal/v3/clustering/clmock_0_*_lrg_{fnl}_{region}_256_noweight.npy')
 
     if region=='fullsky':
         weight = np.ones(12*1024*1024, 'f8') # full sky

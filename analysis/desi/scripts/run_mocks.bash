@@ -43,7 +43,7 @@ iscont=0
 maps="noweight" #e.g., "known5" or "all"
 method="noweight" # noweight, nn_all
 target="lrg"
-fnltag="zero" #"zero" #zero, po100
+fnltag="po100" #"zero" #zero, po100
 ver=v3 # 
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
 root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys/tables
@@ -252,7 +252,7 @@ then
 
     du -h $path_cov 
     echo $output_bestfit $region
-    srun -n 14 python $bfitlog $region $path_cov $output_bestfit
+    srun -n 14 python $bfitlog $region $path_cov $output_bestfit $fnltag
 fi
 
 #--- fit C-ell other than log C-ell (above)
