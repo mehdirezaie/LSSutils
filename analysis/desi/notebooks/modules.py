@@ -685,7 +685,236 @@ def plot_bestfit():
     plt.hist(bf['params'][:, 0], zorder=-10, histtype='step', bins=24, color='C0')
     plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/bestfit_po100.pdf', bbox_inches='tight')    
 
+
     
+def plot_mcmc_data():
+    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
+           'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
+    mc_kw = dict(names=['fnl', 'b', 'n0'], 
+                 labels=['f_{NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+    read_kw = dict(ndim=3, iscale=[2])
+    
+    ze = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+    po = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_linp_all_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    kn = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_linp_known_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    kn1 = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_linp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)        
+    knn1 = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    knn1b = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
+    knn1n = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
+    knn1s = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                    
+    #knn2 = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/mcmc_lrg_zero_desi_dnnp_known2_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    stats = {}
+    stats['No Weight'] = ze.stats
+    stats['Baseline'] = po.stats    
+    stats['Conservative I'] = kn.stats    
+    stats['Conservative II'] = kn1.stats
+    stats['Nonlinear (Cons. II)'] = knn1.stats    
+    stats['Nonlinear (Cons. II) - BMZLS'] = knn1b.stats    
+    stats['Nonlinear (Cons. II) - NDEC'] = knn1n.stats    
+    stats['Nonlinear (Cons. II) - SDEC'] = knn1s.stats        
+    #stats['Nonlinear (Depths+EBV)'] = knn2.stats    
+
+    # Triangle plot
+    g = plots.get_single_plotter(width_inch=3*4*1.5)
+    g.settings.legend_fontsize = 14
+    #g.plot_2d([ze, po, kn, kn1], 'fnl', 'b', filled=True)
+    g.triangle_plot([ze, po, kn, kn1, knn1], filled=True, legend_labels=['No weight', 'Baseline',
+                                                                        'Conservative I', 'Conservative II',
+                                                                        'Nonlinear (Cons. II)'])
+    g.add_legend(['No weight', 'Baseline', 'Conservative I', 'Conservative II', 'Nonlinear (Cons. II)'], 
+                 colored_text=True, legend_loc='lower left', )    
+    g.fig.align_labels()
+    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods.pdf', bbox_inches='tight')    
+    plt.show()
+    
+    
+    # Triangle plot
+    g = plots.get_single_plotter(width_inch=3*4*1.5)
+    g.settings.legend_fontsize = 14
+    #g.plot_2d([ze, po, kn, kn1], 'fnl', 'b', filled=True)
+    g.triangle_plot([knn1b, knn1n, knn1s, knn1], filled=True, 
+                    legend_labels=['BASS+MzLS', 'DECaLS North', 'DECaLS South', 'DESI'])
+    g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', 'DESI'], 
+                 colored_text=True, legend_loc='lower left', )    
+    g.fig.align_labels()
+    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9regions.pdf', bbox_inches='tight')    
+    plt.show()
+    
+    print_stats(stats)            
+    
+
+    nd = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_ndecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    ndc = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    sd = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_sdecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    sdc = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+
+
+    stats = {}
+    stats['DECaLS North'] = ndc.stats
+    stats['DECaLS North w/o dec cut'] = nd.stats
+    stats['DECaLS South'] = sdc.stats
+    stats['DECaLS South w/o dec cut'] = sd.stats
+
+    labels = stats.keys()
+    # Triangle plot
+    g = plots.get_single_plotter(width_inch=4*1.5)
+    g.settings.legend_fontsize = 14
+    g.plot_2d([ndc, nd, sdc, sd], 'fnl', 'b', filled=True, legend_labels=labels)
+    g.add_legend(labels, colored_text=True, legend_loc='lower left', )    
+    g.fig.align_labels()
+    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9_cutdec.pdf', bbox_inches='tight')
+    plt.show()
+
+    print_stats(stats)
+    #return stats 
+
+def plot_dr9vsmocks():
+    knn1 = np.load('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz')
+    bf = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_noweight.npz')
+
+    fig, ax = plt.subplots(ncols=2, figsize=(12, 4), sharey=True)
+    fig.subplots_adjust(wspace=0.05)
+
+    ax[0].hist(2*bf['neglog']/1000., histtype='step', bins=18)
+    ax[0].axvline(2*knn1['best_fit_logprob'], ls='--', color='C1')
+
+    ax[1].hist(bf['params'][:, 0], histtype='step', bins=18)
+    ax[1].axvline(knn1['best_fit'][0], ls='--', color='C1')
+
+    ax[0].set(xlabel=r'min $\chi^{2}$', yticks=[])
+    ax[1].set(xlabel=r'$f_{\rm NL}$')
+
+    ax[0].text(0.2, 0.75, 'Mocks', transform=ax[0].transAxes)
+    ax[0].text(0.55, 0.75, 'DR9', color='C1', transform=ax[0].transAxes)
+
+    fig.align_xlabels() 
+    fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/pdf_dr9vsmocks.pdf', bbox_inches='tight')   
+    
+
+    
+def plot_model(fnltag='po100'):
+    bm = np.load(f'/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_{fnltag}_desic_256_noweight_steps10k_walkers50.npz')
+    zbdndz = init_sample(kind='lrg')
+    
+    # read survey geometry
+    dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desic_256.fits')
+    w = np.zeros(12*256*256)
+    w[dt['hpix']] = 1.0
+    weight = hp.ud_grade(w, 1024)
+    mask = weight > 0.5
+
+    model = Spectrum()
+    model.add_tracer(*zbdndz, p=1.0)
+    model.add_kernels(np.arange(2000))
+
+
+    wind = WindowSHT(weight, mask, np.arange(2048), ngauss=2048)
+    fnl, b, noise = bm['best_fit']
+    print(fnl, b)
+    
+    el_g = np.arange(2000)
+    cl_bf = model(el_g, fnl=fnl, b=b, noise=noise)
+
+    cl_bfw = wind.convolve(el_g, cl_bf)
+    lmax = max(el_g)+1
+    cl_bfwic = wind.apply_ic(cl_bfw[:lmax])
+
+    cl_ = np.load(f'/fs/ess/PHS0336/data/lognormal/v3/clustering/logclmock_0_lrg_{fnltag}_desic_256_noweight_mean.npz')
+    cl_cov_ = np.load(f'/fs/ess/PHS0336/data/lognormal/v3/clustering/logclmock_0_lrg_{fnltag}_desic_256_noweight_cov.npz')
+
+    el_edges = cl_['el_edges']
+    el = cl_['el_bin']
+    cl = cl_['cl']
+    cl_err = np.diagonal(cl_cov_['clcov'])**0.5
+
+    cl_models = {}
+    for name, cl_i in zip(['Best Fit Model', '+ Window Convolution', '+ Integral Constraint'],
+                          [cl_bf, cl_bfw[:2000], cl_bfwic[:2000]]):
+        cl_models[name] = ut.histogram_cell(el_g, cl_i, bins=el_edges)
+
+
+    fig = plt.figure(figsize=(7, 7), constrained_layout=False)
+    gs = GridSpec(3, 1, figure=fig)
+
+    ax1 = fig.add_subplot(gs[:2, 0])
+    ax2 = fig.add_subplot(gs[2, 0])
+
+    lw = [0.8, 0.8, 3.]
+    ls = ['-', '-', '-']
+    al = [1., 1., 0.7]
+    for i, (n, v) in enumerate(cl_models.items()):
+        kw = dict(label=n, lw=lw[i], ls=ls[i], alpha=al[i])
+        ax1.plot(v[0], np.log10(v[1]), **kw)
+        ax2.plot(el, np.log10(v[1])-cl, **kw)
+
+    f = np.sqrt(1000.)
+    ax1.plot(el, cl, 'C0--', label='Mean of Mocks')
+    #ax2.axhline(0.0, color='C0', ls='--')
+    ax2.fill_between(el, -cl_err, cl_err, alpha=0.2, color='grey')
+    ax2.fill_between(el, -f*cl_err, f*cl_err, alpha=0.05, color='grey')
+
+
+    ax1.legend(ncol=1)
+    ax1.set(xscale='log', ylabel=r'$\logC_{\ell}$') #, yscale='log')
+    ax1.tick_params(labelbottom=False)
+    ax2.set(xscale='log', xlabel=r'$\ell$', ylabel=r'$\Delta \logC_{\ell}$', xlim=ax1.get_xlim(), ylim=(-0.025, +0.025))
+
+    fig.subplots_adjust(hspace=0.0, wspace=0.02)
+    fig.align_labels()
+    fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/model_mock.pdf', bbox_inches='tight')     
+    
+    
+def plot_dr9cl():
+    zbdndz = init_sample(kind='lrg')
+
+    # read survey geometry
+    dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desic_256.fits')
+    w = np.zeros(12*256*256)
+    w[dt['hpix']] = dt['fracgood']
+    weight = hp.ud_grade(w, 1024)
+    mask = weight > 0.5
+
+    z, b, dNdz = init_sample(kind='lrg')
+    model = SurveySpectrum()
+    model.add_tracer(z, b, dNdz, p=1.0)
+    model.add_kernels(model.el_model)
+    model.add_window(weight, mask, np.arange(2048), ngauss=2048)  
+    
+    fnltag = 'zero'
+    cl_ = np.load(f'/fs/ess/PHS0336/data/lognormal/v3/clustering/logclmock_0_lrg_{fnltag}_desic_256_noweight_mean.npz')
+    cl_cov_ = np.load(f'/fs/ess/PHS0336/data/lognormal/v3/clustering/logclmock_0_lrg_{fnltag}_desic_256_noweight_cov.npz')
+
+    cl_err = np.diagonal(cl_cov_['clcov']*1000.)**0.5
+
+    mk = ['.', 'o', 'x', '^', 's', '1']
+    el_g = np.arange(300)
+
+    plt.figure(figsize=(8, 6))
+    ln, = plt.plot(cl_['el_bin'], cl_['cl'], label='Mean of Mocks', alpha=0.5)
+    plt.fill_between(cl_['el_bin'], cl_['cl']-cl_err, cl_['cl']+cl_err, alpha=0.1, color=ln.get_color())
+
+    for i, (n, nm) in enumerate(zip(['linp_all', 'linp_known', 'linp_known1', 'dnnp_known1', 'noweight'],
+                     ['Baseline', 'Conservative I', 'Conservative II','Nonlinear (Cons. II)', 'No weight'])):
+        cl_d = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_{n}.npy', allow_pickle=True).item()
+        cl_b = np.log10(ut.histogram_cell(cl_d['cl_gg']['l'], cl_d['cl_gg']['cl'], bins=ut.ell_edges)[1])
+
+        bestp = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_{n}_steps10k_walkers50.npz')
+        fnl, b, noise = bestp['best_fit']
+        print(nm, fnl, b)
+
+        cl_bf = np.log10(model(el_g, fnl=fnl, b=b, noise=noise))
+        ln = plt.plot(el_g[2:], cl_bf[2:], lw=1, alpha=0.6)
+        plt.scatter(cl_['el_bin'], cl_b, label=nm, 
+                    marker=mk[i], color=ln[0].get_color(), alpha=0.8)
+
+    plt.xscale('log')
+    #plt.yscale('log')
+    plt.xlabel(r'$\ell$')
+    plt.ylabel(r'$\logC_{\ell}$')
+    #plt.ylim(1.2e-6, 2.2e-4)
+    plt.xlim(xmin=1.9)
+    plt.legend(ncol=1, loc='upper right')
+    plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/model_dr9.pdf', bbox_inches='tight')         
     
 # import sys
 # import os
