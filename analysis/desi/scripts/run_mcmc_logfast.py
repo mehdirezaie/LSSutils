@@ -47,14 +47,13 @@ def read_mask(region):
     import healpy as hp
     from lssutils.utils import make_hp
 
-    if region in ['bmzls', 'ndecals', 'sdecals', 'ngc', 'desi', 
-                  'desic', 'ndecalsc', 'sdecalsc']:
-        # read survey geometry
-        data_path = '/fs/ess/PHS0336/data/'    
-        dt = ft.read(f'{data_path}/rongpu/imaging_sys/tables/0.57.0/nlrg_features_{region}_256.fits')
+    # read survey geometry
+    data_path_ = '/fs/ess/PHS0336/data/'    
+    data_path = f'{data_path}/rongpu/imaging_sys/tables/0.57.0/nlrg_features_{region}_256.fits'
+    if os.path.exits(data_path)
+        dt = ft.read(data_path)
         weight_ = make_hp(256, dt['hpix'], dt['fracgood'])
-        weight  = hp.ud_grade(weight_, 1024)
-        
+        weight  = hp.ud_grade(weight_, 1024)        
     else:
         # full sky
         weight = np.ones(12*1024*1024, 'f8')

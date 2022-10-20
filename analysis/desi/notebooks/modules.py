@@ -745,28 +745,33 @@ def plot_mcmc_data():
 
     nd = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_ndecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
     ndc = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    ndce = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_ndecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
     sd = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_sdecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
     sdc = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    sdce = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_sdecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
 
 
     stats = {}
-    stats['DECaLS North'] = ndc.stats
-    stats['DECaLS North w/o dec cut'] = nd.stats
-    stats['DECaLS South'] = sdc.stats
-    stats['DECaLS South w/o dec cut'] = sd.stats
+    stats['North'] = ndc.stats
+    stats['North [incl. CALIBZ+logHI]'] = ndce.stats    
+    stats['North [incl. DEC < -11]'] = nd.stats
+    stats['South'] = sdc.stats
+    stats['South [incl. CALIBZ+logHI]'] = sdce.stats        
+    stats['South [incl. DEC < -30]'] = sd.stats    
 
     labels = stats.keys()
     # Triangle plot
     g = plots.get_single_plotter(width_inch=4*1.5)
     g.settings.legend_fontsize = 14
-    g.plot_2d([ndc, nd, sdc, sd], 'fnl', 'b', filled=True, legend_labels=labels)
+    g.plot_2d([ndc, ndce, nd, sdc, sdce, sd], 'fnl', 'b', filled=True, legend_labels=labels)
     g.add_legend(labels, colored_text=True, legend_loc='lower left', )    
     g.fig.align_labels()
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9_cutdec.pdf', bbox_inches='tight')
     plt.show()
-
     print_stats(stats)
-    #return stats 
+    
+    
+    
 
 def plot_dr9vsmocks():
     knn1 = np.load('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz')
