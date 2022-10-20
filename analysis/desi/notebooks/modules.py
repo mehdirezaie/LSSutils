@@ -26,8 +26,8 @@ dv.setup_color()
 # --- helper functions
 def print_stats(stats):
     for s, v in stats.items():
-        msg = r"{0:40s}& ${1:6.2f}$& ${2:6.2f}$& ${3:6.2f}<\fnl<{4:6.2f}$& ${5:6.2f}<\fnl<{6:6.2f}$\\"\
-                .format(s, v[0], v[1], v[2], v[3], v[4], v[5])
+        msg = r"{0:40s}& ${1:6.2f}$& ${2:6.2f}$& ${3:6.2f}<\fnl<{4:6.2f}$& ${5:6.2f}<\fnl<{6:6.2f}$ & {7:6.1f}\\"\
+                .format(s, v[0], v[1], v[2], v[3], v[4], v[5], -v[6])
         print(msg)     
 
 
@@ -304,9 +304,9 @@ def plot_npred():
     dv.mollview(hp_nknown1, figax=[fig, ax3], 
                 colorbar=True, galaxy=False, unit=r'Predicted density [deg$^{-2}$]', **kw)
 
-    for ni, axi in zip(['Conservative I', 'Conservative II', 'Baseline', 'Nonlinear (Cons. II)'], 
+    for ni, axi in zip(['Linear (E[B-V], Depth-z)', 'Linear (E[B-V], Depth-z, PSFsize-r)', 'Linear (All Maps)', 'Nonlinear (E[B-V], Depth-z, PSFsize-r)'], 
                                       [ax0, ax1, ax2, ax3]):
-        axi.text(0.4, 0.2, ni, transform=axi.transAxes)
+        axi.text(0.15, 0.2, ni, transform=axi.transAxes, alpha=0.8)
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/npred.pdf', bbox_inches='tight')    
     
     
@@ -432,10 +432,10 @@ def plot_clxtest():
     for xt in np.arange(0, 82, 9):ax.axvline(xt, ls=':', lw=1, color='grey')
     ax.set_xticks([4.5+i*9 for i in range(len(names))])
     ax.set_xticklabels(names, rotation=90)
-    ax.annotate("Linear", (-2, 0.0), (-2, 4), arrowprops=dict(arrowstyle='->', relpos=(0, 0.2)), rotation=90, fontsize=13, color='grey')
-    ax.annotate("", (-2, +10.0), (-2, 6.2), arrowprops=dict(arrowstyle='->'), rotation=90, color='grey')
-    ax.annotate("Logarithmic", (-2, 10.0), (-2, 25), arrowprops=dict(arrowstyle='->', relpos=(0, 0)), rotation=90, fontsize=13, color='grey')
-    ax.annotate("", (-2, 200.0), (-2, 85), arrowprops=dict(arrowstyle='->'), rotation=90, color='grey')  
+    ax.annotate("Linear", (-2, 0.0), (-2, 4), arrowprops=dict(arrowstyle='->', relpos=(0, 0.2)), rotation=90, fontsize=13, color='k')
+    ax.annotate("", (-2, +10.0), (-2, 6.2), arrowprops=dict(arrowstyle='->'), rotation=90)
+    ax.annotate("Logarithmic", (-2, 10.0), (-2, 25), arrowprops=dict(arrowstyle='->', relpos=(0, 0)), rotation=90, fontsize=13, color='k')
+    ax.annotate("", (-2, 200.0), (-2, 85), arrowprops=dict(arrowstyle='->'), rotation=90)  
     fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/clx_mocks.pdf', bbox_inches='tight')    
     plt.show()
     
@@ -538,10 +538,14 @@ def plot_nbartest():
             
 def plot_clhist():
     
-    def hist(ax, x, **kw):
+    def hist(ax, x, scaled, **kw):
         std_ = np.std(x)
         ax.hist(x, **kw)
-        ax.text(0.6, 0.8, f'$\sigma$={std_:.2f}', 
+        if scaled:
+            text = f'$\sigma$={std_:.2f} [x$10^{{-5}}$]'
+        else:
+            text = f'$\sigma$={std_:.2f}'
+        ax.text(0.4, 0.8, text, 
                 transform=ax.transAxes, color=kw['color'])
         
     print('bins', ut.ell_edges)
@@ -567,15 +571,15 @@ def plot_clhist():
     fig.subplots_adjust(wspace=0.02, hspace=0.3)
 
     kw = dict(histtype='step', alpha=0.8)
-    hist(ax[0], 1.0e5*cl_0[:, 0], color='C0', **kw)
-    hist(ax[1], 1.0e5*cl_100[:, 0], color='C0', **kw)
-    hist(ax[2], np.log10(cl_0[:, 0]), color='C1', **kw)
-    hist(ax[3], np.log10(cl_100[:, 0]), color='C1', **kw)
+    hist(ax[0], 1.0e5*cl_0[:, 0], True, color='C0', **kw)
+    hist(ax[1], 1.0e5*cl_100[:, 0], True, color='C0', **kw)   
+    hist(ax[2], np.log10(cl_0[:, 0]), False, color='C1', **kw)
+    hist(ax[3], np.log10(cl_100[:, 0]), False, color='C1', **kw)
 
     ax[0].set(yticks=[], ylabel='Distribution of first bin')
     ax[2].set(yticks=[], ylabel='Distribution of first bin')    
     for i, fnl in zip([0, 1], [0, 100]):        
-        ax[i].set(xlabel=r'First bin $C_{\ell}~[x 10^{-5}]$')        
+        ax[i].set(xlabel=r'First bin $C_{\ell}$ [x$10^{-5}$]')        
         ax[i].text(0.15, 0.2, fr'$f_{{\rm NL}}={fnl:d}$', transform=ax[i].transAxes)        
         ax[2+i].set(xlabel=r'Log of first bin $C_{\ell}$')
         ax[2+i].text(0.5, 0.2, fr'$f_{{\rm NL}}={fnl:d}$', transform=ax[2+i].transAxes, color='C1')
@@ -604,7 +608,7 @@ def plot_mcmc_mocks():
 
     g = plots.get_single_plotter(width_inch=4*1.5)
     g.settings.legend_fontsize = 14
-    g.plot_2d([lpo100, po100, lpo0, po0, ], 'fnl', 'b', filled=True, colors=['C0', 'C1', 'C2', 'C3'])
+    g.plot_2d([lpo100, po100, lpo0, po0, ], 'fnl', 'b', filled=True)
     g.add_x_marker(100)
     g.add_y_marker(1.43)
     g.get_axes().set_ylim(1.426, 1.434)
@@ -652,17 +656,20 @@ def plot_bestfit():
     
     
     bf = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_noweight.npz')
-    plt.scatter(*bf['params'][:, :2].T, s=2, marker='.', alpha=0.5, color='C0')
-    plt.scatter(*bf['params'].mean(axis=0)[:2],  s=300, marker='*', color='C1', alpha=0.8)
+    map_ = plt.scatter(*bf['params'][:, :2].T, s=10, 
+                       c=2*bf['neglog']/1000, alpha=0.5, cmap='jet', vmin=20, vmax=50)
+    #plt.scatter(*bf['params'].mean(axis=0)[:2],  s=500, marker='*', color='C0', alpha=1.0)
     print(bf['params'].mean(axis=0))
     print(bf['params'].std(axis=0))
     plt.axvline(0, lw=1, ls=':', color='grey', zorder=-10)
     plt.axhline(1.43, lw=1, ls=':', color='grey', zorder=-10)
-    plt.text(-75, 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
+    plt.text(-95, 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
     plt.xlabel(r'$f_{\rm NL}$')
     plt.ylabel('b')
-    
+    plt.colorbar(map_, label=r'Min $\chi^{2}$')    
+    plt.ylim(1.36, 1.50)    
     plt.twinx()
+    plt.xlim(-101, 70)
     plt.yticks([])
     plt.hist(bf['params'][:, 0], zorder=-10, histtype='step', bins=24, color='C0')
     plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/bestfit_zero.pdf', bbox_inches='tight')    
@@ -670,21 +677,24 @@ def plot_bestfit():
     
     
     bf = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_po100_desic_256_noweight.npz')
-    plt.scatter(*bf['params'][:, :2].T, s=2, marker='.', alpha=0.5, color='C0')
-    plt.scatter(*bf['params'].mean(axis=0)[:2],  s=300, marker='*', color='C1', alpha=0.8)
+    map_ = plt.scatter(*bf['params'][:, :2].T, s=10, 
+                       c=2*bf['neglog']/1000, alpha=0.5, cmap='jet', vmin=20, vmax=50)
+    #plt.scatter(*bf['params'].mean(axis=0)[:2],  s=500, marker='*', color='C0', alpha=1.0)
     print(bf['params'].mean(axis=0))
     print(bf['params'].std(axis=0))
     plt.axvline(100, lw=1, ls=':', color='grey', zorder=-10)
     plt.axhline(1.43, lw=1, ls=':', color='grey', zorder=-10)
-    plt.text(50, 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
+    plt.text(5, 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
     plt.xlabel(r'$f_{\rm NL}$')
     plt.ylabel('b')
-    
+    plt.ylim(1.36, 1.50)    
+    plt.colorbar(map_, label=r'Min $\chi^{2}$')
     plt.twinx()
     plt.yticks([])
+    plt.xlim(-1, 170)       
     plt.hist(bf['params'][:, 0], zorder=-10, histtype='step', bins=24, color='C0')
     plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/bestfit_po100.pdf', bbox_inches='tight')    
-
+    plt.show()
 
     
 def plot_mcmc_data():

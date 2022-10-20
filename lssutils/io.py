@@ -18,8 +18,8 @@ def read_chain(chain_filename, skip=5000, ndim=3, ifnl=0, iscale=[2, ]):
     
     mean_chain = sample[:, ifnl].mean()
     vmin2, vmin1, vmax1, vmax2 = np.percentile(sample[:, ifnl], [2.5, 16, 84, 97.5], axis=ifnl)
-    
-    return [map_bf, mean_chain, vmin1, vmax1, vmin2, vmax2], sample
+    chi2 = -2*ch_['best_fit_logprob']
+    return [map_bf, mean_chain, vmin1, vmax1, vmin2, vmax2, chi2], sample
 
 
 def read_window(region, nside=256):
