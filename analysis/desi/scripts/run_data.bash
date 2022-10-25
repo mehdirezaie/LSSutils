@@ -34,12 +34,13 @@ do_mcmc_joint3=false # 5x14
 bsize=5000    # 
 target="lrg"  # lrg
 region=$1     # bmzls, ndecals, sdecals, or desi
-maps="known1ext" # known, all, known1, known2
+maps="known1" # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
 fnltag="zero"
 model="dnnp"    # dnnp, linp
 method=${model}_${maps}       # dnnp_known1, linp_known, or noweight
+lmin=$2
 loss=pnll
 nns=(4 20)
 nepoch=70  # v0 with 71
@@ -210,11 +211,12 @@ if [ "${do_mcmc}" = true ]
 then
     path_cl=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${method}.npy
     path_cov=${mock_dir}/clustering/logclmock_0_${target}_${fnltag}_${region}_256_noweight_cov.npz
-    output_mcmc=${root_dir}/mcmc/${tag_d}/logmcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
-        
+    #output_mcmc=${root_dir}/mcmc/${tag_d}/logmcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
+    output_mcmc=${root_dir}/mcmc/${tag_d}/logmcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50_elmin${lmin}.npz   
+    
     du -h $path_cl $path_cov
     echo $target $region $maps $output_mcmc
-    python $mcmclog $path_cl $path_cov $region $output_mcmc 1.0
+    python $mcmclog $path_cl $path_cov $region $output_mcmc 1.0 $lmin
 fi
 
 
