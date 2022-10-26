@@ -277,10 +277,11 @@ def plot_ngal():
     print(np.mean(ng[desi['hpix']]))
 
     dv.mollview(ng, 400, 1200, r'Target Density [deg$^{-2}$]', 
-            cmap='YlOrRd_r', colorbar=True, galaxy=True)
+            cmap=dv.mycolor(), colorbar=True, galaxy=True) # 'YlOrRd_r',
     plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/lrgdens.pdf', bbox_inches='tight')    
 
 def plot_npred():
+    
     hp_known = hp.read_map('/fs/ess/PHS0336/data/rongpu/imaging_sys/regression/0.57.0/linp_lrg_desic_known.hp256.fits')
     hp_known1 = hp.read_map('/fs/ess/PHS0336/data/rongpu/imaging_sys/regression/0.57.0/linp_lrg_desic_known1.hp256.fits')
     hp_all = hp.read_map('/fs/ess/PHS0336/data/rongpu/imaging_sys/regression/0.57.0/linp_lrg_desic_all.hp256.fits')
@@ -297,7 +298,7 @@ def plot_npred():
     ax2  = fig.add_axes([0., 0.2, 1., 1],  projection='mollweide')
     ax3  = fig.add_axes([0., -0.2, 1., 1], projection='mollweide')
 
-    kw = {'vmin':760., 'vmax':890., 'cmap':dv.mycolor(), 'in_deg':True}
+    kw = {'vmin':400, 'vmax':1200, 'cmap':dv.mycolor(), 'in_deg':True}
     dv.mollview(hp_known,  figax=[fig, ax0], **kw)
     dv.mollview(hp_known1, figax=[fig, ax1], **kw)
     dv.mollview(hp_all,    figax=[fig, ax2], **kw)
