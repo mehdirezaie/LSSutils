@@ -28,19 +28,26 @@ from matplotlib.colors import ListedColormap
 
 
 
-def add_locators(ax, xmajor=1.0, ymajor=1.0):
+def add_locators(ax, xmajor=None, ymajor=None):
 
     # major and minor ticks of the x and y axes
     axis_kw = dict(width=2, direction='in', pad=5)
+    
     ax.xaxis.set_tick_params(which='major', size=9, top=True, **axis_kw)
     ax.xaxis.set_tick_params(which='minor', size=6, top=True, **axis_kw)
     ax.yaxis.set_tick_params(which='major', size=9, right=True, **axis_kw)
     ax.yaxis.set_tick_params(which='minor', size=6, right=True, **axis_kw)
-    ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(xmajor))
-    ax.xaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.2*xmajor))
+
+    if xmajor is not None:        
+        ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(xmajor))
+        ax.xaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.2*xmajor))
+
+    if ymajor is not None:
+        ax.yaxis.set_major_locator(mpl.ticker.MultipleLocator(ymajor))
+        ax.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.2*ymajor))
+
+        
     
-    ax.yaxis.set_major_locator(mpl.ticker.MultipleLocator(ymajor))
-    ax.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.2*ymajor))
     
 
 

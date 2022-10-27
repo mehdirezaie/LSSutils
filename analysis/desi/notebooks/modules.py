@@ -932,6 +932,53 @@ def plot_dr9cl():
     plt.legend(ncol=1, loc='upper right')
     plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/model_dr9.pdf', bbox_inches='tight')         
     
+
+def plot_fnl_lmin():
+    p = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
+    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
+           'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
+    mc_kw = dict(names=['fnl', 'b', 'n0'], 
+                 labels=['f_{NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+
+    stats = {}
+    elmin = np.arange(16)
+    for r in ['desic', 'bmzls', 'ndecalsc', 'sdecalsc']:
+        d = []
+        for elmin_ in elmin:
+            d_ = MCMC(f'{p}logmcmc_lrg_zero_{r}_dnnp_known1_steps10k_walkers50_elmin{elmin_}.npz', mc_kw=mc_kw)
+            d.append(d_.stats)
+        stats[r] = np.array(d)    
+    
+    fig, ax = plt.subplots(figsize=(10, 5))
+    names = ['DESI', 'BASS+MzLS', 'DECaLS North', 'DECaLS South',]
+    markers = ['o', 'x', '^', 's']
+    for i, st in enumerate(['desic', 'bmzls', 'ndecalsc', 'sdecalsc']):
+        yp  = stats[st][:, 3]-stats[st][:, 0]
+        yn  = stats[st][:, 0]-stats[st][:, 2]
+        alpha = 1.0 if st=='desic' else 0.5
+        ln = ax.errorbar(elmin+(i*0.1-0.1), stats[st][:, 0], yerr=[yn, yp], 
+                         label=names[i], marker=markers[i], capsize=6, ls='none', alpha=alpha)
+        # --- 95%
+        #yp2 = stats[st][:, 5]-stats[st][:, 0]
+        #yn2 = stats[st][:, 0]-stats[st][:, 4]    
+        #ax.errorbar(elmin+(i*0.1-0.1), stats[st][:, 0], yerr=[yn2, yp2], capsize=5, ls='none', 
+        #           color=ln.lines[0].get_color(), alpha=alpha, zorder=-10)   
+
+    lgn = ax.legend(loc='lower left', bbox_to_anchor=(0, 1.02, 1, 0.4),
+                    mode="expand", borderaxespad=0, ncol=4, frameon=False)
+    for i, li in enumerate(lgn.get_texts()):
+        li.set_color('C%d'%i)
+    dv.add_locators(ax, xmajor=None, ymajor=50)    
+
+    ax.set_ylim(-55, 155)
+    ax.set_xticks(elmin)
+    ax.set_xticklabels(ut.ell_edges[:elmin.max()+1])
+    ax.axhline(0.0, ls=':', color='grey', lw=1)
+    ax.set_xlim(-0.5, 9.5)
+    ax.set(xlabel=r'$\ell_{\rm min}$', ylabel=r'$f_{\rm NL}$')
+    fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_elmin.pdf', bbox_inches='tight')    
+    
+    
 # import sys
 # import os
 # import matplotlib.pyplot as plt
