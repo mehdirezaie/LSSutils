@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=mcmc
+#SBATCH --job-name=nnfit
 #SBATCH --account=PHS0336 
-#SBATCH --time=05:00:00
+#SBATCH --time=00:30:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -22,12 +22,12 @@ do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
 do_fit=false       # linmcmc:20m x 14, nn:20 h x 1 tpn
 do_linsam=false   # 10 min x 1
-do_rfe=false       
-do_assign=false
+do_rfe=false      # 
+do_assign=false   #
 do_nbar=false     # 10 min x 4 tpn
-do_cl=false       # 20 min x 4 tpn
-do_mcmc=true     # 3 h x 14 tpn
-do_mcmcf=false
+do_cl=true       # 20 min x 4 tpn
+do_mcmc=false     # 3 h x 14 tpn
+do_mcmcf=false    #
 do_mcmc_joint=false # 3x14
 do_mcmc_joint3=false # 5x14
 
@@ -40,7 +40,7 @@ nside=256     # lrg=256, elg=1024
 fnltag="zero"
 model="dnnp"    # dnnp, linp
 method=${model}_${maps}       # dnnp_known1, linp_known, or noweight
-lmin=$2
+lmin=0
 loss=pnll
 nns=(4 20)
 nepoch=70  # v0 with 71
@@ -98,7 +98,6 @@ function get_axes(){
 }
 
 
-
 function get_reg(){
     if [ $1 = 'NBMZLS' ]
     then
@@ -121,6 +120,7 @@ function get_reg(){
     fi
     echo $reg
 }
+
 
 # e.g., sbatch run_data.bash "lrg elg" "bmzls ndecals sdecals" 0.57.0 256
 if [ "${do_prep}" = true ]
@@ -200,7 +200,7 @@ then
     fi
 
     output_path=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${model}_${maps}.npy
-    selection=${root_dir}/regression/${tag_d}/${model}_${target}_desic_${maps}.hp${nside}.fits
+    selection=${root_dir}/regression/${tag_d}/${model}_${target}_desicf_${maps}.hp${nside}.fits
     du -h $selection
     echo $output_path
     srun -n 4 python $cl -d ${input_path} -o ${output_path} -s ${selection}           
@@ -211,26 +211,12 @@ if [ "${do_mcmc}" = true ]
 then
     path_cl=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${method}.npy
     path_cov=${mock_dir}/clustering/logclmock_0_${target}_${fnltag}_${region}_256_noweight_cov.npz
-    #output_mcmc=${root_dir}/mcmc/${tag_d}/logmcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50.npz
     output_mcmc=${root_dir}/mcmc/${tag_d}/logmcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50_elmin${lmin}.npz   
     
     du -h $path_cl $path_cov
     echo $target $region $maps $output_mcmc
     python $mcmclog $path_cl $path_cov $region $output_mcmc 1.0 $lmin
 fi
-
-
-if [ "${do_mcmcf}" = true ]
-then
-    path_cl=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${method}.npy
-    path_cov=${mock_dir}/clustering/clmock_0_${target}_${fnltag}_${region}_256_noweight_cov.npz
-    output_mcmc=${root_dir}/mcmc/${tag_d}/mcmc_${target}_${fnltag}_${region}_${method}frac_steps10k_walkers50.npz
-        
-    du -h $path_cl $path_cov
-    echo $target $region $maps $output_mcmc
-    python $mcmcf $path_cl $path_cov $region $output_mcmc 1.0
-fi
-
 
 
 if [ "${do_mcmc_joint}" = true ]

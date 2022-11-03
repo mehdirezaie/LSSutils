@@ -3,16 +3,18 @@ import numpy as np
 
 
 def read_chain(chain_filename, skip=5000, ndim=3, ifnl=0, iscale=[2, ]):
-    
+    gratio = 1.3
     ch_ = np.load(chain_filename)
     
     chain = ch_['chain']
     assert chain.shape[-1] == ndim
     
-    map_bf = ch_['best_fit'][ifnl]   
+    map_bf = ch_['best_fit'][ifnl]/gratio
     #map_chain = ch_['chain'].reshape(-1, ndim)[ch_['log_prob'].argmax()][ifnl]
     
     sample = chain[skip:, :, :].flatten().reshape(-1, ndim)
+    sample[:, ifnl] /= gratio
+    
     for icol in iscale:
         sample[:, icol] *= 1.0e7
     

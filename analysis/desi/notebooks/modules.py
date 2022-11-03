@@ -21,7 +21,7 @@ from lssutils.theory.cell import (init_sample, SurveySpectrum, Spectrum, bias_mo
 
 dv.setup_color()
 
-
+gratio = 1.3
 
 # --- helper functions
 def print_stats(stats):
@@ -305,7 +305,8 @@ def plot_npred():
     dv.mollview(hp_nknown1, figax=[fig, ax3], 
                 colorbar=True, galaxy=False, unit=r'Predicted density [deg$^{-2}$]', **kw)
 
-    for ni, axi in zip(['Linear (E[B-V], Depth-z)', 'Linear (E[B-V], Depth-z, PSFsize-r)', 'Linear (All Maps)', 'Nonlinear (E[B-V], Depth-z, PSFsize-r)'], 
+    for ni, axi in zip(['Linear (E[B-V], Depth-z)', 'Linear (E[B-V], Depth-z, PSFsize-r)', 
+                        'Linear (All Maps)', 'Nonlinear (E[B-V], Depth-z, PSFsize-r)'], 
                                       [ax0, ax1, ax2, ax3]):
         axi.text(0.15, 0.2, ni, transform=axi.transAxes, alpha=0.8)
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/npred.pdf', bbox_inches='tight')    
@@ -384,7 +385,7 @@ def plot_clxtest():
 
     chi2s = {}
     chi2s['fNL=0'] = ut.get_chi2pdf(err_0)
-    chi2s['fNL=100'] = ut.get_chi2pdf(err_100)
+    chi2s['fNL=76.92'] = ut.get_chi2pdf(err_100)
 
 
     err_dr9 = read_clx('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_noweight.npy', ell_edges)
@@ -493,7 +494,7 @@ def plot_nbartest():
     err_100e = np.diagonal(cov_100)**0.5
 
     ln1 = ax.fill_between(ell_b, err_0m-err_0e, err_0m+err_0e,  label='fNL=0', color='k', alpha=0.1)
-    ln2 = ax.fill_between(ell_b+0.1, err_100m-err_100e, err_100m+err_100e, label='fNL=100', color='k', alpha=0.05)
+    ln2 = ax.fill_between(ell_b+0.1, err_100m-err_100e, err_100m+err_100e, label='fNL=76.92', color='k', alpha=0.05)
     lgn1 = plt.legend(handles=[ln1, ln2], loc='upper right', title='Clean Mocks')
 
     kw = dict()
@@ -517,7 +518,7 @@ def plot_nbartest():
     
     chi2s = {}
     chi2s['fNL=0'] = ut.get_chi2pdf(err_0)
-    chi2s['fNL=100'] = ut.get_chi2pdf(err_100)
+    chi2s['fNL=76.92'] = ut.get_chi2pdf(err_100)
     plt.figure()
     ls = ['-', '--']
     for i, (name_i, chi2_i) in enumerate(chi2s.items()):
@@ -579,7 +580,7 @@ def plot_clhist():
 
     ax[0].set(yticks=[], ylabel='Distribution of first bin')
     ax[2].set(yticks=[], ylabel='Distribution of first bin')    
-    for i, fnl in zip([0, 1], [0, 100]):        
+    for i, fnl in zip([0, 1], [0, 76.92]):        
         ax[i].set(xlabel=r'First bin $C_{\ell}$ [x$10^{-5}$]')        
         ax[i].text(0.15, 0.2, fr'$f_{{\rm NL}}={fnl:d}$', transform=ax[i].transAxes)        
         ax[2+i].set(xlabel=r'Log of first bin $C_{\ell}$')
@@ -601,24 +602,26 @@ def plot_mcmc_mocks():
     lpo100 = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_po100_desic_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
 
     stats = {}
-    stats[r'log$C_{\ell}$'] = lpo100.stats
-    stats[r'$C_{\ell}$'] = po100.stats
-    stats[r'log$C_{\ell}$ using $f_{\rm NL}=0$ cov'] = lpo0.stats
-    stats[r'$C_{\ell}$ using $f_{\rm NL}=0$ cov'] = po0.stats
+    stats[r'$76.92$ & DESI & log$C_{\ell}$'] = lpo100.stats
+    stats[r'$76.92$ & DESI & $C_{\ell}$ ']   = po100.stats
+    stats[r'$76.92$ & DESI & log$C_{\ell}$ + $f_{\rm NL}=0$ cov '] = lpo0.stats
+    stats[r'$76.92$ & DESI & $C_{\ell}$ + $f_{\rm NL}=0$ cov '] = po0.stats
 
 
     g = plots.get_single_plotter(width_inch=4*1.5)
     g.settings.legend_fontsize = 14
-    g.plot_2d([lpo100, po100, lpo0, po0, ], 'fnl', 'b', filled=True)
-    g.add_x_marker(100)
+    g.plot_2d([lpo100, po100, lpo0, po0], 'fnl', 'b', filled=True)
+    g.add_x_marker(100./1.3)
     g.add_y_marker(1.43)
     g.get_axes().set_ylim(1.426, 1.434)
-    g.get_axes().set_xlim(100-2.2, 100+3.2)
-    g.add_legend(stats.keys(), colored_text=True, legend_ncol=2)
+    g.get_axes().set_xlim(76.9-2.2, 76.9+3.2)
+    g.add_legend([r'log$C_{\ell}$', r'$C_{\ell}$', 
+                  r'log$C_{\ell}$ + $f_{\rm NL}=0$ cov ',
+                  r'$C_{\ell}$ + $f_{\rm NL}=0$ cov '], colored_text=True, legend_ncol=2)
     ax = g.get_axes()
     ax.text(0.08, 0.08, r'Fitting the mean of $f_{\rm NL}$=100 mocks', 
             transform=ax.transAxes, fontsize=13, color='grey', alpha=0.8)
-    ax.text(98, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
+    ax.text(98/1.3, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
     g.fig.align_labels()  
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_po100.pdf', bbox_inches='tight')
     plt.show()
@@ -629,10 +632,10 @@ def plot_mcmc_mocks():
     sd = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_zero_sdecalsc_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
     bm = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_zero_bmzls_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     
-    stats['0 [DESI]'] = ze.stats
-    stats['0 [DECaLS North]'] = nd.stats
-    stats['0 [DECaLS South]'] = sd.stats
-    stats['0 [BASS+MzLS]'] = bm.stats   
+    stats[r'$0$ & DESI         &  log$C_{\ell}$ '] = ze.stats
+    stats[r'$0$ & DECaLS North &  log$C_{\ell}$'] = nd.stats
+    stats[r'$0$ & DECaLS South &  log$C_{\ell}$'] = sd.stats
+    stats[r'$0$ & BASS+MzLS    &  log$C_{\ell}$ '] = bm.stats   
     
     g = plots.get_single_plotter(width_inch=4*1.5)
     g.settings.legend_fontsize = 14
@@ -654,46 +657,50 @@ def plot_mcmc_mocks():
 
     
 def plot_bestfit():
-    
-    
     bf = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_noweight.npz')
-    map_ = plt.scatter(*bf['params'][:, :2].T, s=10, 
+    fnl, b = bf['params'][:, :2].T
+    fnl /= gratio
+    
+    map_ = plt.scatter(fnl, b, s=10, 
                        c=2*bf['neglog']/1000, alpha=0.5, cmap='jet', vmin=20, vmax=50)
     #plt.scatter(*bf['params'].mean(axis=0)[:2],  s=500, marker='*', color='C0', alpha=1.0)
-    print(bf['params'].mean(axis=0))
-    print(bf['params'].std(axis=0))
+    print(np.mean(fnl))
+    print(np.std(fnl))
     plt.axvline(0, lw=1, ls=':', color='grey', zorder=-10)
     plt.axhline(1.43, lw=1, ls=':', color='grey', zorder=-10)
-    plt.text(-95, 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
+    plt.text(25., 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
     plt.xlabel(r'$f_{\rm NL}$')
     plt.ylabel('b')
     plt.colorbar(map_, label=r'Min $\chi^{2}$')    
     plt.ylim(1.36, 1.50)    
     plt.twinx()
-    plt.xlim(-101, 70)
+    plt.xlim(-70, 50)
     plt.yticks([])
-    plt.hist(bf['params'][:, 0], zorder=-10, histtype='step', bins=24, color='C0')
+    plt.hist(fnl, zorder=-10, histtype='step', bins=24, color='C0')
     plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/bestfit_zero.pdf', bbox_inches='tight')    
     plt.show()
     
     
     bf = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_po100_desic_256_noweight.npz')
-    map_ = plt.scatter(*bf['params'][:, :2].T, s=10, 
+    fnl, b = bf['params'][:, :2].T
+    fnl /= gratio
+    
+    map_ = plt.scatter(fnl, b, s=10, 
                        c=2*bf['neglog']/1000, alpha=0.5, cmap='jet', vmin=20, vmax=50)
     #plt.scatter(*bf['params'].mean(axis=0)[:2],  s=500, marker='*', color='C0', alpha=1.0)
-    print(bf['params'].mean(axis=0))
-    print(bf['params'].std(axis=0))
-    plt.axvline(100, lw=1, ls=':', color='grey', zorder=-10)
+    print(np.mean(fnl))
+    print(np.std(fnl))
+    plt.axvline(100/gratio, lw=1, ls=':', color='grey', zorder=-10)
     plt.axhline(1.43, lw=1, ls=':', color='grey', zorder=-10)
-    plt.text(5, 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
+    plt.text(120, 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
     plt.xlabel(r'$f_{\rm NL}$')
     plt.ylabel('b')
     plt.ylim(1.36, 1.50)    
     plt.colorbar(map_, label=r'Min $\chi^{2}$')
     plt.twinx()
     plt.yticks([])
-    plt.xlim(-1, 170)       
-    plt.hist(bf['params'][:, 0], zorder=-10, histtype='step', bins=24, color='C0')
+    plt.xlim(20, 140)       
+    plt.hist(fnl, zorder=-10, histtype='step', bins=24, color='C0')
     plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/bestfit_po100.pdf', bbox_inches='tight')    
     plt.show()
 
@@ -705,89 +712,111 @@ def plot_mcmc_data():
                  labels=['f_{NL}', 'b', '10^{7}n_{0}'], settings=stg) 
     read_kw = dict(ndim=3, iscale=[2])
     
-    ze = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
-    po = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_linp_all_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
-    kn = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_linp_known_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
-    kn1 = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_linp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)        
-    knn1 = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    knn1b = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
-    knn1n = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
-    knn1s = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                    
-    #knn2 = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/mcmc_lrg_zero_desi_dnnp_known2_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    p = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
+    ze = MCMC(f'{p}logmcmc_lrg_zero_desic_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+    po = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_all_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    kn = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_known_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    kn1 = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)        
+    knn1 = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    knn1b = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
+    knn1n = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+    knn1s = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                    
+          
     stats = {}
-    stats['No Weight'] = ze.stats
-    stats['Baseline'] = po.stats    
-    stats['Conservative I'] = kn.stats    
-    stats['Conservative II'] = kn1.stats
-    stats['Nonlinear (Cons. II)'] = knn1.stats    
-    stats['Nonlinear (Cons. II) - BMZLS'] = knn1b.stats    
-    stats['Nonlinear (Cons. II) - NDEC'] = knn1n.stats    
-    stats['Nonlinear (Cons. II) - SDEC'] = knn1s.stats        
-    #stats['Nonlinear (Depths+EBV)'] = knn2.stats    
+    stats['DESI            & No Weight'] = ze.stats
+    stats['DESI            & Linear (all maps)'] = po.stats    
+    stats['DESI            & Linear (Conservative I)'] = kn.stats    
+    stats['DESI            & Linear (Conservative II)'] = kn1.stats
+    stats['DESI            & Nonlinear (Conservative II)'] = knn1.stats    
 
-    # Triangle plot
-    g = plots.get_single_plotter(width_inch=3*4*1.5)
-    g.settings.legend_fontsize = 14
-    #g.plot_2d([ze, po, kn, kn1], 'fnl', 'b', filled=True)
-    g.triangle_plot([ze, po, kn, kn1, knn1], filled=True, legend_labels=['No weight', 'Baseline',
-                                                                        'Conservative I', 'Conservative II',
-                                                                        'Nonlinear (Cons. II)'])
-    g.add_legend(['No weight', 'Baseline', 'Conservative I', 'Conservative II', 'Nonlinear (Cons. II)'], 
-                 colored_text=True, legend_loc='lower left', )    
-    g.fig.align_labels()
-    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods.pdf', bbox_inches='tight')    
-    plt.show()
-    
-    
-    # Triangle plot
-    g = plots.get_single_plotter(width_inch=3*4*1.5)
-    g.settings.legend_fontsize = 14
-    #g.plot_2d([ze, po, kn, kn1], 'fnl', 'b', filled=True)
-    g.triangle_plot([knn1b, knn1n, knn1s, knn1], filled=True, 
-                    legend_labels=['BASS+MzLS', 'DECaLS North', 'DECaLS South', 'DESI'])
-    g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', 'DESI'], 
-                 colored_text=True, legend_loc='lower left', )    
-    g.fig.align_labels()
-    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9regions.pdf', bbox_inches='tight')    
-    plt.show()
-    
-    print_stats(stats)            
-    
-
-    nd = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_ndecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    ndc = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    ndce = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_ndecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    sd = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_sdecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    sdc = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    sdce = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_sdecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
-
-
-    stats = {}
-    stats['North'] = ndc.stats
-    stats['North [incl. CALIBZ+logHI]'] = ndce.stats    
-    stats['North [incl. DEC < -11]'] = nd.stats
-    stats['South'] = sdc.stats
-    stats['South [incl. CALIBZ+logHI]'] = sdce.stats        
-    stats['South [incl. DEC < -30]'] = sd.stats    
-
-    labels = stats.keys()
     # Triangle plot
     g = plots.get_single_plotter(width_inch=4*1.5)
     g.settings.legend_fontsize = 14
-    g.plot_2d([ndc, ndce, nd, sdc, sdce, sd], 'fnl', 'b', filled=True, legend_labels=labels)
-    g.add_legend(labels, colored_text=True, legend_loc='lower left', )    
+    g.plot_2d([ze, po, kn, kn1, knn1], 'fnl', 'b', filled=True)
+    g.add_legend(['No weight', 'Linear (all maps)', 'Linear (Conservative I)',
+                  'Linear (Conservative II)', 'Nonlinear (Conservative II)'], 
+                 colored_text=True, legend_loc='lower left')    
+    g.fig.align_labels()
+    g.get_axes().set_ylim(1.25, 1.55)
+    g.get_axes().set_xlim(-10, 180)        
+    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods.pdf', bbox_inches='tight')    
+    plt.show()
+    
+    stats['BASS+MzLS       & Nonlin. (Cons. II)'] = knn1b.stats    
+    stats['DECaLS North    & Nonlin. (Cons. II)'] = knn1n.stats    
+    stats['DECaLS South    & Nonlin.(Cons. II)'] = knn1s.stats      
+    # Triangle plot
+    g = plots.get_single_plotter(width_inch=4*1.5)
+    g.settings.legend_fontsize = 14
+    g.plot_2d([knn1b, knn1n, knn1s, knn1], 'fnl', 'b', filled=True)
+    g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', 'DESI'], 
+                 colored_text=True, legend_loc='lower left', )    
+    g.get_axes().set_ylim(1.25, 1.55)
+    g.get_axes().set_xlim(-60, 130)    
+    g.fig.align_labels()
+    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9regions.pdf', bbox_inches='tight')    
+    plt.show()
+               
+
+    nd = MCMC(f'{p}logmcmc_lrg_zero_ndecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    ndce = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    sd = MCMC(f'{p}logmcmc_lrg_zero_sdecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    sdce = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
+    stats['DECaLS North & Nonlin.(Cons. II+CALIBZ+HI)'] = ndce.stats    
+    stats['DECaLS North (no DEC cut) & Nonlin. (Cons. II)'] = nd.stats
+    stats['DECaLS South & Nonlin.(Cons. II+CALIBZ+HI)'] = sdce.stats        
+    stats['DECaLS South (no DEC cut) & Nonlin. (Cons. II)'] = sd.stats    
+
+    # Triangle plot
+    g = plots.get_single_plotter(width_inch=4*1.5)
+    g.settings.legend_fontsize = 14
+    g.plot_2d([knn1n, ndce, nd, 
+               knn1s, sdce, sd], 'fnl', 'b', filled=True)
+    g.add_legend(['North', 'North [+CALIBZ+HI]', 'North [no dec cut]', 
+                  'South', 'South [+CALIBZ+HI]', 'South [no dec cut]'], colored_text=True, legend_loc='lower left')    
+    g.get_axes().set_ylim(1.25, 1.55)
+    g.get_axes().set_xlim(-60, 130)    
     g.fig.align_labels()
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9_cutdec.pdf', bbox_inches='tight')
     plt.show()
     print_stats(stats)
     
+#     bm = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_bmzlsl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)            
+
+#     nd = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_ndecalscl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)            
+#     sd = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_sdecalscl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)            
+
+#     de = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desicl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)            
+
+    
+    
+
+#     stats = {}
+#     stats['BASS+MzLS'] = bm.stats
+#     stats['DECaLS North'] = nd.stats
+#     stats['DECaLS South'] = sd.stats
+#     stats['DESI'] = de.stats
+    
+#     labels = stats.keys()
+#     # Triangle plot
+#     g = plots.get_single_plotter(width_inch=4*1.5)
+#     g.settings.legend_fontsize = 14
+#     g.plot_2d([bm, nd, sd, de], 'fnl', 'b', filled=True, legend_labels=labels)
+#     g.add_legend(labels, colored_text=True, legend_loc='lower left', )    
+#     g.fig.align_labels()
+#     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9_imagcut.pdf', bbox_inches='tight')
+#     plt.show()
+#     print_stats(stats)
+
     
     
 
 def plot_dr9vsmocks():
     knn1 = np.load('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz')
     bf = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_noweight.npz')
-
+    bf['params'][:, 0] /= gratio
+    knn1['best_fit'][0] /= gratio
+    
     fig, ax = plt.subplots(ncols=2, figsize=(12, 4), sharey=True)
     fig.subplots_adjust(wspace=0.05)
 
@@ -810,6 +839,8 @@ def plot_dr9vsmocks():
     
 def plot_model(fnltag='po100'):
     bm = np.load(f'/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_{fnltag}_desic_256_noweight_steps10k_walkers50.npz')
+    bm['best_fit'][0] /= gratio   
+    
     zbdndz = init_sample(kind='lrg')
     
     # read survey geometry
@@ -915,6 +946,7 @@ def plot_dr9cl():
         cl_b = np.log10(ut.histogram_cell(cl_d['cl_gg']['l'], cl_d['cl_gg']['cl'], bins=ut.ell_edges)[1])
 
         bestp = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_{n}_steps10k_walkers50.npz')
+        bestp['best_fit'][0] /= gratio
         fnl, b, noise = bestp['best_fit']
         print(nm, fnl, b)
 
