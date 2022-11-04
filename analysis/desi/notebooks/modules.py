@@ -414,12 +414,12 @@ def plot_clxtest():
     err_100e = np.diagonal(cov_100)**0.5
 
     ln1 = ax.fill_between(ell_b, 0.0, 1.+(err_0e/err_0m),  label=r'$f_{\rm NL}=0$', color='k', alpha=0.08)
-    ln2 = ax.fill_between(ell_b+0.1, 0.0, (err_100m+err_100e)/err_0m, label=r'$f_{\rm NL}=100$', color='k', alpha=0.04)
+    ln2 = ax.fill_between(ell_b+0.1, 0.0, (err_100m+err_100e)/err_0m, label=r'$f_{\rm NL}=76.92$', color='k', alpha=0.04)
     lgn1 = plt.legend(handles=[ln1, ln2], loc='upper right', title='Clean Mocks')
 
     kw = dict()
     ln3, = ax.plot(ell_b, err_dr9/err_0m,      label='DR9 (Before)', )
-    ln4, = ax.plot(ell_b, err_dr9all/err_0m,    label='DR9 (Baseline)')
+    ln4, = ax.plot(ell_b, err_dr9all/err_0m,    label='DR9 (All Maps)')
     ln5, = ax.plot(ell_b, err_dr9known/err_0m,  label='DR9 (Conservative I)')
     ln6, = ax.plot(ell_b, err_dr9known1/err_0m, label='DR9 (Conservative II)')
     ln7, = ax.plot(ell_b, err_dr9nknown1/err_0m, label='DR9 (Nonlinear Cons. II)')
@@ -452,7 +452,7 @@ def plot_clxtest():
     plt.text(180., 48., f'DR9 (Before) $\chi^{2}$ = {chi2_dr9:.1f}', fontsize=12)
     plt.text(180., 41., f'DR9 (Conservative I) $\chi^{2}$ = {chi2_dr9known:.1f}', fontsize=12)
     plt.text(180., 34., f'DR9 (Conservative II) $\chi^{2}$ = {chi2_dr9known1:.1f}', fontsize=12)
-    plt.text(180., 27., f'DR9 (Baseline) $\chi^{2}$ = {chi2_dr9all:.1f}', fontsize=12)
+    plt.text(180., 27., f'DR9 (All Maps) $\chi^{2}$ = {chi2_dr9all:.1f}', fontsize=12)
     plt.text(180., 20., f'DR9 (Nonlinear cons. II) $\chi^{2}$ = {chi2_dr9nknown1:.1f}', fontsize=12)
     # plt.yscale('log')
     plt.xticks([0, 100, 200, 300, 400, 500])
@@ -499,7 +499,7 @@ def plot_nbartest():
 
     kw = dict()
     ln3, = ax.plot(ell_b, err_dr9,      label='DR9 (Before)', )
-    ln4, = ax.plot(ell_b, err_dr9all,    label='DR9 (Baseline)')
+    ln4, = ax.plot(ell_b, err_dr9all,    label='DR9 (All Maps)')
     ln5, = ax.plot(ell_b, err_dr9known,  label='DR9 (Conservative I)')
     ln6, = ax.plot(ell_b, err_dr9known1, label='DR9 (Conservative II)')
     ln7, = ax.plot(ell_b, err_dr9nknown1, label='DR9 (Nonlinear cons. II)')
@@ -529,7 +529,7 @@ def plot_nbartest():
     plt.text(91., 48., f'DR9 (Before) $\chi^{2}$ = {chi2_dr9:.1f}', fontsize=12)
     plt.text(91., 43., f'DR9 (Conservative I) $\chi^{2}$ = {chi2_dr9known:.1f}', fontsize=12)
     plt.text(91., 38., f'DR9 (Conservative II) $\chi^{2}$ = {chi2_dr9known1:.1f}', fontsize=12)
-    plt.text(91., 33., f'DR9 (Baseline) $\chi^{2}$ = {chi2_dr9all:.1f}', fontsize=12)
+    plt.text(91., 33., f'DR9 (All Maps) $\chi^{2}$ = {chi2_dr9all:.1f}', fontsize=12)
     plt.text(91., 28., f'DR9 (Nonlinear cons. II) $\chi^{2}$ = {chi2_dr9nknown1:.1f}', fontsize=12)
     plt.xlim(26, 210)
     plt.xticks([50, 75, 100, 125, 150, 175, 200])
@@ -582,9 +582,9 @@ def plot_clhist():
     ax[2].set(yticks=[], ylabel='Distribution of first bin')    
     for i, fnl in zip([0, 1], [0, 76.92]):        
         ax[i].set(xlabel=r'First bin $C_{\ell}$ [x$10^{-5}$]')        
-        ax[i].text(0.15, 0.2, fr'$f_{{\rm NL}}={fnl:d}$', transform=ax[i].transAxes)        
+        ax[i].text(0.15, 0.2, fr'$f_{{\rm NL}}={fnl:.2f}$', transform=ax[i].transAxes)        
         ax[2+i].set(xlabel=r'Log of first bin $C_{\ell}$')
-        ax[2+i].text(0.5, 0.2, fr'$f_{{\rm NL}}={fnl:d}$', transform=ax[2+i].transAxes, color='C1')
+        ax[2+i].text(0.5, 0.2, fr'$f_{{\rm NL}}={fnl:.2f}$', transform=ax[2+i].transAxes, color='C1')
 
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/hist_cl.pdf', bbox_inches='tight')
     
@@ -619,7 +619,7 @@ def plot_mcmc_mocks():
                   r'log$C_{\ell}$ + $f_{\rm NL}=0$ cov ',
                   r'$C_{\ell}$ + $f_{\rm NL}=0$ cov '], colored_text=True, legend_ncol=2)
     ax = g.get_axes()
-    ax.text(0.08, 0.08, r'Fitting the mean of $f_{\rm NL}$=100 mocks', 
+    ax.text(0.08, 0.08, r'Fitting the mean of $f_{\rm NL}=76.92$ mocks', 
             transform=ax.transAxes, fontsize=13, color='grey', alpha=0.8)
     ax.text(98/1.3, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
     g.fig.align_labels()  
@@ -713,27 +713,55 @@ def plot_mcmc_data():
     read_kw = dict(ndim=3, iscale=[2])
     
     p = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
-    ze = MCMC(f'{p}logmcmc_lrg_zero_desic_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
-    po = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_all_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
-    kn = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_known_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
-    kn1 = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)        
+    ze   = MCMC(f'{p}logmcmc_lrg_zero_desic_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+    po   = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_all_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    kn   = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_known_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    kn1  = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)        
     knn1 = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    knn1b = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
-    knn1n = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
-    knn1s = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                    
-          
-    stats = {}
-    stats['DESI            & No Weight'] = ze.stats
-    stats['DESI            & Linear (all maps)'] = po.stats    
-    stats['DESI            & Linear (Conservative I)'] = kn.stats    
-    stats['DESI            & Linear (Conservative II)'] = kn1.stats
-    stats['DESI            & Nonlinear (Conservative II)'] = knn1.stats    
+    dsl  = MCMC(f'{p}logmcmc_lrg_zero_desicl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)         
 
+    knn1b = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
+    bml   = MCMC(f'{p}logmcmc_lrg_zero_bmzlsl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)  
+    
+    knn1n = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+    ndce  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    nd    = MCMC(f'{p}logmcmc_lrg_zero_ndecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    ndl   = MCMC(f'{p}logmcmc_lrg_zero_ndecalscl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
+
+    knn1s = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    sdce  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)  
+    sd    = MCMC(f'{p}logmcmc_lrg_zero_sdecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    sdl   = MCMC(f'{p}logmcmc_lrg_zero_sdecalscl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
+    
+    
+    stats = {}
+    stats['DESI                      & No Weight'] = ze.stats
+    stats['DESI                      & Linear (All Maps)'] = po.stats    
+    stats['DESI                      & Linear (Conservative I)'] = kn.stats    
+    stats['DESI                      & Linear (Conservative II)'] = kn1.stats
+    stats['DESI                      & Nonlinear (Conservative II)'] = knn1.stats    
+    stats['DESI (imag. cut)          & Nonlinear (Conservative II)'] = dsl.stats      
+    
+    stats['BASS+MzLS                 & Nonlin. (Cons. II)'] = knn1b.stats    
+    stats['BASS+MzLS (imag. cut)     & Nonlin. (Cons. II)'] = bml.stats 
+    
+    stats['DECaLS North              & Nonlin. (Cons. II)'] = knn1n.stats    
+    stats['DECaLS North              & Nonlin.(Cons. II+CALIBZ+HI)'] = ndce.stats    
+    stats['DECaLS North (no DEC cut) & Nonlin. (Cons. II)'] = nd.stats
+    stats['DECaLS North (imag. cut)  & Nonlin. (Cons. II)'] = ndl.stats        
+    
+    stats['DECaLS South              & Nonlin.(Cons. II)'] = knn1s.stats    
+    stats['DECaLS South              & Nonlin.(Cons. II+CALIBZ+HI)'] = sdce.stats        
+    stats['DECaLS South (no DEC cut) & Nonlin. (Cons. II)'] = sd.stats   
+    stats['DECaLS South (imag. cut)  & Nonlin. (Cons. II)'] = sdl.stats        
+    
+    
+    
     # Triangle plot
     g = plots.get_single_plotter(width_inch=4*1.5)
     g.settings.legend_fontsize = 14
     g.plot_2d([ze, po, kn, kn1, knn1], 'fnl', 'b', filled=True)
-    g.add_legend(['No weight', 'Linear (all maps)', 'Linear (Conservative I)',
+    g.add_legend(['No weight', 'Linear (All Maps)', 'Linear (Conservative I)',
                   'Linear (Conservative II)', 'Nonlinear (Conservative II)'], 
                  colored_text=True, legend_loc='lower left')    
     g.fig.align_labels()
@@ -742,9 +770,7 @@ def plot_mcmc_data():
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods.pdf', bbox_inches='tight')    
     plt.show()
     
-    stats['BASS+MzLS       & Nonlin. (Cons. II)'] = knn1b.stats    
-    stats['DECaLS North    & Nonlin. (Cons. II)'] = knn1n.stats    
-    stats['DECaLS South    & Nonlin.(Cons. II)'] = knn1s.stats      
+  
     # Triangle plot
     g = plots.get_single_plotter(width_inch=4*1.5)
     g.settings.legend_fontsize = 14
@@ -755,17 +781,7 @@ def plot_mcmc_data():
     g.get_axes().set_xlim(-60, 130)    
     g.fig.align_labels()
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9regions.pdf', bbox_inches='tight')    
-    plt.show()
-               
-
-    nd = MCMC(f'{p}logmcmc_lrg_zero_ndecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    ndce = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    sd = MCMC(f'{p}logmcmc_lrg_zero_sdecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    sdce = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
-    stats['DECaLS North & Nonlin.(Cons. II+CALIBZ+HI)'] = ndce.stats    
-    stats['DECaLS North (no DEC cut) & Nonlin. (Cons. II)'] = nd.stats
-    stats['DECaLS South & Nonlin.(Cons. II+CALIBZ+HI)'] = sdce.stats        
-    stats['DECaLS South (no DEC cut) & Nonlin. (Cons. II)'] = sd.stats    
+    plt.show() 
 
     # Triangle plot
     g = plots.get_single_plotter(width_inch=4*1.5)
@@ -781,41 +797,14 @@ def plot_mcmc_data():
     plt.show()
     print_stats(stats)
     
-#     bm = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_bmzlsl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)            
-
-#     nd = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_ndecalscl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)            
-#     sd = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_sdecalscl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)            
-
-#     de = MCMC('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desicl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)            
-
-    
-    
-
-#     stats = {}
-#     stats['BASS+MzLS'] = bm.stats
-#     stats['DECaLS North'] = nd.stats
-#     stats['DECaLS South'] = sd.stats
-#     stats['DESI'] = de.stats
-    
-#     labels = stats.keys()
-#     # Triangle plot
-#     g = plots.get_single_plotter(width_inch=4*1.5)
-#     g.settings.legend_fontsize = 14
-#     g.plot_2d([bm, nd, sd, de], 'fnl', 'b', filled=True, legend_labels=labels)
-#     g.add_legend(labels, colored_text=True, legend_loc='lower left', )    
-#     g.fig.align_labels()
-#     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9_imagcut.pdf', bbox_inches='tight')
-#     plt.show()
-#     print_stats(stats)
-
-    
-    
 
 def plot_dr9vsmocks():
-    knn1 = np.load('/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz')
+    p = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
+    knn1 = np.load(f'{p}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz')
     bf = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_noweight.npz')
-    bf['params'][:, 0] /= gratio
-    knn1['best_fit'][0] /= gratio
+    fnl_m = bf['params'][:, 0]/ gratio
+    fnl_d = knn1['best_fit'][0] / gratio
+    print(fnl_d, knn1['best_fit'][0])
     
     fig, ax = plt.subplots(ncols=2, figsize=(12, 4), sharey=True)
     fig.subplots_adjust(wspace=0.05)
@@ -823,8 +812,8 @@ def plot_dr9vsmocks():
     ax[0].hist(2*bf['neglog']/1000., histtype='step', bins=18)
     ax[0].axvline(2*knn1['best_fit_logprob'], ls='--', color='C1')
 
-    ax[1].hist(bf['params'][:, 0], histtype='step', bins=18)
-    ax[1].axvline(knn1['best_fit'][0], ls='--', color='C1')
+    ax[1].hist(fnl_m, histtype='step', bins=18)
+    ax[1].axvline(fnl_d, ls='--', color='C1')
 
     ax[0].set(xlabel=r'min $\chi^{2}$', yticks=[])
     ax[1].set(xlabel=r'$f_{\rm NL}$')
@@ -839,7 +828,7 @@ def plot_dr9vsmocks():
     
 def plot_model(fnltag='po100'):
     bm = np.load(f'/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_{fnltag}_desic_256_noweight_steps10k_walkers50.npz')
-    bm['best_fit'][0] /= gratio   
+    #bm['best_fit'][0] /= gratio   
     
     zbdndz = init_sample(kind='lrg')
     
@@ -857,7 +846,7 @@ def plot_model(fnltag='po100'):
 
     wind = WindowSHT(weight, mask, np.arange(2048), ngauss=2048)
     fnl, b, noise = bm['best_fit']
-    print(fnl, b)
+    print(fnl/gratio, b)
     
     el_g = np.arange(2000)
     cl_bf = model(el_g, fnl=fnl, b=b, noise=noise)
@@ -941,14 +930,13 @@ def plot_dr9cl():
     plt.fill_between(cl_['el_bin'], cl_['cl']-cl_err, cl_['cl']+cl_err, alpha=0.1, color=ln.get_color())
 
     for i, (n, nm) in enumerate(zip(['linp_all', 'linp_known', 'linp_known1', 'dnnp_known1', 'noweight'],
-                     ['Baseline', 'Conservative I', 'Conservative II','Nonlinear (Cons. II)', 'No weight'])):
+                     ['All Maps', 'Conservative I', 'Conservative II','Nonlinear (Cons. II)', 'No weight'])):
         cl_d = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_{n}.npy', allow_pickle=True).item()
         cl_b = np.log10(ut.histogram_cell(cl_d['cl_gg']['l'], cl_d['cl_gg']['cl'], bins=ut.ell_edges)[1])
 
         bestp = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_{n}_steps10k_walkers50.npz')
-        bestp['best_fit'][0] /= gratio
         fnl, b, noise = bestp['best_fit']
-        print(nm, fnl, b)
+        print(nm, fnl/gratio, b)
 
         cl_bf = np.log10(model(el_g, fnl=fnl, b=b, noise=noise))
         ln = plt.plot(el_g[2:], cl_bf[2:], lw=1, alpha=0.6)
