@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=nnfit
+#SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
 #SBATCH --time=05:00:00
 #SBATCH --nodes=1
@@ -36,7 +36,7 @@ region=$1     # bmzls, ndecals, sdecals, or desi
 maps="known1" # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
-fnltag="zero"
+fnltag="po100"
 model="dnnp"    # dnnp, linp
 method=${model}_${maps}       # dnnp_known1, linp_known, or noweight
 lmin=0
@@ -92,7 +92,11 @@ function get_axes(){
     elif [ $1 = "all" ]
     then
         axes=(0 2 3 4 5 6 7 8) # all maps
+    elif [ $1 = "allp" ]
+    then
+        axes=(0 1 2 3 4 5 6 7 8) # all maps
     fi
+
     echo ${axes[@]}
 }
 

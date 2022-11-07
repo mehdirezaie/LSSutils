@@ -719,19 +719,24 @@ def plot_mcmc_data():
     kn1  = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)        
     knn1 = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
     dsl  = MCMC(f'{p}logmcmc_lrg_zero_desicl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)         
+    dsf  = MCMC(f'{p}logmcmc_lrg_zero_desicf_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)           
+    dss  = MCMC(f'{p}logmcmc_lrg_po100_desic_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)      
 
     knn1b = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
     bml   = MCMC(f'{p}logmcmc_lrg_zero_bmzlsl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)  
+    bmf   = MCMC(f'{p}logmcmc_lrg_zero_bmzlsf_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)  
     
     knn1n = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
     ndce  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     nd    = MCMC(f'{p}logmcmc_lrg_zero_ndecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
     ndl   = MCMC(f'{p}logmcmc_lrg_zero_ndecalscl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
+    ndf   = MCMC(f'{p}logmcmc_lrg_zero_ndecalscf_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
 
     knn1s = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     sdce  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)  
     sd    = MCMC(f'{p}logmcmc_lrg_zero_sdecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
     sdl   = MCMC(f'{p}logmcmc_lrg_zero_sdecalscl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
+    sdf   = MCMC(f'{p}logmcmc_lrg_zero_sdecalscf_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
     
     
     stats = {}
@@ -741,19 +746,24 @@ def plot_mcmc_data():
     stats['DESI                      & Linear (Conservative II)'] = kn1.stats
     stats['DESI                      & Nonlinear (Conservative II)'] = knn1.stats    
     stats['DESI (imag. cut)          & Nonlinear (Conservative II)'] = dsl.stats      
+    stats['DESI (comp. cut)          & Nonlinear (Conservative II)'] = dsf.stats      
+    stats['DESI         & Nonlinear (Conservative II)+fNL=100 Cov'] = dss.stats          
     
     stats['BASS+MzLS                 & Nonlin. (Cons. II)'] = knn1b.stats    
     stats['BASS+MzLS (imag. cut)     & Nonlin. (Cons. II)'] = bml.stats 
+    stats['BASS+MzLS (comp. cut)     & Nonlin. (Cons. II)'] = bmf.stats     
     
     stats['DECaLS North              & Nonlin. (Cons. II)'] = knn1n.stats    
     stats['DECaLS North              & Nonlin.(Cons. II+CALIBZ+HI)'] = ndce.stats    
     stats['DECaLS North (no DEC cut) & Nonlin. (Cons. II)'] = nd.stats
     stats['DECaLS North (imag. cut)  & Nonlin. (Cons. II)'] = ndl.stats        
+    stats['DECaLS North (comp. cut)  & Nonlin. (Cons. II)'] = ndf.stats        
     
     stats['DECaLS South              & Nonlin.(Cons. II)'] = knn1s.stats    
     stats['DECaLS South              & Nonlin.(Cons. II+CALIBZ+HI)'] = sdce.stats        
     stats['DECaLS South (no DEC cut) & Nonlin. (Cons. II)'] = sd.stats   
     stats['DECaLS South (imag. cut)  & Nonlin. (Cons. II)'] = sdl.stats        
+    stats['DECaLS South (comp. cut)  & Nonlin. (Cons. II)'] = sdf.stats            
     
     
     
