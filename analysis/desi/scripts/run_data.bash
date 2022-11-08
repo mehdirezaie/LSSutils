@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=mcmc
+#SBATCH --job-name=stats
 #SBATCH --account=PHS0336 
 #SBATCH --time=05:00:00
 #SBATCH --nodes=1
@@ -33,10 +33,10 @@ do_mcmc_joint3=false # 5x14
 bsize=5000    # 
 target="lrg"  # lrg
 region=$1     # bmzls, ndecals, sdecals, or desi
-maps="known1" # known, all, known1, known2
+maps="allp" # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
-fnltag="po100"
+fnltag="zero"
 model="dnnp"    # dnnp, linp
 method=${model}_${maps}       # dnnp_known1, linp_known, or noweight
 lmin=0
@@ -98,30 +98,6 @@ function get_axes(){
     fi
 
     echo ${axes[@]}
-}
-
-
-function get_reg(){
-    if [ $1 = 'NBMZLS' ]
-    then
-        reg='bmzls'
-    elif [ $1 = 'NDECALS' ]
-    then
-        reg='ndecals'
-    elif [ $1 = 'SDECALS' ]
-    then
-        reg='sdecals'
-    elif [ $1 = 'SDECALS_noDES' ]
-    then
-        reg='sdecals'
-    elif [ $1 = 'DES_noLMC' ]
-    then
-        reg='sdecals'
-    elif [ $1 = 'DES' ]
-    then
-        reg='sdecals'
-    fi
-    echo $reg
 }
 
 

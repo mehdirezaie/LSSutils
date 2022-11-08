@@ -911,8 +911,6 @@ def plot_model(fnltag='po100'):
     
     
 def plot_dr9cl():
-    zbdndz = init_sample(kind='lrg')
-
     # read survey geometry
     dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desic_256.fits')
     w = np.zeros(12*256*256)
