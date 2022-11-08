@@ -1007,6 +1007,84 @@ def plot_fnl_lmin():
     fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_elmin.pdf', bbox_inches='tight')    
     
     
+
+def test_nz():
+    # read survey geometry
+    dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desic_256.fits')
+    w = np.zeros(12*256*256)
+    w[dt['hpix']] = dt['fracgood']
+    weight = hp.ud_grade(w, 1024)
+    mask = weight > 0.5
+
+    p = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
+    bestp = np.load(f'{p}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50_elmin0.npz')
+    fnl, b0, noise = bestp['best_fit']
+    print(fnl, b0, mask.mean())
+    
+    def call_cell(z, b, dNdz):
+        model = SurveySpectrum()
+        model.add_tracer(z, b, dNdz, p=1.0)
+        model.add_kernels(model.el_model)
+        model.add_window(weight, mask, np.arange(2048), ngauss=2048)
+        res = []
+        for fnl_ in [0, fnl]:
+            print(fnl_)
+            res.append(model(np.arange(500), fnl_, b0, noise))
+        return res    
+    
+    def treat_noz(z, dNdz, kind=1, zl=23, zh=132):
+        nz_low = lambda x:(x/z[zl])**kind*dNdz[zl]
+        nz_high = lambda x:np.exp(-1.*(x-z[zh])*kind)*dNdz[zh]
+        dNdz_ = dNdz.copy()
+        dNdz_[:zl+1] = nz_low(z[:zl+1])
+        dNdz_[zh:] = nz_high(z[zh:])
+        return dNdz_        
+
+    z, b, dNdz = init_sample('lrg')
+    dNdz8 = treat_noz(z, dNdz, kind=8, zl=25, zh=132)
+    dNdz4 = treat_noz(z, dNdz, kind=4, zl=24, zh=132)
+
+    cl_fid = call_cell(z, b, dNdz)
+    cl_8 = call_cell(z, b, dNdz8)
+    cl_4 = call_cell(z, b, dNdz4)
+    
+    fg, ax = plt.subplots(figsize=(6, 4))
+    def plot(ax):
+        ax.plot(z, dNdz, label='Fiducial', lw=3, alpha=0.2)
+        ax.plot(z, dNdz8, label='k=8', lw=1,)
+        ax.plot(z, dNdz4, label='k=4', lw=1, ls='--')
+
+    plot(ax)
+    ax.set(xlim=(-3, 5), xlabel='z', ylabel='dN/dz')
+    ax.legend(loc=3)
+    ax1 = fg.add_axes([0.19, 0.6, 0.23, 0.25])
+    plot(ax1)
+    ax1.set(xlim=(-0.01, 0.27), ylim=(-1, 6))
+    ax2 = fg.add_axes([0.6, 0.6, 0.23, 0.25])
+    plot(ax2)
+    ax2.set(xlim=(1.3, 1.6), ylim=(-0.2, 1.6))
+    fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/nztreat.pdf', bbox_inches='tight')    
+    plt.show()
+    
+    ls = ['-', '-', '--']
+    lw = [3, 1, 1]
+    al = [0.2, 1., 1.]
+    for i, (cl_i, ni) in enumerate(zip([cl_fid, cl_8, cl_4],
+                                      ['Fiducial', 'K=8', 'K=4'])):
+        plt.plot(1.0e5*cl_i[0], color='C%d'%i, ls=ls[i], lw=lw[i], alpha=al[i], label=ni)
+        plt.plot(1.0e5*cl_i[1], color='C%d'%i, ls=ls[i], lw=lw[i], alpha=al[i])
+
+    plt.ylabel(r'C$_{\ell}$ [x$10^{-5}$]')
+    plt.xlabel(r'$\ell$')
+    plt.legend()
+    plt.loglog()
+    plt.text(2, 2, r'$f_{\rm NL}=37.15$')
+    plt.text(3., 0.5, r'$f_{\rm NL}=0$')
+    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/cell_nz.pdf', bbox_inches='tight')    
+    
+
+    
+    
 # import sys
 # import os
 # import matplotlib.pyplot as plt
