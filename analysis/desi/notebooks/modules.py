@@ -1015,6 +1015,46 @@ def plot_fnl_lmin():
     fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_elmin.pdf', bbox_inches='tight')    
     
     
+def test_chi2lmax():
+    chi2_mocks = []
+    chi2_data  = []
+    ell_maxes = []
+    p_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'
+    p = '/fs/ess/PHS0336/data/lognormal/v3/clustering/'
+    
+    for m in [10, 12, 14, 16, 18]:
+        
+        ell_edges = ut.ell_edges[:m]
+        ell_maxes.append(ell_edges.max())        
+        
+        err_0 = read_clxmocks(glob(f'{p}clmock_0_*_lrg_zero_desic_256_noweight.npy'), bins=ell_edges)
+        err_dr9known1 = read_clx(f'{p_}cl_lrg_desic_256_linp_known1.npy', ell_edges)
+        err_dr9nknown1 = read_clx(f'{p_}cl_lrg_desic_256_dnnp_known1.npy', ell_edges)
+        
+        chi2_mocks.append(ut.get_chi2pdf(err_0))
+        icov, cov_0 = ut.get_inv(err_0, return_cov=True)
+        chi2_data.append(ut.chi2_fn(err_dr9known1, icov))
+        chi2_data.append(ut.chi2_fn(err_dr9nknown1, icov))     
+        
+    chi2_mocks = np.array(chi2_mocks)
+    chi2_data = np.array(chi2_data).reshape(-1, 2)
+    chi2_min, chi2_median, chi2_max = np.percentile(chi2_mocks, [2.5, 50, 97.5], axis=1)
+    
+    plt.fill_between(ell_maxes, chi2_min, chi2_max, alpha=0.05)
+    plt.plot(ell_maxes, chi2_median, label='Mocks Median', lw=1)
+    plt.scatter(ell_maxes, chi2_data[:, 0],  marker='o', alpha=0.5)
+    plt.scatter(ell_maxes, chi2_data[:, 1], marker='x', alpha=1.0)
+    lgn = plt.legend(loc=4)
+
+    plt.text(32, 310, 'Lin. cons. II', color='C1', fontsize=13)
+    plt.text(40, 175, 'Nonlin. cons. II', color='C2', fontsize=13)
+    plt.text(77, 100, 'Mocks 95%', color='k', alpha=0.4, fontsize=13)
+    plt.xlabel(r'$\ell_{\rm max}$')
+    plt.ylabel(r'Cross Spectrum $\chi^{2}$')
+    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2lmax.pdf', bbox_inches='tight')    
+    
+    
+
 
 def test_nz():
     # read survey geometry
