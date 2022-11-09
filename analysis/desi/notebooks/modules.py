@@ -608,48 +608,50 @@ def plot_mcmc_mocks():
     stats[r'$76.92$ & DESI & $C_{\ell}$ + $f_{\rm NL}=0$ cov '] = po0.stats
 
 
-    g = plots.get_single_plotter(width_inch=4*1.5)
-    g.settings.legend_fontsize = 14
-    g.plot_2d([lpo100, po100, lpo0, po0], 'fnl', 'b', filled=True)
+    g = plots.get_single_plotter(width_inch=6)
+    g.settings.legend_fontsize = 13
+    g.plot_2d([lpo100, po100, lpo0, po0], 'fnl', 'b', filled=True, colors='Dark2')
     g.add_x_marker(100./1.3)
     g.add_y_marker(1.43)
     g.get_axes().set_ylim(1.426, 1.434)
-    g.get_axes().set_xlim(76.9-2.2, 76.9+3.2)
+    g.get_axes().set_xlim(74.8, 79.8)
     g.add_legend([r'log$C_{\ell}$', r'$C_{\ell}$', 
                   r'log$C_{\ell}$ + $f_{\rm NL}=0$ cov ',
                   r'$C_{\ell}$ + $f_{\rm NL}=0$ cov '], colored_text=True, legend_ncol=2)
     ax = g.get_axes()
     ax.text(0.08, 0.08, r'Fitting the mean of $f_{\rm NL}=76.92$ mocks', 
-            transform=ax.transAxes, fontsize=13, color='grey', alpha=0.8)
+            transform=ax.transAxes, fontsize=13)
     ax.text(98/1.3, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
     g.fig.align_labels()  
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_po100.pdf', bbox_inches='tight')
     plt.show()
     
     
-    ze = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_zero_desic_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+
+    bm = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_zero_bmzls_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     nd = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_zero_ndecalsc_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
     sd = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_zero_sdecalsc_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
-    bm = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_zero_bmzls_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    ze = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logmcmc_0_lrg_zero_desic_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     
     stats[r'$0$ & DESI         &  log$C_{\ell}$ '] = ze.stats
+    stats[r'$0$ & BASS+MzLS    &  log$C_{\ell}$ '] = bm.stats       
     stats[r'$0$ & DECaLS North &  log$C_{\ell}$'] = nd.stats
     stats[r'$0$ & DECaLS South &  log$C_{\ell}$'] = sd.stats
-    stats[r'$0$ & BASS+MzLS    &  log$C_{\ell}$ '] = bm.stats   
+
     
-    g = plots.get_single_plotter(width_inch=4*1.5)
-    g.settings.legend_fontsize = 14
-    g.plot_2d([nd, sd, bm, ze], 'fnl', 'b', filled=True)
+    g = plots.get_single_plotter(width_inch=6)
+    g.settings.legend_fontsize = 13
+    g.plot_2d([bm, nd, sd, ze], 'fnl', 'b', filled=True)
     g.add_x_marker(0)
     g.add_y_marker(1.43)
     g.get_axes().set_ylim(1.426, 1.434)
     g.get_axes().set_xlim(-2.2, 3.2)    
     ax = g.get_axes()
     ax.text(0.08, 0.92, r'Fitting the mean of $f_{\rm NL}$=0 mocks', 
-            transform=ax.transAxes, fontsize=13, color='grey', alpha=0.8)
+            transform=ax.transAxes, fontsize=13)
     ax.text(-2.0, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
     
-    g.add_legend(['DECaLS North', 'DECaLS South', 'BASS+MzLS', r'DESI'], 
+    g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', r'DESI'], 
                  colored_text=True, legend_loc='lower left')    
     g.fig.align_labels()
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_zero.pdf', bbox_inches='tight')        
@@ -721,12 +723,14 @@ def plot_mcmc_data():
     dsl  = MCMC(f'{p}logmcmc_lrg_zero_desicl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)         
     dsf  = MCMC(f'{p}logmcmc_lrg_zero_desicf_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)           
     dss  = MCMC(f'{p}logmcmc_lrg_po100_desic_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)      
-    dsp  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_allp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)          
+    dsp  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_allp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
+    dskp  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_knownp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
 
     knn1b = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
     bml   = MCMC(f'{p}logmcmc_lrg_zero_bmzlsl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)  
     bmf   = MCMC(f'{p}logmcmc_lrg_zero_bmzlsf_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)  
     bmp  = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_allp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
+    bmkp  = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_knownp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
     
     knn1n = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
     ndce  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
@@ -734,6 +738,7 @@ def plot_mcmc_data():
     ndl   = MCMC(f'{p}logmcmc_lrg_zero_ndecalscl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
     ndf   = MCMC(f'{p}logmcmc_lrg_zero_ndecalscf_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
     ndp  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_allp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
+    ndkp  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_knownp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
     
     knn1s = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     sdce  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)  
@@ -741,6 +746,7 @@ def plot_mcmc_data():
     sdl   = MCMC(f'{p}logmcmc_lrg_zero_sdecalscl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
     sdf   = MCMC(f'{p}logmcmc_lrg_zero_sdecalscf_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
     sdp  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_allp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
+    sdkp  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_knownp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
     
     stats = {}
     stats['DESI                      & No Weight'] = ze.stats
@@ -748,12 +754,15 @@ def plot_mcmc_data():
     stats['DESI                      & Linear (Conservative I)'] = kn.stats    
     stats['DESI                      & Linear (Conservative II)'] = kn1.stats
     stats['DESI                      & Nonlinear (Cons. II)'] = knn1.stats    
+    stats['DESI                      & Nonlin. (Cons. II+nStar)'] = dskp.stats    
+    stats['DESI                      & Nonlin. (All Maps+nStar)'] = dsp.stats    
     stats['DESI (imag. cut)          & Nonlin. (Cons. II)'] = dsl.stats      
     stats['DESI (comp. cut)          & Nonlin. (Cons. II)'] = dsf.stats      
-    stats['DESI                      & Nonlin. (Cons. II)+fNL=76.92 Cov'] = dss.stats          
-    stats['DESI                      & Nonlin. (All Maps+nStar)'] = dsp.stats    
+    stats[r'DESI                      & Nonlin. (Cons. II)+$f_{\rm NL}=76.92$ Cov'] = dss.stats          
+
     
     stats['BASS+MzLS                 & Nonlin. (Cons. II)'] = knn1b.stats    
+    stats['BASS+MzLS                 & Nonlin. (Cons. II+nStar)'] = bmkp.stats            
     stats['BASS+MzLS                 & Nonlin. (All Maps+nStar)'] = bmp.stats            
     stats['BASS+MzLS (imag. cut)     & Nonlin. (Cons. II)'] = bml.stats 
     stats['BASS+MzLS (comp. cut)     & Nonlin. (Cons. II)'] = bmf.stats     
@@ -761,58 +770,65 @@ def plot_mcmc_data():
     
     stats['DECaLS North              & Nonlin. (Cons. II)'] = knn1n.stats    
     stats['DECaLS North              & Nonlin. (Cons. II+CALIBZ+HI)'] = ndce.stats 
+    stats['DECaLS North              & Nonlin. (Cons. II+nStar)'] = ndkp.stats            
     stats['DECaLS North              & Nonlin. (All Maps+nStar)'] = ndp.stats            
-    stats['DECaLS North (no DEC cut) & Nonlin. (Cons. II)'] = nd.stats
+    stats['DECaLS North + islands & Nonlin. (Cons. II)'] = nd.stats
     stats['DECaLS North (imag. cut)  & Nonlin. (Cons. II)'] = ndl.stats        
     stats['DECaLS North (comp. cut)  & Nonlin. (Cons. II)'] = ndf.stats        
     
     stats['DECaLS South              & Nonlin. (Cons. II)'] = knn1s.stats    
     stats['DECaLS South              & Nonlin. (Cons. II+CALIBZ+HI)'] = sdce.stats        
+    stats['DECaLS South              & Nonlin. (Cons. II+nStar)'] = sdkp.stats                
     stats['DECaLS South              & Nonlin. (All Maps+nStar)'] = sdp.stats                
-    stats['DECaLS South (no DEC cut) & Nonlin. (Cons. II)'] = sd.stats   
+    stats[r'DECaLS South + DEC < $-30$ & Nonlin. (Cons. II)'] = sd.stats   
     stats['DECaLS South (imag. cut)  & Nonlin. (Cons. II)'] = sdl.stats        
     stats['DECaLS South (comp. cut)  & Nonlin. (Cons. II)'] = sdf.stats            
     
     
     
     # Triangle plot
-    g = plots.get_single_plotter(width_inch=4*1.5)
-    g.settings.legend_fontsize = 14
-    g.plot_2d([ze, po, kn, kn1, knn1], 'fnl', 'b', filled=True)
-    g.add_legend(['No weight', 'Linear (All Maps)', 'Linear (Conservative I)',
-                  'Linear (Conservative II)', 'Nonlinear (Conservative II)'], 
-                 colored_text=True, legend_loc='lower left')    
+    g = plots.get_single_plotter(width_inch=6)
+    g.settings.legend_fontsize = 13
+    g.plot_2d([ze, kn1, knn1, dskp], 'fnl', 'b', 
+              filled=True,lims=[-10, 170, 1.28, 1.57], colors='Dark2') # 
+    g.add_legend(['No weight',
+                  'Linear (Conservative II)', 
+                  'Nonlinear (Cons. II)',
+                  'Nonlin. (Cons. II+nStar)'], 
+                  colored_text=True, legend_loc='lower left')    
     g.fig.align_labels()
-    g.get_axes().set_ylim(1.25, 1.55)
-    g.get_axes().set_xlim(-10, 180)        
+    ax = g.get_axes()
+    ax.text(0.15, 0.92, 'DR9 DESI Footprint (different methods)', 
+            transform=ax.transAxes, fontsize=13)      
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods.pdf', bbox_inches='tight')    
     plt.show()
     
-  
     # Triangle plot
-    g = plots.get_single_plotter(width_inch=4*1.5)
-    g.settings.legend_fontsize = 14
-    g.plot_2d([knn1b, knn1n, knn1s, knn1], 'fnl', 'b', filled=True)
+    g = plots.get_single_plotter(width_inch=6)
+    g.settings.legend_fontsize = 13
+    g.plot_2d([knn1b, knn1n, knn1s, knn1], 'fnl', 'b', filled=True,
+              lims=[-60, 120, 1.28, 1.57])
     g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', 'DESI'], 
-                 colored_text=True, legend_loc='lower left', )    
-    g.get_axes().set_ylim(1.25, 1.55)
-    g.get_axes().set_xlim(-60, 130)    
+                 colored_text=True, legend_loc='lower left')  
+    ax = g.get_axes()
+    ax.text(0.15, 0.92, 'Nonlinear Cons. II (different regions)', 
+            transform=ax.transAxes, fontsize=13)
     g.fig.align_labels()
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9regions.pdf', bbox_inches='tight')    
     plt.show() 
 
-    # Triangle plot
-    g = plots.get_single_plotter(width_inch=4*1.5)
-    g.settings.legend_fontsize = 14
-    g.plot_2d([knn1n, ndce, nd, 
-               knn1s, sdce, sd], 'fnl', 'b', filled=True)
-    g.add_legend(['North', 'North [+CALIBZ+HI]', 'North [no dec cut]', 
-                  'South', 'South [+CALIBZ+HI]', 'South [no dec cut]'], colored_text=True, legend_loc='lower left')    
-    g.get_axes().set_ylim(1.25, 1.55)
-    g.get_axes().set_xlim(-60, 130)    
-    g.fig.align_labels()
-    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9_cutdec.pdf', bbox_inches='tight')
-    plt.show()
+#     # Triangle plot
+#     g = plots.get_single_plotter(width_inch=4*1.5)
+#     g.settings.legend_fontsize = 14
+#     g.plot_2d([knn1n, ndce, nd, 
+#                knn1s, sdce, sd], 'fnl', 'b', filled=True)
+#     g.add_legend(['North', 'North [+CALIBZ+HI]', 'North [no dec cut]', 
+#                   'South', 'South [+CALIBZ+HI]', 'South [no dec cut]'], colored_text=True, legend_loc='lower left')    
+#     g.get_axes().set_ylim(1.25, 1.55)
+#     g.get_axes().set_xlim(-60, 130)    
+#     g.fig.align_labels()
+#     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9_cutdec.pdf', bbox_inches='tight')
+#     plt.show()
     print_stats(stats)
     
 
