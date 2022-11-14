@@ -393,6 +393,7 @@ def plot_clxtest():
     err_dr9known = read_clx('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_linp_known.npy', ell_edges)
     err_dr9known1 = read_clx('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_linp_known1.npy', ell_edges)
     err_dr9nknown1 = read_clx('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_dnnp_known1.npy', ell_edges)
+    err_dr9nknownp = read_clx('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_dnnp_knownp.npy', ell_edges)    
 
     icov, cov_0 = ut.get_inv(err_0, return_cov=True)
     cov_100 = ut.get_inv(err_100, return_cov=True)[1]
@@ -402,6 +403,7 @@ def plot_clxtest():
     chi2_dr9known = ut.chi2_fn(err_dr9known, icov)
     chi2_dr9known1 = ut.chi2_fn(err_dr9known1, icov)
     chi2_dr9nknown1 = ut.chi2_fn(err_dr9nknown1, icov)
+    chi2_dr9nknownp = ut.chi2_fn(err_dr9nknownp, icov)
 
     fg, ax = plt.subplots(sharex=True, figsize=(14, 6))
     fg.subplots_adjust(hspace=0.)
@@ -423,7 +425,8 @@ def plot_clxtest():
     ln5, = ax.plot(ell_b, err_dr9known/err_0m,  label='DR9 (Conservative I)')
     ln6, = ax.plot(ell_b, err_dr9known1/err_0m, label='DR9 (Conservative II)')
     ln7, = ax.plot(ell_b, err_dr9nknown1/err_0m, label='DR9 (Nonlinear Cons. II)')
-    ax.legend(handles=[ln3, ln4, ln5, ln6, ln7], 
+    ln8, = ax.plot(ell_b, err_dr9nknownp/err_0m, label='DR9 (Nonlin. Cons. II+nStar)')
+    ax.legend(handles=[ln3, ln4, ln5, ln6, ln7, ln8], 
                  bbox_to_anchor=(0, 1.02, 1, 0.4), loc="lower left",
                     mode="expand", borderaxespad=0, ncol=3, frameon=False)
 
@@ -454,6 +457,7 @@ def plot_clxtest():
     plt.text(180., 34., f'DR9 (Conservative II) $\chi^{2}$ = {chi2_dr9known1:.1f}', fontsize=12)
     plt.text(180., 27., f'DR9 (All Maps) $\chi^{2}$ = {chi2_dr9all:.1f}', fontsize=12)
     plt.text(180., 20., f'DR9 (Nonlinear cons. II) $\chi^{2}$ = {chi2_dr9nknown1:.1f}', fontsize=12)
+    plt.text(180., 13., f'DR9 (Nonlin. cons. II+nStar) $\chi^{2}$ = {chi2_dr9nknownp:.1f}', fontsize=12)
     # plt.yscale('log')
     plt.xticks([0, 100, 200, 300, 400, 500])
     plt.legend(title='Clean Mocks', frameon=False)
@@ -476,12 +480,14 @@ def plot_nbartest():
     err_dr9known = read_nnbar('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/nbar_lrg_desic_256_linp_known.npy')
     err_dr9known1 = read_nnbar('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/nbar_lrg_desic_256_linp_known1.npy')
     err_dr9nknown1 = read_nnbar('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/nbar_lrg_desic_256_dnnp_known1.npy') 
+    err_dr9nknownp = read_nnbar('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/nbar_lrg_desic_256_dnnp_knownp.npy') 
     
     chi2_dr9 = ut.chi2_fn(err_dr9, icov)
     chi2_dr9all = ut.chi2_fn(err_dr9all, icov)
     chi2_dr9known = ut.chi2_fn(err_dr9known, icov)
     chi2_dr9known1 = ut.chi2_fn(err_dr9known1, icov)
     chi2_dr9nknown1 = ut.chi2_fn(err_dr9nknown1, icov)
+    chi2_dr9nknownp = ut.chi2_fn(err_dr9nknownp, icov)
     
     fg, ax = plt.subplots(sharex=True, figsize=(14, 6))
     fg.subplots_adjust(hspace=0.)
@@ -503,7 +509,8 @@ def plot_nbartest():
     ln5, = ax.plot(ell_b, err_dr9known,  label='DR9 (Conservative I)')
     ln6, = ax.plot(ell_b, err_dr9known1, label='DR9 (Conservative II)')
     ln7, = ax.plot(ell_b, err_dr9nknown1, label='DR9 (Nonlinear cons. II)')
-    ax.legend(handles=[ln3, ln4, ln5, ln6, ln7], 
+    ln8, = ax.plot(ell_b, err_dr9nknownp, label='DR9 (Nonlin. cons. II+nStar)')
+    ax.legend(handles=[ln3, ln4, ln5, ln6, ln7, ln8], 
                  bbox_to_anchor=(0, 1.02, 1, 0.4), loc="lower left",
                     mode="expand", borderaxespad=0, ncol=4, frameon=False)
     plt.gca().add_artist(lgn1)
@@ -531,6 +538,7 @@ def plot_nbartest():
     plt.text(91., 38., f'DR9 (Conservative II) $\chi^{2}$ = {chi2_dr9known1:.1f}', fontsize=12)
     plt.text(91., 33., f'DR9 (All Maps) $\chi^{2}$ = {chi2_dr9all:.1f}', fontsize=12)
     plt.text(91., 28., f'DR9 (Nonlinear cons. II) $\chi^{2}$ = {chi2_dr9nknown1:.1f}', fontsize=12)
+    plt.text(91., 23., f'DR9 (Nonlin. cons. II+nStar) $\chi^{2}$ = {chi2_dr9nknownp:.1f}', fontsize=12)
     plt.xlim(26, 210)
     plt.xticks([50, 75, 100, 125, 150, 175, 200])
     plt.legend(title='Clean Mocks', frameon=False)
