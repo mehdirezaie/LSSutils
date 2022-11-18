@@ -14,12 +14,10 @@ def model(x, theta):
 
 def modelp(x, theta):
     """ Linear model Poisson """
-    u = x.dot(theta[1:]) + theta[0]
-    
+    u = x.dot(theta[1:]) + theta[0]    
     is_high = u > 20
     ret = u*1
     ret[~is_high] = np.log(1.+np.exp(u[~is_high]))
-
     return ret
 
 

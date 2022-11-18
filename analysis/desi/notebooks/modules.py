@@ -421,9 +421,9 @@ def plot_clxtest():
 
     kw = dict()
     ln3, = ax.plot(ell_b, err_dr9/err_0m,      label='DR9 (Before)', )
-    ln4, = ax.plot(ell_b, err_dr9all/err_0m,    label='DR9 (All Maps)')
-    ln5, = ax.plot(ell_b, err_dr9known/err_0m,  label='DR9 (Conservative I)')
-    ln6, = ax.plot(ell_b, err_dr9known1/err_0m, label='DR9 (Conservative II)')
+    ln4, = ax.plot(ell_b, err_dr9all/err_0m,    label='DR9 (Linear All Maps)')
+    ln5, = ax.plot(ell_b, err_dr9known/err_0m,  label='DR9 (Linear Conservative I)')
+    ln6, = ax.plot(ell_b, err_dr9known1/err_0m, label='DR9 (Linear Conservative II)')
     ln7, = ax.plot(ell_b, err_dr9nknown1/err_0m, label='DR9 (Nonlinear Cons. II)')
     ln8, = ax.plot(ell_b, err_dr9nknownp/err_0m, label='DR9 (Nonlin. Cons. II+nStar)')
     ax.legend(handles=[ln3, ln4, ln5, ln6, ln7, ln8], 
@@ -452,12 +452,18 @@ def plot_clxtest():
                  label=name_i, range=(0, 550.))    
     # plt.yscale('log')
 
-    plt.text(180., 48., f'DR9 (Before) $\chi^{2}$ = {chi2_dr9:.1f}', fontsize=12)
-    plt.text(180., 41., f'DR9 (Conservative I) $\chi^{2}$ = {chi2_dr9known:.1f}', fontsize=12)
-    plt.text(180., 34., f'DR9 (Conservative II) $\chi^{2}$ = {chi2_dr9known1:.1f}', fontsize=12)
-    plt.text(180., 27., f'DR9 (All Maps) $\chi^{2}$ = {chi2_dr9all:.1f}', fontsize=12)
-    plt.text(180., 20., f'DR9 (Nonlinear cons. II) $\chi^{2}$ = {chi2_dr9nknown1:.1f}', fontsize=12)
-    plt.text(180., 13., f'DR9 (Nonlin. cons. II+nStar) $\chi^{2}$ = {chi2_dr9nknownp:.1f}', fontsize=12)
+    plt.text(170., 68., f'DR9 (Before) = {chi2_dr9:.1f}', fontsize=12)
+    plt.text(170., 61., f'DR9 (Linear Conservative I) = {chi2_dr9known:.1f}', fontsize=12)
+    plt.text(170., 54., f'DR9 (Linear Conservative II) = {chi2_dr9known1:.1f}', fontsize=12)
+    plt.text(170., 47., f'DR9 (Linear All Maps) = {chi2_dr9all:.1f}', fontsize=12)
+    plt.text(170., 40., f'DR9 (Nonlinear Cons. II) = {chi2_dr9nknown1:.1f}', fontsize=12)
+    plt.text(170., 33., f'DR9 (Nonlin. Cons. II+nStar) = {chi2_dr9nknownp:.1f}', fontsize=12)
+    
+    for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp]:
+        is_gt = np.array(chi2s['fNL=0']) > chi_i
+        print('p-value:', is_gt.mean())
+    
+    
     # plt.yscale('log')
     plt.xticks([0, 100, 200, 300, 400, 500])
     plt.legend(title='Clean Mocks', frameon=False)
@@ -505,14 +511,14 @@ def plot_nbartest():
 
     kw = dict()
     ln3, = ax.plot(ell_b, err_dr9,      label='DR9 (Before)', )
-    ln4, = ax.plot(ell_b, err_dr9all,    label='DR9 (All Maps)')
-    ln5, = ax.plot(ell_b, err_dr9known,  label='DR9 (Conservative I)')
-    ln6, = ax.plot(ell_b, err_dr9known1, label='DR9 (Conservative II)')
-    ln7, = ax.plot(ell_b, err_dr9nknown1, label='DR9 (Nonlinear cons. II)')
-    ln8, = ax.plot(ell_b, err_dr9nknownp, label='DR9 (Nonlin. cons. II+nStar)')
+    ln4, = ax.plot(ell_b, err_dr9all,    label='DR9 (Linear All Maps)')
+    ln5, = ax.plot(ell_b, err_dr9known,  label='DR9 (Linear Conservative I)')
+    ln6, = ax.plot(ell_b, err_dr9known1, label='DR9 (Linear Conservative II)')
+    ln7, = ax.plot(ell_b, err_dr9nknown1, label='DR9 (Nonlinear Cons. II)')
+    ln8, = ax.plot(ell_b, err_dr9nknownp, label='DR9 (Nonlin. Cons. II+nStar)')
     ax.legend(handles=[ln3, ln4, ln5, ln6, ln7, ln8], 
                  bbox_to_anchor=(0, 1.02, 1, 0.4), loc="lower left",
-                    mode="expand", borderaxespad=0, ncol=4, frameon=False)
+                    mode="expand", borderaxespad=0, ncol=3, frameon=False)
     plt.gca().add_artist(lgn1)
     ax.set_ylabel('Mean Density Contrast')
     for xt in np.arange(0, 80, 8):
@@ -532,15 +538,20 @@ def plot_nbartest():
         print(np.max(chi2_i), np.min(chi2_i))
         plt.hist(chi2_i, histtype='step', bins=65, ls=ls[i],
                  label=name_i, range=(30, 160.))    
+        
+        
+    for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp]:
+        is_gt = np.array(chi2s['fNL=0']) > chi_i
+        print('p-value:', is_gt.mean())        
 
-    plt.text(91., 48., f'DR9 (Before) $\chi^{2}$ = {chi2_dr9:.1f}', fontsize=12)
-    plt.text(91., 43., f'DR9 (Conservative I) $\chi^{2}$ = {chi2_dr9known:.1f}', fontsize=12)
-    plt.text(91., 38., f'DR9 (Conservative II) $\chi^{2}$ = {chi2_dr9known1:.1f}', fontsize=12)
-    plt.text(91., 33., f'DR9 (All Maps) $\chi^{2}$ = {chi2_dr9all:.1f}', fontsize=12)
-    plt.text(91., 28., f'DR9 (Nonlinear cons. II) $\chi^{2}$ = {chi2_dr9nknown1:.1f}', fontsize=12)
-    plt.text(91., 23., f'DR9 (Nonlin. cons. II+nStar) $\chi^{2}$ = {chi2_dr9nknownp:.1f}', fontsize=12)
-    plt.xlim(26, 210)
-    plt.xticks([50, 75, 100, 125, 150, 175, 200])
+    plt.text(91., 48., f'DR9 (Before) = {chi2_dr9:.1f}', fontsize=12)
+    plt.text(91., 43., f'DR9 (Linear Conservative I) = {chi2_dr9known:.1f}', fontsize=12)
+    plt.text(91., 38., f'DR9 (Linear Conservative II) = {chi2_dr9known1:.1f}', fontsize=12)
+    plt.text(91., 33., f'DR9 (Linear All Maps) = {chi2_dr9all:.1f}', fontsize=12)
+    plt.text(91., 28., f'DR9 (Nonlinear Cons. II) = {chi2_dr9nknown1:.1f}', fontsize=12)
+    plt.text(91., 23., f'DR9 (Nonlin. Cons. II+nStar) = {chi2_dr9nknownp:.1f}', fontsize=12)
+    plt.xlim(26, 260)
+    plt.xticks([50, 75, 100, 125, 150, 175, 200, 225, 250])
     plt.legend(title='Clean Mocks', frameon=False)
     plt.xlabel(r'Mean Density $\chi^{2}$')
     plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test2.pdf', bbox_inches='tight')    
@@ -622,12 +633,13 @@ def plot_mcmc_mocks():
     g.add_x_marker(100./1.3)
     g.add_y_marker(1.43)
     g.get_axes().set_ylim(1.426, 1.434)
-    g.get_axes().set_xlim(74.8, 79.8)
+    g.get_axes().set_xlim(74.8, 80.2)
     g.add_legend([r'log$C_{\ell}$', r'$C_{\ell}$', 
                   r'log$C_{\ell}$ + $f_{\rm NL}=0$ cov ',
-                  r'$C_{\ell}$ + $f_{\rm NL}=0$ cov '], colored_text=True, legend_ncol=2)
+                  r'$C_{\ell}$ + $f_{\rm NL}=0$ cov '], colored_text=True, 
+                legend_loc='lower left')
     ax = g.get_axes()
-    ax.text(0.08, 0.08, r'Fitting the mean of $f_{\rm NL}=76.92$ mocks', 
+    ax.text(0.08, 0.92, r'Fitting the mean of $f_{\rm NL}=76.92$ mocks', 
             transform=ax.transAxes, fontsize=13)
     ax.text(98/1.3, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
     g.fig.align_labels()  
@@ -678,13 +690,13 @@ def plot_bestfit():
     print(np.std(fnl))
     plt.axvline(0, lw=1, ls=':', color='grey', zorder=-10)
     plt.axhline(1.43, lw=1, ls=':', color='grey', zorder=-10)
-    plt.text(25., 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
+    plt.text(22., 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
     plt.xlabel(r'$f_{\rm NL}$')
     plt.ylabel('b')
     plt.colorbar(map_, label=r'Min $\chi^{2}$')    
     plt.ylim(1.36, 1.50)    
     plt.twinx()
-    plt.xlim(-70, 50)
+    plt.xlim(-70, 40)
     plt.yticks([])
     plt.hist(fnl, zorder=-10, histtype='step', bins=24, color='C0')
     plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/bestfit_zero.pdf', bbox_inches='tight')    
@@ -702,14 +714,14 @@ def plot_bestfit():
     print(np.std(fnl))
     plt.axvline(100/gratio, lw=1, ls=':', color='grey', zorder=-10)
     plt.axhline(1.43, lw=1, ls=':', color='grey', zorder=-10)
-    plt.text(120, 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
+    plt.text(110, 1.432, 'Truth', color='grey', alpha=0.8, fontsize=13)
     plt.xlabel(r'$f_{\rm NL}$')
     plt.ylabel('b')
     plt.ylim(1.36, 1.50)    
     plt.colorbar(map_, label=r'Min $\chi^{2}$')
     plt.twinx()
     plt.yticks([])
-    plt.xlim(20, 140)       
+    plt.xlim(20, 130)       
     plt.hist(fnl, zorder=-10, histtype='step', bins=24, color='C0')
     plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/bestfit_po100.pdf', bbox_inches='tight')    
     plt.show()
@@ -969,12 +981,12 @@ def plot_dr9cl():
     ln, = plt.plot(cl_['el_bin'], cl_['cl'], label='Mean of Mocks', alpha=0.5)
     plt.fill_between(cl_['el_bin'], cl_['cl']-cl_err, cl_['cl']+cl_err, alpha=0.1, color=ln.get_color())
 
-    for i, (n, nm) in enumerate(zip(['linp_all', 'linp_known', 'linp_known1', 'dnnp_known1', 'noweight'],
-                     ['All Maps', 'Conservative I', 'Conservative II','Nonlinear (Cons. II)', 'No weight'])):
+    for i, (n, nm) in enumerate(zip(['linp_all', 'linp_known', 'linp_known1', 'dnnp_known1', 'dnnp_knownp', 'noweight'],
+                     ['All Maps', 'Conservative I', 'Conservative II','Nonlinear (Cons. II)', 'Nonlin. (Cons. II+nStar)', 'No weight'])):
         cl_d = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_{n}.npy', allow_pickle=True).item()
         cl_b = np.log10(ut.histogram_cell(cl_d['cl_gg']['l'], cl_d['cl_gg']['cl'], bins=ut.ell_edges)[1])
 
-        bestp = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_{n}_steps10k_walkers50.npz')
+        bestp = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_{n}_steps10k_walkers50_elmin0.npz')
         fnl, b, noise = bestp['best_fit']
         print(nm, fnl/gratio, b)
 
@@ -1070,8 +1082,8 @@ def test_chi2lmax():
     plt.scatter(ell_maxes, chi2_data[:, 1], marker='x', alpha=1.0)
     lgn = plt.legend(loc=4)
 
-    plt.text(32, 310, 'Lin. cons. II', color='C1', fontsize=13)
-    plt.text(40, 175, 'Nonlin. cons. II', color='C2', fontsize=13)
+    plt.text(32, 310, 'Linear Cons. II', color='C1', fontsize=13)
+    plt.text(40, 175, 'Nonlinear Cons. II', color='C2', fontsize=13)
     plt.text(77, 100, 'Mocks 95%', color='k', alpha=0.4, fontsize=13)
     plt.xlabel(r'$\ell_{\rm max}$')
     plt.ylabel(r'Cross Spectrum $\chi^{2}$')
