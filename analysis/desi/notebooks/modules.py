@@ -37,51 +37,40 @@ class MCMC(MCSamples):
         MCSamples.__init__(self, samples=chains, **mc_kw)
         
 
-def read_clx(fn, bins=None):
-
+def read_clx(fn, bins=None): 
     cl = np.load(fn, allow_pickle=True).item()
-    
     cl_cross = []
     cl_ss = []
-
     for i in range(len(cl['cl_sg'])):    
         __, cl_sg_ = ut.histogram_cell(cl['cl_sg'][i]['l'], cl['cl_sg'][i]['cl'], bins=bins)
         __, cl_ss_ = ut.histogram_cell(cl['cl_ss'][i]['l'], cl['cl_ss'][i]['cl'], bins=bins)
-
         cl_ss.append(cl_ss_)
-        cl_cross.append(cl_sg_**2/cl_ss_)    
-
+        cl_cross.append(cl_sg_**2/cl_ss_)
     return np.array(cl_cross).flatten()
 
 
 def read_clxmocks(list_clx, bins=None):
-    
     err_mat = []    
     for i, clx_i in enumerate(list_clx):
-        
         err_i  = read_clx(clx_i, bins=bins)
         err_mat.append(err_i)
-        
-        if (i % (len(list_clx)//10)) == 0:
-            print(f'{i}/{len(list_clx)}')
-
+        if (i % (len(list_clx)//10)) == 0:print(f'{i}/{len(list_clx)}')
     err_mat = np.array(err_mat)
     print(err_mat.shape)
     return err_mat
 
+
 def combine_nn(maps, output):
-    
     hpmap = np.zeros(12*256*256)
     counts = np.zeros(12*256*256)
     for map_ in maps:
         d_ = ft.read(map_)
         counts[d_['hpix']] += 1.0
         hpmap[d_['hpix']] += d_['weight'].mean(axis=1)
-
     hpmap = hpmap / counts
     hpmap[~(counts > 0.0)] = hp.UNSEEN
     hp.write_map(output, hpmap, fits_IDL=False)
-    print(f'wrote {output}')        
+    print(f'wrote {output}')
     
 
 def bin_clmock(fnl, survey, iscont, method, ell_edges, log=True):

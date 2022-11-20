@@ -42,9 +42,10 @@ axes = [0, 4, 7] # maps for known1
 root_dir = '/fs/ess/PHS0336/data/rongpu/imaging_sys'
 target = 'lrg'
 maps = 'known1'
+fnl = 'po100'
 
 input_path = '/fs/ess/PHS0336/data/lognormal/v3/hpmaps/'
-path_mocks = os.path.join(input_path, 'lrghp-zero-*-f1z1.fits')
+path_mocks = os.path.join(input_path, f'lrghp-{fnl}-*-f1z1.fits')
 
 # read imaging
 hpix = {}
@@ -80,6 +81,6 @@ for i,mock_i in enumerate(glob(path_mocks)):
     cnmock_i = nmock_i * window_i
     cnmock_i[~is_good] = hp.UNSEEN
 
-    cmock_i = mock_i.replace('zero', 'czero')
+    cmock_i = mock_i.replace(fnl, 'c'+fnl)
     hp.write_map(cmock_i, cnmock_i, dtype=np.float64, fits_IDL=False, overwrite=True)
     print(f"done writing {cmock_i}")

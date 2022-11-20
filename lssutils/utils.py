@@ -84,6 +84,18 @@ z_bins = {'main':(0.8, 2.2),
          'z2':(1.3, 1.7),
          'z3':(1.7, 2.2)}
 
+def combine_nn(maps, output):
+    hpmap = np.zeros(12*256*256)
+    counts = np.zeros(12*256*256)
+    for map_ in maps:
+        d_ = ft.read(map_)
+        counts[d_['hpix']] += 1.0
+        hpmap[d_['hpix']] += d_['weight'].mean(axis=1)
+    hpmap = hpmap / counts
+    hpmap[~(counts > 0.0)] = hp.UNSEEN
+    hp.write_map(output, hpmap, fits_IDL=False)
+    print(f'wrote {output}')
+
 
 def chi2_fn(residual, invcov):
     return np.dot(residual, np.dot(invcov, residual))  

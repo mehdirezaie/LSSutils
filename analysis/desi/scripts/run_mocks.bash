@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=stats
+#SBATCH --job-name=nnfit
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:10:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -20,10 +20,11 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false        #
-do_nn=false          # 10 h
+do_nn=true          # 10 h
+do_pullnn=false
 do_regrs=false       # 25 min
 do_nbar=false        # 10 m x 4
-do_cl=true          # 10 m x 4
+do_cl=false          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        # 3 h x 14
 do_mcmc_scale=false  #
@@ -38,17 +39,18 @@ do_mcmc_joint3=false # 5x14
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=5000
-region=$1 # desi, bmzls, ndecals, sdecals
-iscont=0
-maps="noweight" #e.g., "known5" or "all"
-method="noweight" # noweight, nn_all
+region=$2 # desi, bmzls, ndecals, sdecals
+iscont=0      # redundant, will use zero or czero for null or cont mocks
+maps="known1" #e.g., "known5" or "all"
+tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
+model=dnnp
+method=${model}_${maps} # noweight, nn_all
 target="lrg"
-fnltag="zero" #zero, po100
+fnltag=$1 #zero, po100
 ver=v3 # 
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
-root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys/tables
+root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys
 nside=256
-model=dnnp
 loss=pnll
 nns=(4 20)
 nepoch=70 # or 150
@@ -82,30 +84,31 @@ function get_lr(){
 }
 
 function get_axes(){
-    if [ $1 = "known1" ]
+    if [ $1 = "known" ]
     then
-        axes=(0)   # ebv
+        axes=(0 4)   # EBV, galdepth-z
+    elif [ $1 = "known1" ]
+    then
+        axes=(0 4 7) # EBV, galdepth-z, psfsize-r
+    elif [ $1 = "knownp" ]
+    then
+        axes=(0 1 4 7) # EBV, nstar, galdepth-z, psfsize-r
+    elif [ $1 = "known1ext" ]
+    then
+        axes=(0 4 7 9 10) # EBV, galdepth-z, psfsize-r, calibz, logHI
+
     elif [ $1 = "known2" ]
     then
-        axes=(0 6)   # ebv, psfdepth-g 
-    elif [ $1 = "known3" ]
-    then
-        axes=(0 1 6) # ebv, nstar, psfdepth-g
-    elif [ $1 = "known4" ]
-    then
-        axes=(0 1 6 11) # ebv, nstar, psfdepth-g, psfsize-g
-    elif [ $1 = "known5" ]
-    then
-        axes=(0 1 4 6 11) # ebv, nstar, galdepth-z, psfdepth-g, psfsize-g
-    elif [ $1 = "all2" ]
-    then
-        axes=({0..12})
-        axes=($(echo ${axes[*]}) $(echo ${axes[*]}))
+        axes=(0 2 3 4) # EBV,galdepth-grz
+
     elif [ $1 = "all" ]
     then
-        axes=({0..12}) # all maps
-        #axes=(0 1 2 3 4 5 6 7 10 11 12) # ELG's do not need 8 and 9, which are W1 and W1 bands
+        axes=(0 2 3 4 5 6 7 8) # all maps
+    elif [ $1 = "allp" ]
+    then
+        axes=(0 1 2 3 4 5 6 7 8) # all maps p nstar
     fi
+
     echo ${axes[@]}
 }
 
@@ -114,17 +117,13 @@ if [ "${do_nn}" = true ]
 then
     lr=$(get_lr ${target})
     axes=$(get_axes ${maps})
-
     echo ${target} ${region} $lr ${axes[@]} $maps
-
-    input_path=${root_dir2}/0.57.0/n${target}_features_${region}_${nside}.fits
-    input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1-contaminated.fits
-    output_path=${root_dir}/regression/fnl_${fnltag}/cont/${mockid}/${region}/nn_${maps}/
-
-    du -h $input_map $input_path
-    echo $output_path	
-    #python $nnfit -i ${input_path} ${input_map} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]}  -fl
-    srun -n 1 python $nnfit -i ${input_path} ${input_map} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]}  -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain --do_tar -k
+    input_path=${root_dir2}/tables/${tag_d}/n${target}_features_${region}_${nside}.fits
+    input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1.fits
+    output_path=${root_dir}/regression/fnl_${fnltag}/${mockid}/${model}_${maps}/${region}/
+    echo $output_path 
+    du -h $input_path $input_map
+    srun -n 1 python $nnfit -i ${input_path} ${input_map} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain --do_tar
 fi
 
 
@@ -151,16 +150,10 @@ fi
 
 if [ "${do_nbar}" = true ]
 then
-    if [ $iscont = 1 ]
-    then
-        input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1-contaminated.fits
-        input_wsys=${root_dir}/regression/fnl_${fnltag}/cont/${mockid}/${region}/nn_${maps}/nn-weights.fits
-    else
-        input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1.fits
-        input_wsys=${root_dir}/regression/fnl_${fnltag}/null/${mockid}/${region}/nn_${maps}/nn-weights.fits
-    fi
+    input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1.fits
+    input_wsys=${root_dir}/regression/fnl_${fnltag}/${mockid}/${model}_${maps}_lrg_desic.hp256.fits
     echo $target $region $iscont $maps
-    input_path=${root_dir2}/0.57.0/n${target}_features_${region}_${nside}.fits
+    input_path=${root_dir2}/tables/0.57.0/n${target}_features_${region}_${nside}.fits
     
     du -h $input_map $input_path $input_wsys
 
@@ -170,48 +163,42 @@ then
     if [ ! -f $output_path ]
     then
         echo "running w/o weights"
-        srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
+        #srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
     fi
 
-    if [ $iscont = 1 ]
+    if [ -f $input_wsys ]
     then
         # nn weight
-        output_path=${root_dir}/clustering/nbarmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}.npy                
+        output_path=${root_dir}/clustering/nbarmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_${model}_${maps}.npy           
         echo $output_path
-        srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
+        #srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
     fi
 fi
 
 
 if [ "${do_cl}" = true ]
 then
-    if [ $iscont = 1 ]
-    then
-        input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1-contaminated.fits
-        input_wsys=${root_dir}/regression/fnl_${fnltag}/cont/${mockid}/${region}/nn_${maps}/nn-weights.fits
-        #input_wsys=/fs/ess/PHS0336/data/lognormal/v2/regression/fnl_zero_cont_bmzls_nn_known5.fits
-    else
-        input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1.fits
-        input_wsys=${root_dir}/regression/fnl_${fnltag}/null/${mockid}/${region}/nn_${maps}/nn-weights.fits
-    fi
+    input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1.fits
+    input_wsys=${root_dir}/regression/fnl_${fnltag}/${mockid}/${model}_${maps}_lrg_desic.hp256.fits
     echo $target $region $iscont $maps
-    input_path=${root_dir2}/0.57.0/n${target}_features_${region}_${nside}.fits
+    input_path=${root_dir2}/tables/0.57.0/n${target}_features_${region}_${nside}.fits
     
-    du -h $input_map $input_path $input_wsys
+    du -h $input_map $input_path
 
     # no weight
-    output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_noweight.npy                
+    output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_noweight.npy                 
     if [ ! -f $output_path ]
     then
         echo $output_path
+        echo "running w/o weights"
         srun -n 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path}
     fi
 
-    if [ $iscont = 1 ]
+    if [ -f $input_wsys ]
     then
+        du -h $input_wsys
         # nn weight
-        output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}.npy                
-        #output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}_avgwsys0.npy                
+        output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_${model}_${maps}.npy           
         echo $output_path
         srun -n 4 python $cl -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
     fi
