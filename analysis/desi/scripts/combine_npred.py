@@ -3,8 +3,8 @@ from lssutils.utils import combine_nn
 
 
 fnl = sys.argv[1]
-mock = 1
-method = 'dnnp_known1'
+mock = sys.argv[2]
+method = sys.argv[3] #'dnnp_known1'
 
 print(f'fnl: {fnl}')
 

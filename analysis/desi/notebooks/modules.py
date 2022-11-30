@@ -667,6 +667,79 @@ def plot_mcmc_mocks():
     print_stats(stats)    
 
     
+def plot_mcmc_contmocks():
+    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
+           'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
+    mc_kw = dict(names=['fnl', 'b', 'n0'], 
+                 labels=['f_{NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+    read_kw = dict(ndim=3, iscale=[2])
+    p = '/fs/ess/PHS0336/data/lognormal/v3/mcmc/'
+    
+    z_now  = MCMC(f'{p}logmcmc_0_lrg_zero_desic_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    z_nn1  = MCMC(f'{p}logmcmc_0_lrg_zero_desic_256_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    z_nnp  = MCMC(f'{p}logmcmc_0_lrg_zero_desic_256_dnnp_knownp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    cz_nn1 = MCMC(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    cz_nnp = MCMC(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_knownp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+
+    stats = {}
+    stats[r'$0$ & No Weight']         = z_now.stats
+    stats[r'$0$ & ConsII']            = z_nn1.stats
+    stats[r'$0$ & ConsII+nStar']      = z_nnp.stats    
+    stats[r'Cont $0$ & ConsII']       = cz_nn1.stats
+    stats[r'Cont $0$ & ConsII+nStar'] = cz_nnp.stats    
+
+    g = plots.get_single_plotter(width_inch=6)
+    g.settings.legend_fontsize = 13
+    g.plot_2d([z_now, z_nn1, z_nnp, cz_nn1, cz_nnp], 'fnl', 'b', filled=True)
+    #g.add_x_marker(0)
+    #g.add_y_marker(1.43)
+    #g.get_axes().set_ylim(1.426, 1.434)
+    #g.get_axes().set_xlim(-2.2, 3.2)    
+    ax = g.get_axes()
+    ax.text(0.08, 0.92, r'Fitting the mean of $f_{\rm NL}$=0 mocks', 
+            transform=ax.transAxes, fontsize=13)
+    #ax.text(-2.0, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
+    
+    #g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', r'DESI'], 
+    #             colored_text=True, legend_loc='lower left')    
+    g.fig.align_labels()
+    #g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_zero.pdf', bbox_inches='tight')        
+    
+ 
+
+    z_now  = MCMC(f'{p}logmcmc_0_lrg_po100_desic_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    z_nn1  = MCMC(f'{p}logmcmc_0_lrg_po100_desic_256_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    z_nnp  = MCMC(f'{p}logmcmc_0_lrg_po100_desic_256_dnnp_knownp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    cz_nn1 = MCMC(f'{p}logmcmc_0_lrg_cpo100_desic_256_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    cz_nnp = MCMC(f'{p}logmcmc_0_lrg_cpo100_desic_256_dnnp_knownp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+
+    stats[r'$76.92$ & No Weight']         = z_now.stats
+    stats[r'$76.92$ & ConsII']            = z_nn1.stats
+    stats[r'$76.92$ & ConsII+nStar']      = z_nnp.stats    
+    stats[r'Cont $76.92$ & ConsII']       = cz_nn1.stats
+    stats[r'Cont $76.92$ & ConsII+nStar'] = cz_nnp.stats    
+
+    g = plots.get_single_plotter(width_inch=6)
+    g.settings.legend_fontsize = 13
+    g.plot_2d([z_now, z_nn1, z_nnp, cz_nn1, cz_nnp], 'fnl', 'b', filled=True)
+    #g.add_x_marker(0)
+    #g.add_y_marker(1.43)
+    #g.get_axes().set_ylim(1.426, 1.434)
+    #g.get_axes().set_xlim(-2.2, 3.2)    
+    ax = g.get_axes()
+    ax.text(0.08, 0.92, r'Fitting the mean of $f_{\rm NL}$=76.92 mocks', 
+            transform=ax.transAxes, fontsize=13)
+    #ax.text(-2.0, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
+    
+    #g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', r'DESI'], 
+    #             colored_text=True, legend_loc='lower left')    
+    g.fig.align_labels()
+    #g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_zero.pdf', bbox_inches='tight')   
+      
+    print_stats(stats)    
+
+    
+    
 def plot_bestfit():
     bf = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_noweight.npz')
     fnl, b = bf['params'][:, :2].T
