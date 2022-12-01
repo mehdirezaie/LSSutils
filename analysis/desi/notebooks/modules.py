@@ -1229,7 +1229,29 @@ def test_nz():
     plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/cell_nz.pdf', bbox_inches='tight')    
     
 
+def plot_fnlbias():
+    truth  = np.array([0.0,    76.92])
+    meas0  = np.array([0.36,   77.67])
+    meas1  = np.array([-11.64, 54.57])
+    meas2  = np.array([-20.14, 38.38])
+    measc1 = np.array([-12.12, 54.01])
+    measc2 = np.array([-20.97, 37.48])
+
+
+    for me,ne in zip([meas0, meas1, meas2],
+                     ['No weight', 'Cons II', 'Cons II+nStar']):
+        plt.plot(me, truth, label=ne, zorder=-10, alpha=0.3, lw=3, marker='o', mfc='w', ls='-')
+
+    plt.plot(measc1, truth, ls='--', color='C1', alpha=0.3)
+    plt.plot(measc2, truth, ls='--', color='C2', alpha=0.3)
     
+    #plt.plot(1.15*meas1+14, truth, ls=':', color='C1', )
+    #plt.plot(1.3*meas2+27, truth, ls=':', color='C2')
+
+    plt.xlabel(r'Measured $f_{\rm NL}$')
+    plt.ylabel(r'True $f_{\rm NL}$')
+    plt.legend()
+    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnlbias.pdf', bbox_inches='tight')     
     
 # import sys
 # import os
