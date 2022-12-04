@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=03:00:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -20,7 +20,7 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false        #
-do_nn=false          # 10 h
+do_nn=true          # 10 h
 do_pullnn=false       # 10 m x 1
 do_regrs=false       # 25 min
 do_nbar=false        # 10 m x 4
@@ -28,7 +28,7 @@ do_cl=false          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        # 3 h x 14
 do_mcmc_scale=false  #
-do_mcmc_log=true
+do_mcmc_log=false
 do_mcmc_logscale=false
 do_bfit=false        # 3 h x 14
 do_mcmc_cont=false   # 
@@ -36,12 +36,12 @@ do_mcmc_joint=false  # 3hx14
 do_mcmc_joint3=false # 5x14
 
 #mockid=2 # for debugging
-#printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
+printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=5000
-region=desic # desi, bmzls, ndecals, sdecals
+region=$2 # desi, bmzls, ndecals, sdecals
 iscont=0      # redundant, will use zero or czero for null or cont mocks
-maps=$2 #e.g., "known5" or "all"
+maps=allp #e.g., "known5" or "all"
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 model=dnnp
 method=${model}_${maps} # noweight, nn_all
