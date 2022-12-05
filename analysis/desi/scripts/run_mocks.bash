@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=10:00:00
+#SBATCH --time=00:10:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -20,11 +20,11 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false        #
-do_nn=true          # 10 h
+do_nn=false          # 10 h
 do_pullnn=false       # 10 m x 1
 do_regrs=false       # 25 min
 do_nbar=false        # 10 m x 4
-do_cl=false          # 10 m x 4
+do_cl=true          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        # 3 h x 14
 do_mcmc_scale=false  #
@@ -39,7 +39,7 @@ do_mcmc_joint3=false # 5x14
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=5000
-region=$2 # desi, bmzls, ndecals, sdecals
+region="desic" # desi, bmzls, ndecals, sdecals
 iscont=0      # redundant, will use zero or czero for null or cont mocks
 maps=allp #e.g., "known5" or "all"
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
@@ -131,27 +131,6 @@ if [ "${do_pullnn}" = true ]
 then
     echo $mockid $region $fnltag $model $maps
     python combine_npred.py $fnltag $mockid ${model}_${maps}
-fi
-
-
-if [ "${do_regrs}" = true ]
-then
-    if [ $iscont = 1 ]
-    then
-        input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1-contaminated.fits
-    else
-        input_map=${root_dir}/hpmaps/${target}hp-${fnltag}-${mockid}-f1z1.fits
-    fi
-    echo $target $region $iscont $maps
-    
-    du -h $input_map
-
-    if [ $iscont = 1 ]
-    then
-        output_path=${root_dir}/clustering/clmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_nn_${maps}_regrslin.npz 
-        echo $output_path
-        srun -n 1 python $regrs ${input_map} ${output_path} Linear
-    fi
 fi
 
 
