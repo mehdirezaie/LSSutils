@@ -678,15 +678,19 @@ def plot_mcmc_contmocks():
     z_now  = MCMC(f'{p}logmcmc_0_lrg_zero_desic_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     z_nn1  = MCMC(f'{p}logmcmc_0_lrg_zero_desic_256_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     z_nnp  = MCMC(f'{p}logmcmc_0_lrg_zero_desic_256_dnnp_knownp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    z_nnap  = MCMC(f'{p}logmcmc_0_lrg_zero_desic_256_dnnp_allp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     cz_nn1 = MCMC(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
-    cz_nnp = MCMC(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_knownp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    cz_nnp = MCMC(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_knownp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)  
+    cz_nnap  = MCMC(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_allp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)      
 
     stats = {}
     stats[r'$0$ & No Weight']         = z_now.stats
     stats[r'$0$ & ConsII']            = z_nn1.stats
     stats[r'$0$ & ConsII+nStar']      = z_nnp.stats    
+    stats[r'$0$ & All Maps+nStar']      = z_nnap.stats        
     stats[r'Cont $0$ & ConsII']       = cz_nn1.stats
     stats[r'Cont $0$ & ConsII+nStar'] = cz_nnp.stats    
+    stats[r'Cont $0$ & All Maps+nStar']      = cz_nnap.stats            
 
     g = plots.get_single_plotter(width_inch=6)
     g.settings.legend_fontsize = 13
@@ -710,14 +714,19 @@ def plot_mcmc_contmocks():
     z_now  = MCMC(f'{p}logmcmc_0_lrg_po100_desic_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     z_nn1  = MCMC(f'{p}logmcmc_0_lrg_po100_desic_256_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     z_nnp  = MCMC(f'{p}logmcmc_0_lrg_po100_desic_256_dnnp_knownp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    z_nnap  = MCMC(f'{p}logmcmc_0_lrg_po100_desic_256_dnnp_allp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     cz_nn1 = MCMC(f'{p}logmcmc_0_lrg_cpo100_desic_256_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     cz_nnp = MCMC(f'{p}logmcmc_0_lrg_cpo100_desic_256_dnnp_knownp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    cz_nnap  = MCMC(f'{p}logmcmc_0_lrg_cpo100_desic_256_dnnp_allp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)        
 
     stats[r'$76.92$ & No Weight']         = z_now.stats
     stats[r'$76.92$ & ConsII']            = z_nn1.stats
     stats[r'$76.92$ & ConsII+nStar']      = z_nnp.stats    
+    stats[r'$76.92$ & All Maps+nStar']      = z_nnap.stats        
     stats[r'Cont $76.92$ & ConsII']       = cz_nn1.stats
     stats[r'Cont $76.92$ & ConsII+nStar'] = cz_nnp.stats    
+    stats[r'Cont $76.92$ & All Maps+nStar']      = cz_nnap.stats        
+
 
     g = plots.get_single_plotter(width_inch=6)
     g.settings.legend_fontsize = 13
@@ -1234,16 +1243,20 @@ def plot_fnlbias():
     meas0  = np.array([0.36,   77.67])
     meas1  = np.array([-11.64, 54.57])
     meas2  = np.array([-20.14, 38.38])
+    meas3  = np.array([-26.91, 6.04])
     measc1 = np.array([-12.12, 54.01])
     measc2 = np.array([-20.97, 37.48])
+    measc3 = np.array([-28.13, 4.59])
 
 
-    for me,ne in zip([meas0, meas1, meas2],
-                     ['No weight', 'Cons II', 'Cons II+nStar']):
+    for me,ne in zip([meas0, meas1, meas2, meas3],
+                     ['No weight', 'Cons II', 'Cons II+nStar', 'All Maps+nStar']):
         plt.plot(me, truth, label=ne, zorder=-10, alpha=0.3, lw=3, marker='o', mfc='w', ls='-')
 
     plt.plot(measc1, truth, ls='--', color='C1', alpha=0.3)
     plt.plot(measc2, truth, ls='--', color='C2', alpha=0.3)
+    plt.plot(measc3, truth, ls='--', color='C3', alpha=0.3)
+
     
     #plt.plot(1.15*meas1+14, truth, ls=':', color='C1', )
     #plt.plot(1.3*meas2+27, truth, ls=':', color='C2')
@@ -1252,6 +1265,15 @@ def plot_fnlbias():
     plt.ylabel(r'True $f_{\rm NL}$')
     plt.legend()
     plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnlbias.pdf', bbox_inches='tight')     
+    plt.show()
+    
+    for me,ne in zip([meas0, meas1, meas2, meas3],
+                     ['No weight', 'Cons II', 'Cons II+nStar', 'All Maps+nStar']):
+        plt.plot(me, truth, label=ne, zorder=-10, alpha=0.3, lw=3, marker='o', mfc='w', ls='-')
+
+    plt.plot(1.17*meas1+13.95, truth, ls=':', color='C1', lw=5)
+    plt.plot(1.32*meas2+26.97, truth, ls=':', color='C2', lw=4)    
+    plt.plot(2.35*meas3+63.50, truth, ls=':', color='C3', lw=6)    
     
 # import sys
 # import os

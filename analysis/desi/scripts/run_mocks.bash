@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:10:00
+#SBATCH --time=05:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -24,11 +24,11 @@ do_nn=false          # 10 h
 do_pullnn=false       # 10 m x 1
 do_regrs=false       # 25 min
 do_nbar=false        # 10 m x 4
-do_cl=true          # 10 m x 4
+do_cl=false          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        # 3 h x 14
 do_mcmc_scale=false  #
-do_mcmc_log=false
+do_mcmc_log=true     # 3h x 14
 do_mcmc_logscale=false
 do_bfit=false        # 3 h x 14
 do_mcmc_cont=false   # 
