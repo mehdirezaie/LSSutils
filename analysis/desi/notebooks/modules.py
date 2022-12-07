@@ -692,22 +692,22 @@ def plot_mcmc_contmocks():
     stats[r'Cont $0$ & ConsII+nStar'] = cz_nnp.stats    
     stats[r'Cont $0$ & All Maps+nStar']      = cz_nnap.stats            
 
-    g = plots.get_single_plotter(width_inch=6)
-    g.settings.legend_fontsize = 13
-    g.plot_2d([z_now, z_nn1, z_nnp, cz_nn1, cz_nnp], 'fnl', 'b', filled=True)
-    #g.add_x_marker(0)
-    #g.add_y_marker(1.43)
-    #g.get_axes().set_ylim(1.426, 1.434)
-    #g.get_axes().set_xlim(-2.2, 3.2)    
-    ax = g.get_axes()
-    ax.text(0.08, 0.92, r'Fitting the mean of $f_{\rm NL}$=0 mocks', 
-            transform=ax.transAxes, fontsize=13)
-    #ax.text(-2.0, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
+#     g = plots.get_single_plotter(width_inch=6)
+#     g.settings.legend_fontsize = 13
+#     g.plot_2d([z_now, z_nn1, z_nnp, cz_nn1, cz_nnp], 'fnl', 'b', filled=True)
+#     #g.add_x_marker(0)
+#     #g.add_y_marker(1.43)
+#     #g.get_axes().set_ylim(1.426, 1.434)
+#     #g.get_axes().set_xlim(-2.2, 3.2)    
+#     ax = g.get_axes()
+#     ax.text(0.08, 0.92, r'Fitting the mean of $f_{\rm NL}$=0 mocks', 
+#             transform=ax.transAxes, fontsize=13)
+#     #ax.text(-2.0, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
     
-    #g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', r'DESI'], 
-    #             colored_text=True, legend_loc='lower left')    
-    g.fig.align_labels()
-    #g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_zero.pdf', bbox_inches='tight')        
+#     #g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', r'DESI'], 
+#     #             colored_text=True, legend_loc='lower left')    
+#     g.fig.align_labels()
+#     #g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_zero.pdf', bbox_inches='tight')        
     
  
 
@@ -728,22 +728,22 @@ def plot_mcmc_contmocks():
     stats[r'Cont $76.92$ & All Maps+nStar']      = cz_nnap.stats        
 
 
-    g = plots.get_single_plotter(width_inch=6)
-    g.settings.legend_fontsize = 13
-    g.plot_2d([z_now, z_nn1, z_nnp, cz_nn1, cz_nnp], 'fnl', 'b', filled=True)
-    #g.add_x_marker(0)
-    #g.add_y_marker(1.43)
-    #g.get_axes().set_ylim(1.426, 1.434)
-    #g.get_axes().set_xlim(-2.2, 3.2)    
-    ax = g.get_axes()
-    ax.text(0.08, 0.92, r'Fitting the mean of $f_{\rm NL}$=76.92 mocks', 
-            transform=ax.transAxes, fontsize=13)
-    #ax.text(-2.0, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
+#     g = plots.get_single_plotter(width_inch=6)
+#     g.settings.legend_fontsize = 13
+#     g.plot_2d([z_now, z_nn1, z_nnp, cz_nn1, cz_nnp], 'fnl', 'b', filled=True)
+#     #g.add_x_marker(0)
+#     #g.add_y_marker(1.43)
+#     #g.get_axes().set_ylim(1.426, 1.434)
+#     #g.get_axes().set_xlim(-2.2, 3.2)    
+#     ax = g.get_axes()
+#     ax.text(0.08, 0.92, r'Fitting the mean of $f_{\rm NL}$=76.92 mocks', 
+#             transform=ax.transAxes, fontsize=13)
+#     #ax.text(-2.0, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
     
-    #g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', r'DESI'], 
-    #             colored_text=True, legend_loc='lower left')    
-    g.fig.align_labels()
-    #g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_zero.pdf', bbox_inches='tight')   
+#     #g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', r'DESI'], 
+#     #             colored_text=True, legend_loc='lower left')    
+#     g.fig.align_labels()
+#     #g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_zero.pdf', bbox_inches='tight')   
       
     print_stats(stats)    
 
@@ -880,12 +880,13 @@ def plot_mcmc_data():
     # Triangle plot
     g = plots.get_single_plotter(width_inch=6)
     g.settings.legend_fontsize = 13
-    g.plot_2d([ze, kn1, knn1, dskp], 'fnl', 'b', 
-              filled=True,lims=[-10, 170, 1.28, 1.57], colors='Dark2') # 
+    g.plot_2d([ze, kn1, knn1, dskp, dsp], 'fnl', 'b', 
+              filled=True,lims=[-50, 170, 1.28, 1.57], colors='Dark2') # 
     g.add_legend(['No weight',
                   'Linear (Conservative II)', 
                   'Nonlinear (Cons. II)',
-                  'Nonlin. (Cons. II+nStar)'], 
+                  'Nonlin. (Cons. II+nStar)',
+                  'Nonlin. (All Maps+nStar)'], 
                   colored_text=True, legend_loc='lower left')    
     g.fig.align_labels()
     ax = g.get_axes()
@@ -894,11 +895,51 @@ def plot_mcmc_data():
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods.pdf', bbox_inches='tight')    
     plt.show()
     
+    g = plots.get_single_plotter(width_inch=6)
+    g.settings.legend_fontsize = 13
+    g.plot_1d([ze, kn1, knn1, dskp, dsp], 'fnl',
+              filled=True,lims=[-50, 170], colors='Dark2') # 
+    g.add_legend(['No weight',
+                  'Linear (Conservative II)', 
+                  'Nonlinear (Cons. II)',
+                  'Nonlin. (Cons. II+nStar)',
+                  'Nonlin. (All Maps+nStar)'], 
+                  colored_text=True, legend_loc='lower left')    
+    g.fig.align_labels()
+    ax = g.get_axes()
+    ax.tick_params(top=False, right=False)
+    ax.text(0.15, 0.92, 'DR9 DESI Footprint (different methods)', 
+            transform=ax.transAxes, fontsize=13)      
+    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods1d.pdf', bbox_inches='tight')    
+    plt.show()    
+    
+    # Triangle plot
+    g = plots.get_single_plotter(width_inch=6)
+    g.settings.legend_fontsize = 13
+    knn1.samples[:, 0] = 1.17*knn1.samples[:, 0]+13.95
+    dskp.samples[:, 0] = 1.32*dskp.samples[:, 0]+26.97
+    dsp.samples[:, 0]  = 2.35*dsp.samples[:, 0]+63.50
+    
+    colors = [plt.cm.Dark2(i) for i in [2, 3, 4]]
+    g.plot_1d([knn1, dskp, dsp], 'fnl',
+              filled=True,lims=[-50, 170], colors=colors) # 
+    g.add_legend([ 'Nonlinear (Cons. II)',
+                   'Nonlin. (Cons. II+nStar)',
+                   'Nonlin. (All Maps+nStar)'], 
+                  colored_text=True, legend_loc='lower left')    
+    g.fig.align_labels()
+    ax = g.get_axes()
+    ax.tick_params(top=False, right=False)
+    ax.text(0.15, 0.92, 'DR9 DESI Footprint (different methods)', 
+            transform=ax.transAxes, fontsize=13)      
+    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods1dshifted.pdf', bbox_inches='tight')    
+    plt.show()    
+    
     # Triangle plot
     g = plots.get_single_plotter(width_inch=6)
     g.settings.legend_fontsize = 13
     g.plot_2d([knn1b, knn1n, knn1s, knn1], 'fnl', 'b', filled=True,
-              lims=[-60, 120, 1.28, 1.57])
+              lims=[-100, 120, 1.28, 1.57])
     g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', 'DESI'], 
                  colored_text=True, legend_loc='lower left')  
     ax = g.get_axes()
