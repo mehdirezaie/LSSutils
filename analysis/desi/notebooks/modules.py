@@ -19,6 +19,9 @@ from lssutils.stats.pcc import pcc
 from lssutils.stats.window import WindowSHT
 from lssutils.theory.cell import (init_sample, SurveySpectrum, Spectrum, bias_model_lrg)
 
+import warnings
+warnings.filterwarnings("ignore")
+
 dv.setup_color()
 
 gratio = 1.3
@@ -259,6 +262,41 @@ def combine_regions2():
     desi = np.concatenate([ngc, sdecals])
 
     ft.write('/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desic_256.fits', desi)    
+
+
+def plot_xmaps():
+    d = ft.read('/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desi_256.fits')
+
+    fig = plt.figure(figsize=(6, 7))
+    ax = []
+    ax.append(fig.add_axes([0., 1.0, 1., 1], projection='mollweide'))
+    ax.append(fig.add_axes([0., 0.6, 1., 1],  projection='mollweide'))
+    ax.append(fig.add_axes([0., 0.2, 1., 1],  projection='mollweide'))
+    ax.append(fig.add_axes([1., 1.0, 1., 1], projection='mollweide'))
+    ax.append(fig.add_axes([1., 0.6, 1., 1], projection='mollweide'))
+    ax.append(fig.add_axes([1., 0.2, 1., 1], projection='mollweide'))
+    ax.append(fig.add_axes([2., 1.0, 1., 1], projection='mollweide'))
+    ax.append(fig.add_axes([2., 0.6, 1., 1], projection='mollweide'))
+    ax.append(fig.add_axes([2., 0.2, 1., 1], projection='mollweide'))
+    
+    names = [r'EBV', r'nStar']+[fr'depth$_{b}$' for b in ['g', 'r', 'z', '{w1}']]\
+            + [fr'psfsize$_{b}$' for b in ['g', 'r', 'z']]
+
+    for i, map_i in enumerate(d['features'].T):
+        mi = ut.make_hp(256, d['hpix'], map_i, True)
+        cmin, cmax = np.percentile(mi[~np.isnan(mi)], [2.5, 97.5])
+        dv.mollview(mi, cmin, cmax, names[i], figax=[fig, ax[i]], 
+            cmap=dv.mycolor(), colorbar=False, galaxy=False)
+        ax[i].text(0.65, 0.2, names[i], transform=ax[i].transAxes, alpha=0.8, fontsize=15)
+        #hp.mollview(mi, hold=True, badcolor='w', rot=-87, 
+        #            cbar=False, min=cmin, max=cmax, title=names[i])
+        
+    for ax_ in ax:    
+        ax_.xaxis.set_ticklabels([])
+        ax_.yaxis.set_ticklabels([])
+        ax_.xaxis.set_ticks([])
+        ax_.yaxis.set_ticks([])            
+    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/hp_features.pdf', bbox_inches='tight')    
     
 def plot_ngal():
     desi = ft.read('/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desi_256.fits')
