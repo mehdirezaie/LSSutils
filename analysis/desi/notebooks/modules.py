@@ -26,6 +26,30 @@ dv.setup_color()
 
 gratio = 1.3
 
+
+def plot_nz():
+    nz = np.loadtxt('/fs/ess/PHS0336/data/rongpu/sv3_lrg_dndz_denali.txt')
+
+    fg, ax = plt.subplots()
+
+    ax.step(nz[:, 0], nz[:, 2], where='pre', lw=1)#, label='dN/dz')
+    ax.set(xlim=(-0.05, 1.45), xlabel='z', ylabel='dN/dz')
+    ax.text(0.25, 0.7, 'dN/dz', color='C0', transform=ax.transAxes)
+
+    ax1 = ax.twinx()
+    z_g = np.linspace(0.1, 1.35)
+
+    ax1.plot(z_g, 1.4*bias_model_lrg(z_g), 'C1--', lw=3, alpha=0.5, zorder=10)#, label='b(z)')
+    ax1.text(0.7, 0.48, 'b(z)$\propto$ D$^{-1}$(z)', color='C1', transform=ax1.transAxes)
+    ax1.set_ylabel('b(z)')
+    ax1.set_ylim((1.3, 3.1))
+
+    #ax1.legend(loc='upper right')
+    #ax.legend(loc='upper left')
+
+    fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/nz_lrg.pdf', bbox_inches='tight') 
+
+
 # --- helper functions
 def print_stats(stats):
     for s, v in stats.items():
@@ -45,17 +69,17 @@ def read_clx(fn, bins=None):
     cl_cross = []
     cl_ss = []
     for i in range(len(cl['cl_sg'])):    
-        __, cl_sg_ = ut.histogram_cell(cl['cl_sg'][i]['l'], cl['cl_sg'][i]['cl'], bins=bins)
+        el_b, cl_sg_ = ut.histogram_cell(cl['cl_sg'][i]['l'], cl['cl_sg'][i]['cl'], bins=bins)
         __, cl_ss_ = ut.histogram_cell(cl['cl_ss'][i]['l'], cl['cl_ss'][i]['cl'], bins=bins)
         cl_ss.append(cl_ss_)
         cl_cross.append(cl_sg_**2/cl_ss_)
-    return np.array(cl_cross).flatten()
+    return el_b, np.array(cl_cross).flatten()
 
 
 def read_clxmocks(list_clx, bins=None):
     err_mat = []    
     for i, clx_i in enumerate(list_clx):
-        err_i  = read_clx(clx_i, bins=bins)
+        err_i  = read_clx(clx_i, bins=bins)[1]
         err_mat.append(err_i)
         if (i % (len(list_clx)//10)) == 0:print(f'{i}/{len(list_clx)}')
     err_mat = np.array(err_mat)
@@ -267,6 +291,10 @@ def combine_regions2():
 def plot_xmaps():
     d = ft.read('/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desi_256.fits')
 
+    desi = ft.read('/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desi_256.fits')
+    ng  = ut.make_hp(256, desi['hpix'], desi['label']/(desi['fracgood']*hp.nside2pixarea(256, True)), np.inf)
+    print(np.mean(ng[desi['hpix']]))
+    
     fig = plt.figure(figsize=(6, 7))
     ax = []
     ax.append(fig.add_axes([0., 1.0, 1., 1], projection='mollweide'))
@@ -278,7 +306,9 @@ def plot_xmaps():
     ax.append(fig.add_axes([2., 1.0, 1., 1], projection='mollweide'))
     ax.append(fig.add_axes([2., 0.6, 1., 1], projection='mollweide'))
     ax.append(fig.add_axes([2., 0.2, 1., 1], projection='mollweide'))
-    
+    ax_map = fig.add_axes([0.5, 1.2, 2., 2.], projection='mollweide')
+
+
     names = [r'EBV', r'nStar']+[fr'depth$_{b}$' for b in ['g', 'r', 'z', '{w1}']]\
             + [fr'psfsize$_{b}$' for b in ['g', 'r', 'z']]
 
@@ -286,57 +316,21 @@ def plot_xmaps():
         mi = ut.make_hp(256, d['hpix'], map_i, True)
         cmin, cmax = np.percentile(mi[~np.isnan(mi)], [2.5, 97.5])
         dv.mollview(mi, cmin, cmax, names[i], figax=[fig, ax[i]], 
-            cmap=dv.mycolor(), colorbar=False, galaxy=False)
-        ax[i].text(0.65, 0.2, names[i], transform=ax[i].transAxes, alpha=0.8, fontsize=15)
-        #hp.mollview(mi, hold=True, badcolor='w', rot=-87, 
-        #            cbar=False, min=cmin, max=cmax, title=names[i])
+                    cmap='jet', colorbar=False, galaxy=False)
+        ax[i].text(0.55, 0.2, names[i], 
+                   transform=ax[i].transAxes, alpha=0.8, fontsize=20)
         
+    dv.mollview(ng, 400, 1200, r'LRG Density [deg$^{-2}$]', 
+            cmap=dv.mycolor(), colorbar=True, galaxy=False, 
+                figax=[fig, ax_map], cax_axes=[1.6, 1.95, 0.6, 0.02]) # 'YlOrRd_r',       
+    
     for ax_ in ax:    
         ax_.xaxis.set_ticklabels([])
         ax_.yaxis.set_ticklabels([])
         ax_.xaxis.set_ticks([])
-        ax_.yaxis.set_ticks([])            
-    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/hp_features.pdf', bbox_inches='tight')    
+        ax_.yaxis.set_ticks([])          
     
-def plot_ngal():
-    desi = ft.read('/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desi_256.fits')
-    ng  = ut.make_hp(256, desi['hpix'], desi['label']/(desi['fracgood']*hp.nside2pixarea(256, True)), np.inf)
-    print(np.mean(ng[desi['hpix']]))
-
-    dv.mollview(ng, 400, 1200, r'Target Density [deg$^{-2}$]', 
-            cmap=dv.mycolor(), colorbar=True, galaxy=True) # 'YlOrRd_r',
-    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/lrgdens.pdf', bbox_inches='tight')    
-
-def plot_npred():
-    
-    hp_known = hp.read_map('/fs/ess/PHS0336/data/rongpu/imaging_sys/regression/0.57.0/linp_lrg_desic_known.hp256.fits')
-    hp_known1 = hp.read_map('/fs/ess/PHS0336/data/rongpu/imaging_sys/regression/0.57.0/linp_lrg_desic_known1.hp256.fits')
-    hp_all = hp.read_map('/fs/ess/PHS0336/data/rongpu/imaging_sys/regression/0.57.0/linp_lrg_desic_all.hp256.fits')
-    hp_nknown1 = hp.read_map('/fs/ess/PHS0336/data/rongpu/imaging_sys/regression/0.57.0/dnnp_lrg_desic_known1.hp256.fits')
-
-    sf = hp.nside2pixarea(256, True)
-    for hp_i in [hp_all, hp_known, hp_known1, hp_nknown1]:
-        is_g = hp_i != hp.UNSEEN
-        print(np.percentile(hp_i[is_g]/sf, [1, 99]))
-
-    fig = plt.figure(figsize=(6, 7))
-    ax0  = fig.add_axes([0., 1.,  1., 1], projection='mollweide')
-    ax1  = fig.add_axes([0,  0.6, 1., 1],  projection='mollweide')
-    ax2  = fig.add_axes([0., 0.2, 1., 1],  projection='mollweide')
-    ax3  = fig.add_axes([0., -0.2, 1., 1], projection='mollweide')
-
-    kw = {'vmin':400, 'vmax':1200, 'cmap':dv.mycolor(), 'in_deg':True}
-    dv.mollview(hp_known,  figax=[fig, ax0], **kw)
-    dv.mollview(hp_known1, figax=[fig, ax1], **kw)
-    dv.mollview(hp_all,    figax=[fig, ax2], **kw)
-    dv.mollview(hp_nknown1, figax=[fig, ax3], 
-                colorbar=True, galaxy=False, unit=r'Predicted density [deg$^{-2}$]', **kw)
-
-    for ni, axi in zip(['Linear (E[B-V], Depth-z)', 'Linear (E[B-V], Depth-z, PSFsize-r)', 
-                        'Linear (All Maps)', 'Nonlinear (E[B-V], Depth-z, PSFsize-r)'], 
-                                      [ax0, ax1, ax2, ax3]):
-        axi.text(0.15, 0.2, ni, transform=axi.transAxes, alpha=0.8)
-    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/npred.pdf', bbox_inches='tight')    
+    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/dr9data.pdf', bbox_inches='tight') 
     
     
 def plot_pcc():
@@ -405,23 +399,24 @@ def plot_clxtest():
     print(f'ell edges: {ell_edges}')
 
     p = '/fs/ess/PHS0336/data/lognormal/v3/clustering/'
-    err_0 = read_clxmocks(glob(f'{p}clmock_0_*_lrg_zero_desic_256_noweight.npy'),
-                            ell_edges)
-    err_100 = read_clxmocks(glob(f'{p}clmock_0_*_lrg_po100_desic_256_noweight.npy'),
-                            ell_edges)
+    err_0 = read_clxmocks(glob(f'{p}clmock_0_*_lrg_zero_desic_256_noweight.npy'), ell_edges)
+    err_100 = read_clxmocks(glob(f'{p}clmock_0_*_lrg_po100_desic_256_noweight.npy'), ell_edges)
 
     chi2s = {}
     chi2s['fNL=0'] = ut.get_chi2pdf(err_0)
     chi2s['fNL=76.92'] = ut.get_chi2pdf(err_100)
 
+    
+    d_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'
+    el_b, err_dr9  = read_clx(f'{d_}cl_lrg_desic_256_noweight.npy', ell_edges)
+    err_dr9all     = read_clx(f'{d_}cl_lrg_desic_256_linp_all.npy', ell_edges)[1]
+    err_dr9known   = read_clx(f'{d_}cl_lrg_desic_256_linp_known.npy', ell_edges)[1]
+    err_dr9known1  = read_clx(f'{d_}cl_lrg_desic_256_linp_known1.npy', ell_edges)[1]
+    err_dr9nknown1 = read_clx(f'{d_}cl_lrg_desic_256_dnnp_known1.npy', ell_edges)[1]
+    err_dr9nknownp = read_clx(f'{d_}cl_lrg_desic_256_dnnp_knownp.npy', ell_edges)[1]    
 
-    err_dr9 = read_clx('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_noweight.npy', ell_edges)
-    err_dr9all = read_clx('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_linp_all.npy', ell_edges)
-    err_dr9known = read_clx('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_linp_known.npy', ell_edges)
-    err_dr9known1 = read_clx('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_linp_known1.npy', ell_edges)
-    err_dr9nknown1 = read_clx('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_dnnp_known1.npy', ell_edges)
-    err_dr9nknownp = read_clx('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_dnnp_knownp.npy', ell_edges)    
-
+    err_0m = np.percentile(err_0, [97.5, ], axis=0).flatten()
+    err_100m = np.percentile(err_100, [97.5, ], axis=0).flatten()
     icov, cov_0 = ut.get_inv(err_0, return_cov=True)
     cov_100 = ut.get_inv(err_100, return_cov=True)[1]
 
@@ -432,42 +427,39 @@ def plot_clxtest():
     chi2_dr9nknown1 = ut.chi2_fn(err_dr9nknown1, icov)
     chi2_dr9nknownp = ut.chi2_fn(err_dr9nknownp, icov)
 
-    fg, ax = plt.subplots(sharex=True, figsize=(14, 6))
-    fg.subplots_adjust(hspace=0.)
+    
+    labels = ['DR9 (No Weight)', 'DR9 (Linear All Maps)',
+              'DR9 (Linear Conservative I)',
+              'DR9 (Linear Conservative II)', 'DR9 (Nonlinear Cons II)',
+              'DR9 (Nonlinear Cons II + nStar)']    
+    fg, ax = plt.subplots(ncols=3, nrows=3, 
+                             figsize=(12, 9), sharey=True, sharex=True)
+    ax = ax.flatten()
+    fg.subplots_adjust(wspace=0.02, hspace=0.02)
 
-    err_0m = err_0.mean(axis=0)
-    err_100m = err_100.mean(axis=0)
+    for j, err_j in enumerate([err_dr9, err_dr9all, 
+                               err_dr9known, err_dr9known1, 
+                               err_dr9nknown1, err_dr9nknownp]):
+        for i, ax_i in enumerate(ax):
+            ax[i].semilogy(el_b, err_j[i*9:(i+1)*9], label=labels[j])
 
-    ell_b = np.arange(err_0m.size)
-    err_0e = np.diagonal(cov_0)**0.5
-    err_100e = np.diagonal(cov_100)**0.5
 
-    ln1 = ax.fill_between(ell_b, 0.0, 1.+(err_0e/err_0m),  label=r'$f_{\rm NL}=0$', color='k', alpha=0.08)
-    ln2 = ax.fill_between(ell_b+0.1, 0.0, (err_100m+err_100e)/err_0m, label=r'$f_{\rm NL}=76.92$', color='k', alpha=0.04)
-    lgn1 = plt.legend(handles=[ln1, ln2], loc='upper right', title='Clean Mocks')
+    for i, ax_i in enumerate(ax):
+        ax_i.fill_between(el_b, err_100m[i*9:(i+1)*9], 
+                           color='k', alpha=0.04)    
+        ax_i.fill_between(el_b, err_0m[i*9:(i+1)*9], 
+                           color='k', alpha=0.08)   
+        ax_i.text(0.5, 0.85, f'x {names[i]}', transform=ax_i.transAxes)
+        if i > 5: ax_i.set(xlabel=r'$\ell$')
 
-    kw = dict()
-    ln3, = ax.plot(ell_b, err_dr9/err_0m,      label='DR9 (Before)', )
-    ln4, = ax.plot(ell_b, err_dr9all/err_0m,    label='DR9 (Linear All Maps)')
-    ln5, = ax.plot(ell_b, err_dr9known/err_0m,  label='DR9 (Linear Conservative I)')
-    ln6, = ax.plot(ell_b, err_dr9known1/err_0m, label='DR9 (Linear Conservative II)')
-    ln7, = ax.plot(ell_b, err_dr9nknown1/err_0m, label='DR9 (Nonlinear Cons. II)')
-    ln8, = ax.plot(ell_b, err_dr9nknownp/err_0m, label='DR9 (Nonlin. Cons. II+nStar)')
-    ax.legend(handles=[ln3, ln4, ln5, ln6, ln7, ln8], 
-                 bbox_to_anchor=(0, 1.02, 1, 0.4), loc="lower left",
-                    mode="expand", borderaxespad=0, ncol=3, frameon=False)
+    lgnd = ax[0].legend(ncol=3,frameon=False,
+                     bbox_to_anchor=(0, 1.05, 3, 0.4), loc="lower left",
+                    mode="expand", borderaxespad=0)
 
-    plt.gca().add_artist(lgn1)
-    ax.set_yscale('symlog', linthreshy=10)
-    ax.set_yticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200])
-    ax.set_ylabel(r'$C_{X, \ell}/C_{X, \ell}^{f_{\rm NL}=0~{\rm mocks}}$')
-    for xt in np.arange(0, 82, 9):ax.axvline(xt, ls=':', lw=1, color='grey')
-    ax.set_xticks([4.5+i*9 for i in range(len(names))])
-    ax.set_xticklabels(names, rotation=90)
-    ax.annotate("Linear", (-2, 0.0), (-2, 4), arrowprops=dict(arrowstyle='->', relpos=(0, 0.2)), rotation=90, fontsize=13, color='k')
-    ax.annotate("", (-2, +10.0), (-2, 6.2), arrowprops=dict(arrowstyle='->'), rotation=90)
-    ax.annotate("Logarithmic", (-2, 10.0), (-2, 25), arrowprops=dict(arrowstyle='->', relpos=(0, 0)), rotation=90, fontsize=13, color='k')
-    ax.annotate("", (-2, 200.0), (-2, 85), arrowprops=dict(arrowstyle='->'), rotation=90)  
+    for i, lgn_tx in enumerate(lgnd.get_texts()):
+        lgn_tx.set_color('C%d'%i)
+
+    ax[3].set_ylabel(r'$C_{s, g}^{2}/C_{s,s}$')        
     fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/clx_mocks.pdf', bbox_inches='tight')    
     plt.show()
     
@@ -479,7 +471,7 @@ def plot_clxtest():
                  label=name_i, range=(0, 550.))    
     # plt.yscale('log')
 
-    plt.text(170., 68., f'DR9 (Before) = {chi2_dr9:.1f}', fontsize=12)
+    plt.text(170., 68., f'DR9 (No Weight) = {chi2_dr9:.1f}', fontsize=12)
     plt.text(170., 61., f'DR9 (Linear Conservative I) = {chi2_dr9known:.1f}', fontsize=12)
     plt.text(170., 54., f'DR9 (Linear Conservative II) = {chi2_dr9known1:.1f}', fontsize=12)
     plt.text(170., 47., f'DR9 (Linear All Maps) = {chi2_dr9all:.1f}', fontsize=12)
@@ -495,8 +487,47 @@ def plot_clxtest():
     plt.xticks([0, 100, 200, 300, 400, 500])
     plt.legend(title='Clean Mocks', frameon=False)
     plt.xlabel(r'Cross Spectrum $\chi^{2}$')
-    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test.pdf', bbox_inches='tight')    
+    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test.pdf', bbox_inches='tight')         
+
+
+def test_chi2lmax():
+    chi2_mocks = []
+    chi2_data  = []
+    ell_maxes = []
+    p_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'
+    p = '/fs/ess/PHS0336/data/lognormal/v3/clustering/'
     
+    for m in [10, 12, 14, 16, 18]:
+        
+        ell_edges = ut.ell_edges[:m]
+        ell_maxes.append(ell_edges.max())        
+        
+        err_0 = read_clxmocks(glob(f'{p}clmock_0_*_lrg_zero_desic_256_noweight.npy'), bins=ell_edges)
+        err_dr9known1 = read_clx(f'{p_}cl_lrg_desic_256_linp_known1.npy', ell_edges)[1]
+        err_dr9nknown1 = read_clx(f'{p_}cl_lrg_desic_256_dnnp_known1.npy', ell_edges)[1]
+        
+        chi2_mocks.append(ut.get_chi2pdf(err_0))
+        icov, cov_0 = ut.get_inv(err_0, return_cov=True)
+        chi2_data.append(ut.chi2_fn(err_dr9known1, icov))
+        chi2_data.append(ut.chi2_fn(err_dr9nknown1, icov))     
+        
+    chi2_mocks = np.array(chi2_mocks)
+    chi2_data = np.array(chi2_data).reshape(-1, 2)
+    chi2_min, chi2_median, chi2_max = np.percentile(chi2_mocks, [2.5, 50, 97.5], axis=1)
+    
+    plt.fill_between(ell_maxes, chi2_min, chi2_max, alpha=0.05)
+    plt.plot(ell_maxes, chi2_median, label='Mocks Median', lw=1)
+    plt.scatter(ell_maxes, chi2_data[:, 0],  marker='o', alpha=0.5)
+    plt.scatter(ell_maxes, chi2_data[:, 1], marker='x', alpha=1.0)
+    lgn = plt.legend(loc=4)
+
+    plt.text(32, 310, 'Linear Cons. II', color='C1', fontsize=13)
+    plt.text(40, 175, 'Nonlinear Cons. II', color='C2', fontsize=13)
+    plt.text(77, 100, 'Mocks 95%', color='k', alpha=0.4, fontsize=13)
+    plt.xlabel(r'$\ell_{\rm max}$')
+    plt.ylabel(r'Cross Spectrum $\chi^{2}$')
+    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2lmax.pdf', bbox_inches='tight')    
+        
     
     
 def plot_nbartest():
@@ -508,12 +539,13 @@ def plot_nbartest():
     icov, cov_0 = ut.get_inv(err_0, return_cov=True)
     cov_100 = ut.get_inv(err_100, return_cov=True)[1]
     
-    err_dr9 = read_nnbar('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/nbar_lrg_desic_256_noweight.npy')
-    err_dr9all = read_nnbar('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/nbar_lrg_desic_256_linp_all.npy')
-    err_dr9known = read_nnbar('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/nbar_lrg_desic_256_linp_known.npy')
-    err_dr9known1 = read_nnbar('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/nbar_lrg_desic_256_linp_known1.npy')
-    err_dr9nknown1 = read_nnbar('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/nbar_lrg_desic_256_dnnp_known1.npy') 
-    err_dr9nknownp = read_nnbar('/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/nbar_lrg_desic_256_dnnp_knownp.npy') 
+    d_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'    
+    xbins, err_dr9 = read_nnbar(f'{d_}nbar_lrg_desic_256_noweight.npy', return_bins=True)
+    err_dr9all     = read_nnbar(f'{d_}nbar_lrg_desic_256_linp_all.npy')
+    err_dr9known   = read_nnbar(f'{d_}nbar_lrg_desic_256_linp_known.npy')
+    err_dr9known1  = read_nnbar(f'{d_}nbar_lrg_desic_256_linp_known1.npy')
+    err_dr9nknown1 = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_known1.npy') 
+    err_dr9nknownp = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_knownp.npy') 
     
     chi2_dr9 = ut.chi2_fn(err_dr9, icov)
     chi2_dr9all = ut.chi2_fn(err_dr9all, icov)
@@ -522,36 +554,38 @@ def plot_nbartest():
     chi2_dr9nknown1 = ut.chi2_fn(err_dr9nknown1, icov)
     chi2_dr9nknownp = ut.chi2_fn(err_dr9nknownp, icov)
     
-    fg, ax = plt.subplots(sharex=True, figsize=(14, 6))
-    fg.subplots_adjust(hspace=0.)
+    err_0m = np.std(err_0,  axis=0)
+    err_100m = np.std(err_100, axis=0)
+    
+    labels = ['DR9 (No Weight)', 'DR9 (Linear All Maps)',
+              'DR9 (Linear Conservative I)',
+              'DR9 (Linear Conservative II)', 'DR9 (Nonlinear Cons II)',
+              'DR9 (Nonlinear Cons II + nStar)']    
+    fg, ax = plt.subplots(ncols=3, nrows=3, figsize=(12, 9), sharey=True)
+    ax = ax.flatten()
+    fg.subplots_adjust(wspace=0.02, hspace=0.35)
 
-    err_0m = err_0.mean(axis=0)
-    err_100m = err_100.mean(axis=0)
+    for j, err_j in enumerate([err_dr9, err_dr9all, 
+                               err_dr9known, err_dr9known1, 
+                               err_dr9nknown1, err_dr9nknownp]):
+        for i, ax_i in enumerate(ax):
+            ax[i].plot(xbins[i], err_j[i*8:(i+1)*8], label=labels[j])
 
-    ell_b = np.arange(err_0m.size)
-    err_0e = np.diagonal(cov_0)**0.5
-    err_100e = np.diagonal(cov_100)**0.5
 
-    ln1 = ax.fill_between(ell_b, err_0m-err_0e, err_0m+err_0e,  label='fNL=0', color='k', alpha=0.1)
-    ln2 = ax.fill_between(ell_b+0.1, err_100m-err_100e, err_100m+err_100e, label='fNL=76.92', color='k', alpha=0.05)
-    lgn1 = plt.legend(handles=[ln1, ln2], loc='upper right', title='Clean Mocks')
+    for i, ax_i in enumerate(ax):
+        ax_i.fill_between(xbins[i], -err_100m[i*8:(i+1)*8], err_100m[i*8:(i+1)*8], 
+                           color='k', alpha=0.04)    
+        ax_i.fill_between(xbins[i], -err_0m[i*8:(i+1)*8], err_0m[i*8:(i+1)*8], 
+                           color='k', alpha=0.08)   
+        ax_i.set_xlabel(names[i])
+        ax[3].set_ylabel('Mean Density Contrast')
 
-    kw = dict()
-    ln3, = ax.plot(ell_b, err_dr9,      label='DR9 (Before)', )
-    ln4, = ax.plot(ell_b, err_dr9all,    label='DR9 (Linear All Maps)')
-    ln5, = ax.plot(ell_b, err_dr9known,  label='DR9 (Linear Conservative I)')
-    ln6, = ax.plot(ell_b, err_dr9known1, label='DR9 (Linear Conservative II)')
-    ln7, = ax.plot(ell_b, err_dr9nknown1, label='DR9 (Nonlinear Cons. II)')
-    ln8, = ax.plot(ell_b, err_dr9nknownp, label='DR9 (Nonlin. Cons. II+nStar)')
-    ax.legend(handles=[ln3, ln4, ln5, ln6, ln7, ln8], 
-                 bbox_to_anchor=(0, 1.02, 1, 0.4), loc="lower left",
-                    mode="expand", borderaxespad=0, ncol=3, frameon=False)
-    plt.gca().add_artist(lgn1)
-    ax.set_ylabel('Mean Density Contrast')
-    for xt in np.arange(0, 80, 8):
-        ax.axvline(xt, ls=':', lw=1, color='k')
-    ax.set_xticks([4+i*8 for i in range(len(names))])
-    ax.set_xticklabels(names, rotation=90)
+    lgnd = ax[0].legend(ncol=3,frameon=False,
+                     bbox_to_anchor=(0, 1.05, 3, 0.4), loc="lower left",
+                    mode="expand", borderaxespad=0)
+
+    for i, lgn_tx in enumerate(lgnd.get_texts()):
+        lgn_tx.set_color('C%d'%i)
     fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/nbar_mocks.pdf', bbox_inches='tight')    
     plt.show()
     
@@ -571,7 +605,7 @@ def plot_nbartest():
         is_gt = np.array(chi2s['fNL=0']) > chi_i
         print('p-value:', is_gt.mean())        
 
-    plt.text(91., 48., f'DR9 (Before) = {chi2_dr9:.1f}', fontsize=12)
+    plt.text(91., 48., f'DR9 (No Weight) = {chi2_dr9:.1f}', fontsize=12)
     plt.text(91., 43., f'DR9 (Linear Conservative I) = {chi2_dr9known:.1f}', fontsize=12)
     plt.text(91., 38., f'DR9 (Linear Conservative II) = {chi2_dr9known1:.1f}', fontsize=12)
     plt.text(91., 33., f'DR9 (Linear All Maps) = {chi2_dr9all:.1f}', fontsize=12)
@@ -916,9 +950,20 @@ def plot_mcmc_data():
     
     
     # Triangle plot
+    colors = [plt.cm.Dark2(i) for i in [0, 1, 2, 3, 4, 2, 3, 4]]
+    knn1_s = knn1.copy()
+    dskp_s = dskp.copy()
+    dsp_s = dsp.copy()
+    
+    knn1_s.samples[:, 0] = 1.17*knn1_s.samples[:, 0]+13.95
+    dskp_s.samples[:, 0] = 1.32*dskp_s.samples[:, 0]+26.97
+    dsp_s.samples[:, 0]  = 2.35*dsp_s.samples[:, 0]+63.50
+    
+    
     g = plots.get_single_plotter(width_inch=6)
     g.settings.legend_fontsize = 13
-    g.plot_2d([ze, kn1, knn1, dskp, dsp], 'fnl', 'b', 
+    g.plot_2d([ze, kn1, knn1, dskp, dsp], 
+              'fnl', 'b', 
               filled=True,lims=[-50, 170, 1.28, 1.57], colors='Dark2') # 
     g.add_legend(['No weight',
                   'Linear (Conservative II)', 
@@ -935,8 +980,9 @@ def plot_mcmc_data():
     
     g = plots.get_single_plotter(width_inch=6)
     g.settings.legend_fontsize = 13
-    g.plot_1d([ze, kn1, knn1, dskp, dsp], 'fnl',
-              filled=True,lims=[-50, 170], colors='Dark2') # 
+    ls = ['-', '-', '-', '-', '-', '--', '--', '--']
+    g.plot_1d([ze, kn1, knn1, dskp, dsp, knn1_s, dskp_s, dsp_s], 'fnl',
+              filled=True,lims=[-50, 170], colors=colors, ls=ls) # 
     g.add_legend(['No weight',
                   'Linear (Conservative II)', 
                   'Nonlinear (Cons. II)',
@@ -952,26 +998,22 @@ def plot_mcmc_data():
     plt.show()    
     
     # Triangle plot
-    g = plots.get_single_plotter(width_inch=6)
-    g.settings.legend_fontsize = 13
-    knn1.samples[:, 0] = 1.17*knn1.samples[:, 0]+13.95
-    dskp.samples[:, 0] = 1.32*dskp.samples[:, 0]+26.97
-    dsp.samples[:, 0]  = 2.35*dsp.samples[:, 0]+63.50
-    
-    colors = [plt.cm.Dark2(i) for i in [2, 3, 4]]
-    g.plot_1d([knn1, dskp, dsp], 'fnl',
-              filled=True,lims=[-50, 170], colors=colors) # 
-    g.add_legend([ 'Nonlinear (Cons. II)',
-                   'Nonlin. (Cons. II+nStar)',
-                   'Nonlin. (All Maps+nStar)'], 
-                  colored_text=True, legend_loc='lower left')    
-    g.fig.align_labels()
-    ax = g.get_axes()
-    ax.tick_params(top=False, right=False)
-    ax.text(0.15, 0.92, 'DR9 DESI Footprint (different methods)', 
-            transform=ax.transAxes, fontsize=13)      
-    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods1dshifted.pdf', bbox_inches='tight')    
-    plt.show()    
+#     g = plots.get_single_plotter(width_inch=6)
+#     g.settings.legend_fontsize = 13
+#     colors = [plt.cm.Dark2(i) for i in [2, 3, 4]]
+#     g.plot_1d([knn1, dskp, dsp], 'fnl',
+#               filled=True,lims=[-50, 170], colors=colors) # 
+#     g.add_legend([ 'Nonlinear (Cons. II)',
+#                    'Nonlin. (Cons. II+nStar)',
+#                    'Nonlin. (All Maps+nStar)'], 
+#                   colored_text=True, legend_loc='lower left')    
+#     g.fig.align_labels()
+#     ax = g.get_axes()
+#     ax.tick_params(top=False, right=False)
+#     ax.text(0.15, 0.92, 'DR9 DESI Footprint (different methods)', 
+#             transform=ax.transAxes, fontsize=13)      
+#     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods1dshifted.pdf', bbox_inches='tight')    
+#     plt.show()    
     
     # Triangle plot
     g = plots.get_single_plotter(width_inch=6)
@@ -1000,33 +1042,6 @@ def plot_mcmc_data():
 #     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9_cutdec.pdf', bbox_inches='tight')
 #     plt.show()
     print_stats(stats)
-    
-
-def plot_dr9vsmocks():
-    p = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
-    knn1 = np.load(f'{p}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz')
-    bf = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_noweight.npz')
-    fnl_m = bf['params'][:, 0]/ gratio
-    fnl_d = knn1['best_fit'][0] / gratio
-    print(fnl_d, knn1['best_fit'][0])
-    
-    fig, ax = plt.subplots(ncols=2, figsize=(12, 4), sharey=True)
-    fig.subplots_adjust(wspace=0.05)
-
-    ax[0].hist(2*bf['neglog']/1000., histtype='step', bins=18)
-    ax[0].axvline(2*knn1['best_fit_logprob'], ls='--', color='C1')
-
-    ax[1].hist(fnl_m, histtype='step', bins=18)
-    ax[1].axvline(fnl_d, ls='--', color='C1')
-
-    ax[0].set(xlabel=r'min $\chi^{2}$', yticks=[])
-    ax[1].set(xlabel=r'$f_{\rm NL}$')
-
-    ax[0].text(0.2, 0.75, 'Mocks', transform=ax[0].transAxes)
-    ax[0].text(0.55, 0.75, 'DR9', color='C1', transform=ax[0].transAxes)
-
-    fig.align_xlabels() 
-    fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/pdf_dr9vsmocks.pdf', bbox_inches='tight')   
     
 
     
@@ -1199,47 +1214,6 @@ def plot_fnl_lmin():
     ax.set_xlim(-0.5, 9.5)
     ax.set(xlabel=r'$\ell_{\rm min}$', ylabel=r'$f_{\rm NL}$')
     fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_elmin.pdf', bbox_inches='tight')    
-    
-    
-def test_chi2lmax():
-    chi2_mocks = []
-    chi2_data  = []
-    ell_maxes = []
-    p_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'
-    p = '/fs/ess/PHS0336/data/lognormal/v3/clustering/'
-    
-    for m in [10, 12, 14, 16, 18]:
-        
-        ell_edges = ut.ell_edges[:m]
-        ell_maxes.append(ell_edges.max())        
-        
-        err_0 = read_clxmocks(glob(f'{p}clmock_0_*_lrg_zero_desic_256_noweight.npy'), bins=ell_edges)
-        err_dr9known1 = read_clx(f'{p_}cl_lrg_desic_256_linp_known1.npy', ell_edges)
-        err_dr9nknown1 = read_clx(f'{p_}cl_lrg_desic_256_dnnp_known1.npy', ell_edges)
-        
-        chi2_mocks.append(ut.get_chi2pdf(err_0))
-        icov, cov_0 = ut.get_inv(err_0, return_cov=True)
-        chi2_data.append(ut.chi2_fn(err_dr9known1, icov))
-        chi2_data.append(ut.chi2_fn(err_dr9nknown1, icov))     
-        
-    chi2_mocks = np.array(chi2_mocks)
-    chi2_data = np.array(chi2_data).reshape(-1, 2)
-    chi2_min, chi2_median, chi2_max = np.percentile(chi2_mocks, [2.5, 50, 97.5], axis=1)
-    
-    plt.fill_between(ell_maxes, chi2_min, chi2_max, alpha=0.05)
-    plt.plot(ell_maxes, chi2_median, label='Mocks Median', lw=1)
-    plt.scatter(ell_maxes, chi2_data[:, 0],  marker='o', alpha=0.5)
-    plt.scatter(ell_maxes, chi2_data[:, 1], marker='x', alpha=1.0)
-    lgn = plt.legend(loc=4)
-
-    plt.text(32, 310, 'Linear Cons. II', color='C1', fontsize=13)
-    plt.text(40, 175, 'Nonlinear Cons. II', color='C2', fontsize=13)
-    plt.text(77, 100, 'Mocks 95%', color='k', alpha=0.4, fontsize=13)
-    plt.xlabel(r'$\ell_{\rm max}$')
-    plt.ylabel(r'Cross Spectrum $\chi^{2}$')
-    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2lmax.pdf', bbox_inches='tight')    
-    
-    
 
 
 def test_nz():
@@ -1354,6 +1328,65 @@ def plot_fnlbias():
     plt.plot(1.32*meas2+26.97, truth, ls=':', color='C2', lw=4)    
     plt.plot(2.35*meas3+63.50, truth, ls=':', color='C3', lw=6)    
     
+
+def plot_dr9vsmocks():
+    p = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
+    knn1 = np.load(f'{p}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz')
+    bf = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_noweight.npz')
+    fnl_m = bf['params'][:, 0]/ gratio
+    fnl_d = knn1['best_fit'][0] / gratio
+    print(fnl_d, knn1['best_fit'][0])
+    
+    fig, ax = plt.subplots(ncols=2, figsize=(12, 4), sharey=True)
+    fig.subplots_adjust(wspace=0.05)
+
+    ax[0].hist(2*bf['neglog']/1000., histtype='step', bins=18)
+    ax[0].axvline(2*knn1['best_fit_logprob'], ls='--', color='C1')
+
+    ax[1].hist(fnl_m, histtype='step', bins=18)
+    ax[1].axvline(fnl_d, ls='--', color='C1')
+
+    ax[0].set(xlabel=r'min $\chi^{2}$', yticks=[])
+    ax[1].set(xlabel=r'$f_{\rm NL}$')
+
+    ax[0].text(0.2, 0.75, 'Mocks', transform=ax[0].transAxes)
+    ax[0].text(0.55, 0.75, 'DR9', color='C1', transform=ax[0].transAxes)
+
+    fig.align_xlabels() 
+    fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/pdf_dr9vsmocks.pdf', bbox_inches='tight')   
+    
+    
+def plot_npred():
+    
+    hp_known = hp.read_map('/fs/ess/PHS0336/data/rongpu/imaging_sys/regression/0.57.0/linp_lrg_desic_known.hp256.fits')
+    hp_known1 = hp.read_map('/fs/ess/PHS0336/data/rongpu/imaging_sys/regression/0.57.0/linp_lrg_desic_known1.hp256.fits')
+    hp_all = hp.read_map('/fs/ess/PHS0336/data/rongpu/imaging_sys/regression/0.57.0/linp_lrg_desic_all.hp256.fits')
+    hp_nknown1 = hp.read_map('/fs/ess/PHS0336/data/rongpu/imaging_sys/regression/0.57.0/dnnp_lrg_desic_known1.hp256.fits')
+
+    sf = hp.nside2pixarea(256, True)
+    for hp_i in [hp_all, hp_known, hp_known1, hp_nknown1]:
+        is_g = hp_i != hp.UNSEEN
+        print(np.percentile(hp_i[is_g]/sf, [1, 99]))
+
+    fig = plt.figure(figsize=(6, 7))
+    ax0  = fig.add_axes([0., 1.,  1., 1], projection='mollweide')
+    ax1  = fig.add_axes([0,  0.6, 1., 1],  projection='mollweide')
+    ax2  = fig.add_axes([0., 0.2, 1., 1],  projection='mollweide')
+    ax3  = fig.add_axes([0., -0.2, 1., 1], projection='mollweide')
+
+    kw = {'vmin':400, 'vmax':1200, 'cmap':dv.mycolor(), 'in_deg':True}
+    dv.mollview(hp_known,  figax=[fig, ax0], **kw)
+    dv.mollview(hp_known1, figax=[fig, ax1], **kw)
+    dv.mollview(hp_all,    figax=[fig, ax2], **kw)
+    dv.mollview(hp_nknown1, figax=[fig, ax3], 
+                colorbar=True, galaxy=False, unit=r'Predicted density [deg$^{-2}$]', **kw)
+
+    for ni, axi in zip(['Linear (E[B-V], Depth-z)', 'Linear (E[B-V], Depth-z, PSFsize-r)', 
+                        'Linear (All Maps)', 'Nonlinear (E[B-V], Depth-z, PSFsize-r)'], 
+                                      [ax0, ax1, ax2, ax3]):
+        axi.text(0.15, 0.2, ni, transform=axi.transAxes, alpha=0.8)
+    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/npred.pdf', bbox_inches='tight')       
+    
 # import sys
 # import os
 # import matplotlib.pyplot as plt
@@ -1447,27 +1480,7 @@ def plot_fnlbias():
 #                  cmap='YlOrRd_r', colorbar=True, galaxy=True)
 #     plt.savefig('figs/nlrg.pdf', bbox_inches='tight')
     
-# def plot_nz():
-#     nz = np.loadtxt('/fs/ess/PHS0336/data/rongpu/sv3_lrg_dndz_denali.txt')
-
-#     fg, ax = plt.subplots()
-
-#     ax.step(nz[:, 0], nz[:, 2], where='pre', lw=1)#, label='dN/dz')
-#     ax.set(xlim=(-0.05, 1.45), xlabel='z', ylabel='dN/dz')
-#     ax.text(0.25, 0.7, 'dN/dz', color='C0', transform=ax.transAxes)
-
-#     ax1 = ax.twinx()
-#     z_g = np.linspace(0.1, 1.35)
-
-#     ax1.plot(z_g, 1.4*bias_model_lrg(z_g), 'C1--', lw=3, alpha=0.5, zorder=10)#, label='b(z)')
-#     ax1.text(0.7, 0.48, 'b(z)$\propto$ D$^{-1}$(z)', color='C1', transform=ax1.transAxes)
-#     ax1.set_ylabel('b(z)')
-#     ax1.set_ylim((1.3, 3.1))
-
-#     #ax1.legend(loc='upper right')
-#     #ax.legend(loc='upper left')
-
-#     fg.savefig('figs/nz_lrg.pdf', bbox_inches='tight')    
+ 
     
 
 # def plot_model(fnltag='po100'):
@@ -2125,3 +2138,4 @@ def plot_fnlbias():
 #     for chi2_i in [chi2_truth, chi2_cont, chi2_known5]:
 #         plt.hist(chi2_i, histtype='step', range=(0, 600), bins=60)    
 #     plt.show()
+

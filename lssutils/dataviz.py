@@ -288,7 +288,8 @@ def cm2inch(cm):
 def mollview(m, vmin=None, vmax=None, unit='', use_mask=False, 
              maskname=None, rotate=2/3*np.pi, xsize=1000,
              width=7, figax=None, colorbar=False, cmap=plt.cm.bwr,
-             galaxy=False, extend='both', in_deg=False, nside=256, **kwargs):
+             galaxy=False, extend='both', in_deg=False, nside=256,
+             cax_axes=[0.2, 0.03, 0.6, 0.04], **kwargs):
     '''
         (c)Andrea Zonca, https://github.com/zonca/paperplots 
         modified by Mehdi Rezaie for galaxy counts
@@ -454,7 +455,7 @@ def mollview(m, vmin=None, vmax=None, unit='', use_mask=False,
     # colorbar
     if colorbar:
         #cax = plt.axes([.9, 0.2, 0.02, 0.6])  # vertical
-        cax = plt.axes([0.2, 0.03, 0.6, 0.04])  # horizontal
+        cax = plt.axes(cax_axes)  # horizontal
         cb  = fig.colorbar(image, cax=cax, label=unit, fraction=0.15,
                            shrink=0.6, pad=0.05, ticks=[vmin, vmax], # 0.5*(vmax+vmin), 
                            orientation='horizontal', extend=extend)        

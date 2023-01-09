@@ -96,21 +96,24 @@ def read_clmocks(region, method, plot_cov=False, bins=None, return_cov=False):
     print(cl_mean.shape, cl_cov.shape, len(cl_list))
     ret = (lb_, cl_mean, inv_cov)
     if return_cov:
-        ret += (cl_cov,)
-        
+        ret += (cl_cov,)        
     return ret  
 
 
-
-def read_nnbar(filename):
+def read_nnbar(filename, return_bins=False):
     
     d_i = np.load(filename, allow_pickle=True)    
-    err_mat = []    
+    err_mat = [] 
+    bins_s = []
     for i, d_ij in enumerate(d_i):
         err_mat.append(d_ij['nnbar']-1.0)
-    
-    return np.array(err_mat).flatten()
+        bins_s.append(d_ij['bin_avg'])
+    if return_bins:
+        return np.array(bins_s), np.array(err_mat).flatten()
+    else:
+        return np.array(err_mat).flatten()
 
+    
 def read_nbmocks(list_nbars):
     
     err_mat = []    
@@ -162,7 +165,6 @@ def read_clxmocks(mocks, cl_ss, lmin=0):
         clx_ = read_clx(mock_i, cl_ss=cl_ss, lmin=lmin)[1]   
         clx.append(clx_) 
         print('.', end='')
-        
     err_tot = np.array(clx)
     return err_tot
 
