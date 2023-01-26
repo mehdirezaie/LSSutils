@@ -515,8 +515,8 @@ def test_chi2lmax():
     chi2_data = np.array(chi2_data).reshape(-1, 2)
     chi2_min, chi2_16, chi2_median, chi2_84, chi2_max = np.percentile(chi2_mocks, [2.5, 16, 50, 84, 97.5], axis=1)
     
-    plt.fill_between(ell_maxes, chi2_min, chi2_max, alpha=0.02, color='k')
-    plt.fill_between(ell_maxes, chi2_16, chi2_84, alpha=0.04, color='k')
+    plt.fill_between(ell_maxes, chi2_min, chi2_max, alpha=0.03, color='k')
+    plt.fill_between(ell_maxes, chi2_16, chi2_84, alpha=0.06, color='k')
     
     plt.plot(ell_maxes, chi2_median, label='Mocks Median', lw=1, color='C0')
     plt.scatter(ell_maxes, chi2_data[:, 0],  marker='o', alpha=0.5, color='C1')
@@ -757,6 +757,13 @@ def plot_mcmc_contmocks():
     cz_nnp = MCMC(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_knownp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)  
     cz_nnap  = MCMC(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_allp_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)      
 
+    z_nn1_s  = MCMC(f'{p}logmcmc_0_lrg_zero_desic_256_dnnp_known1debiased_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+    z_nnp_s  = MCMC(f'{p}logmcmc_0_lrg_zero_desic_256_dnnp_knownpdebiased_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+    z_nnap_s  = MCMC(f'{p}logmcmc_0_lrg_zero_desic_256_dnnp_allpdebiased_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
+
+    
+    
+    
     stats = {}
     stats[r'$0$ & No Weight']         = z_now.stats
     stats[r'$0$ & ConsII']            = z_nn1.stats
@@ -764,13 +771,17 @@ def plot_mcmc_contmocks():
     stats[r'$0$ & All Maps+nStar']      = z_nnap.stats        
     stats[r'Cont $0$ & ConsII']       = cz_nn1.stats
     stats[r'Cont $0$ & ConsII+nStar'] = cz_nnp.stats    
-    stats[r'Cont $0$ & All Maps+nStar']      = cz_nnap.stats            
+    stats[r'Cont $0$ & All Maps+nStar']      = cz_nnap.stats     
+    
+    
 
-#     g = plots.get_single_plotter(width_inch=6)
-#     g.settings.legend_fontsize = 13
-#     g.plot_2d([z_now, z_nn1, z_nnp, cz_nn1, cz_nnp], 'fnl', 'b', filled=True)
-#     #g.add_x_marker(0)
-#     #g.add_y_marker(1.43)
+    colors = [plt.cm.Dark2(i) for i in [0, 1, 1, 2, 2,  3, 3]]        
+    g = plots.get_single_plotter(width_inch=6)
+    g.settings.legend_fontsize = 13
+    #g.plot_1d([z_now, z_nn1, z_nn1_s, z_nnp, z_nnp_s, z_nnap, z_nnap_s], 'fnl')
+    g.plot_1d([z_now, z_nn1_s, z_nnp_s, z_nnap_s], 'fnl')
+    #g.add_x_marker(0)
+    #g.add_y_marker(1.43)
 #     #g.get_axes().set_ylim(1.426, 1.434)
 #     #g.get_axes().set_xlim(-2.2, 3.2)    
 #     ax = g.get_axes()
@@ -778,9 +789,12 @@ def plot_mcmc_contmocks():
 #             transform=ax.transAxes, fontsize=13)
 #     #ax.text(-2.0, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
     
-#     #g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', r'DESI'], 
-#     #             colored_text=True, legend_loc='lower left')    
-#     g.fig.align_labels()
+#     g.add_legend(['No Weight', 'ConsII', 'ConsII (shifted)', 
+#                  'ConsII+nStar', 'ConsII+nStar (shifted)', 
+#                  'All+nStar', 'All+nStar (shifted)'], 
+    g.add_legend(['No Weight', 'ConsII (shifted)', 'ConsII+nStar (shifted)', 'All+nStar (shifted)'], 
+                colored_text=True, legend_loc='lower left')    
+    g.fig.align_labels()
 #     #g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_zero.pdf', bbox_inches='tight')        
     
  
@@ -963,16 +977,7 @@ def plot_mcmc_data():
     
     
     # Triangle plot
-    colors = [plt.cm.Dark2(i) for i in [0, 1, 2, 3, 4, 2, 3, 4]]
-#     knn1_s = knn1.copy()
-#     dskp_s = dskp.copy()
-#     dsp_s = dsp.copy()
-    
-    #knn1_s.samples[:, 0] = 1.17*knn1_s.samples[:, 0]+13.95
-    #dskp_s.samples[:, 0] = 1.32*dskp_s.samples[:, 0]+26.97
-    #dsp_s.samples[:, 0]  = 2.35*dsp_s.samples[:, 0]+63.50
-    
-    
+    colors = [plt.cm.Dark2(i) for i in [0, 1, 2, 3, 4, 2, 3, 4]]        
     g = plots.get_single_plotter(width_inch=6)
     g.settings.legend_fontsize = 13
     g.plot_2d([ze, dsp_s, knn1_s, dskp_s], 
@@ -1372,6 +1377,33 @@ def debias_mcmc():
         #print(f'{p}logmcmc_lrg_zero_desic_dnnp_{case}debiased_steps10k_walkers50_elmin0.npz')
         #print(d['chain'][5000:, :, 0].mean()/1.3)
         #print(dc['chain'][5000:, :, 0].mean()/1.3)    
+        
+
+def debias_mcmc_mocks():
+    #knn1_s.samples[:, 0] = 1.17*knn1_s.samples[:, 0]+13.95
+    #dskp_s.samples[:, 0] = 1.32*dskp_s.samples[:, 0]+26.97
+    #dsp_s.samples[:, 0]  = 2.35*dsp_s.samples[:, 0]+63.50
+    
+    def debias(y, a, b):
+        return a*y + b
+
+    p = '/fs/ess/PHS0336/data/lognormal/v3/mcmc/'
+    debias_params = {'known1':[1.17, 13.95*1.3],
+                     'knownp':[1.32, 26.97*1.3],
+                     'allp':[2.35, 63.50*1.3]}
+
+    for case in ['known1', 'knownp', 'allp']:
+
+        d = np.load(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_{case}_steps10k_walkers50.npz')
+        dc = dict(d)
+        dc['chain'][:, :, 0] = debias(d['chain'][:, :, 0], *debias_params[case])
+        dc['best_fit'][0]  = debias(d['best_fit'][0], *debias_params[case])
+
+        np.savez(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_{case}debiased_steps10k_walkers50.npz', **dc)
+        print(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_{case}debiased_steps10k_walkers50.npz')
+        #print(d['chain'][5000:, :, 0].mean()/1.3)
+        #print(dc['chain'][5000:, :, 0].mean()/1.3)          
+  
     
     
 
