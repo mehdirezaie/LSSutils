@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=05:00:00
+#SBATCH --time=03:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
@@ -28,9 +28,9 @@ do_cl=false          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        # 3 h x 14
 do_mcmc_scale=false  #
-do_mcmc_log=true     # 3h x 14
+do_mcmc_log=false     # 3h x 14
 do_mcmc_logscale=false
-do_bfit=false        # 3 h x 14
+do_bfit=true        # 3 h x 14
 do_mcmc_cont=false   # 
 do_mcmc_joint=false  # 3hx14
 do_mcmc_joint3=false # 5x14
@@ -41,10 +41,10 @@ echo ${mockid}
 bsize=5000
 region="desic" # desi, bmzls, ndecals, sdecals
 iscont=0      # redundant, will use zero or czero for null or cont mocks
-maps=allp #e.g., "known5" or "all"
+maps=""       #e.g., "known5" or "all"
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 model=dnnp
-method=${model}_${maps} # noweight, nn_all
+method=$2 #${model}_${maps} # noweight, nn_all
 target="lrg"
 fnltag=$1 #zero, po100
 ver=v3 # 
@@ -228,13 +228,22 @@ fi
 
 if [ "${do_bfit}" = true ]
 then
+    fnltag_=${fnltag}
+    if [ "${fnltag}" = "czero" ]
+    then
+        fnltag_="zero"
+    elif [ "${fnltag}" = "cpo100" ]
+    then
+        fnltag_="po100"
+    fi
+
     # options are fullsky, bmzls, ndecals, sdecals
-    path_cov=${root_dir}/clustering/logclmock_${iscont}_${target}_${fnltag}_${region}_256_${method}_cov.npz
+    path_cov=${root_dir}/clustering/logclmock_${iscont}_${target}_${fnltag_}_${region}_256_noweight_cov.npz
     output_bestfit=${root_dir}/mcmc/logbestfit_${iscont}_${target}_${fnltag}_${region}_256_${method}.npz
 
     du -h $path_cov 
     echo $output_bestfit $region
-    srun -n 14 python $bfitlog $region $path_cov $output_bestfit $fnltag
+    srun -n 14 python $bfitlog $region $path_cov $output_bestfit $fnltag $method
 fi
 
 #--- fit C-ell other than log C-ell (above)

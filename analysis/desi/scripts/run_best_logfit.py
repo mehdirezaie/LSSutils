@@ -26,15 +26,15 @@ if rank==0:
     path_cov = sys.argv[2]
     output = sys.argv[3]
     fnl = sys.argv[4]
-
-    method = 'noweight'
+    method = sys.argv[5]
 
     if not os.path.exists(os.path.dirname(output)):
         print(f'create {os.path.dirname(output)}')
         os.makedirs(os.path.dirname(output))
     print('will output ', output)
 
-    cl_mocks = glob(f'/fs/ess/PHS0336/data/lognormal/v3/clustering/clmock_0_*_lrg_{fnl}_{region}_256_noweight.npy')
+    cl_mocks = glob(f'/fs/ess/PHS0336/data/lognormal/v3/clustering/clmock_0_*_lrg_{fnl}_{region}_256_{method}.npy')
+    cl_mocks = np.sort(cl_mocks)
 
     if region=='fullsky':
         weight = np.ones(12*1024*1024, 'f8') # full sky
@@ -49,7 +49,7 @@ if rank==0:
         weight = hp.ud_grade(weight_, 1024)
 
 
-
+    print(cl_mocks[:3])
     print('cl mocks shape:', len(cl_mocks))
     print('sky coverage:', weight.mean())
     cl_cov_ = np.load(path_cov)
