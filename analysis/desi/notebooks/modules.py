@@ -775,11 +775,11 @@ def plot_mcmc_contmocks():
     
     
 
-    colors = [plt.cm.Dark2(i) for i in [0, 1, 1, 2, 2,  3, 3]]        
+    colors = [plt.cm.Dark2(i) for i in [0, 2, 3, 1]]        
     g = plots.get_single_plotter(width_inch=6)
     g.settings.legend_fontsize = 13
     #g.plot_1d([z_now, z_nn1, z_nn1_s, z_nnp, z_nnp_s, z_nnap, z_nnap_s], 'fnl')
-    g.plot_1d([z_now, z_nn1_s, z_nnp_s, z_nnap_s], 'fnl')
+    g.plot_1d([z_now, z_nn1_s, z_nnp_s, z_nnap_s], 'fnl', colors=colors)
     #g.add_x_marker(0)
     #g.add_y_marker(1.43)
 #     #g.get_axes().set_ylim(1.426, 1.434)
@@ -793,9 +793,9 @@ def plot_mcmc_contmocks():
 #                  'ConsII+nStar', 'ConsII+nStar (shifted)', 
 #                  'All+nStar', 'All+nStar (shifted)'], 
     g.add_legend(['No Weight', 'ConsII (shifted)', 'ConsII+nStar (shifted)', 'All+nStar (shifted)'], 
-                colored_text=True, legend_loc='lower left')    
+                colored_text=True, legend_loc='upper left')    
     g.fig.align_labels()
-#     #g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_zero.pdf', bbox_inches='tight')        
+    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_cont.pdf', bbox_inches='tight')        
     
  
 
@@ -1322,24 +1322,51 @@ def plot_fnlbias():
     measc1 = np.array([-12.12, 54.01])
     measc2 = np.array([-20.97, 37.48])
     measc3 = np.array([-28.13, 4.59])
+    
+    p = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_po100_desic_256_noweight.npz')
+    z = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_noweight.npz')
+    zk = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_dnnp_known1.npz')
+    pk = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_po100_desic_256_dnnp_known1.npz')        
+    zkp = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_dnnp_knownp.npz')
+    pkp = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_po100_desic_256_dnnp_knownp.npz')    
+    zp = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_zero_desic_256_dnnp_allp.npz')
+    pp = np.load('/fs/ess/PHS0336/data/lognormal/v3/mcmc/logbestfit_0_lrg_po100_desic_256_dnnp_allp.npz')    
+
+    colors = [plt.cm.Dark2(i) for i in [0, 2, 3, 1]]        
+    
+    fig, ax = plt.subplots(figsize=(5, 4), sharex=True, sharey=True)
+    
+    ax.plot(meas0, truth, label='No weight', color=colors[0], ls='-')    
+    i = 0
+    for me,ne in zip([meas1, meas2, meas3],
+                     ['Cons II', 'Cons II+nStar', 'All Maps+nStar']):
+        ax.plot(me, truth, label=ne, ls='-', color=colors[i+1])
+        i += 1
+    lgn = ax.legend()
+    for i, lg in enumerate(lgn.get_texts()):
+        lg.set_color(colors[i])
 
 
-    for me,ne in zip([meas0, meas1, meas2, meas3],
-                     ['No weight', 'Cons II', 'Cons II+nStar', 'All Maps+nStar']):
-        plt.plot(me, truth, label=ne, zorder=-10, alpha=0.3, lw=3, marker='o', mfc='w', ls='-')
-
-    plt.plot(measc1, truth, ls='--', color='C1', alpha=0.3)
-    plt.plot(measc2, truth, ls='--', color='C2', alpha=0.3)
-    plt.plot(measc3, truth, ls='--', color='C3', alpha=0.3)
+    ax.plot(measc1, truth, ls='--', color=colors[1])
+    ax.plot(measc2, truth, ls='--', color=colors[2])
+    ax.plot(measc3, truth, ls='--', color=colors[3])
+     
+    ax.scatter(pk['params'][:, 0]/1.3, p['params'][:, 0]/1.3, alpha=0.1, marker='.', color=colors[1], zorder=-10)
+    ax.scatter(zk['params'][:, 0]/1.3, z['params'][:, 0]/1.3, alpha=0.1, marker='.', color=colors[1], zorder=-10)    
+    ax.scatter(pkp['params'][:, 0]/1.3, p['params'][:, 0]/1.3, alpha=0.1, marker='.', color=colors[2], zorder=-10)
+    ax.scatter(zkp['params'][:, 0]/1.3, z['params'][:, 0]/1.3, alpha=0.1, marker='.', color=colors[2], zorder=-10)
+    ax.scatter(pp['params'][:, 0]/1.3, p['params'][:, 0]/1.3, alpha=0.1, marker='.', color=colors[3], zorder=-10)
+    ax.scatter(zp['params'][:, 0]/1.3, z['params'][:, 0]/1.3, alpha=0.1, marker='.', color=colors[3], zorder=-10)
 
     
     #plt.plot(1.15*meas1+14, truth, ls=':', color='C1', )
     #plt.plot(1.3*meas2+27, truth, ls=':', color='C2')
 
-    plt.xlabel(r'Measured $f_{\rm NL}$')
-    plt.ylabel(r'True $f_{\rm NL}$')
-    plt.legend()
-    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnlbias.pdf', bbox_inches='tight')     
+    ax.set_xlabel(r'Measured $f_{\rm NL}$')
+    ax.set_ylabel(r'True $f_{\rm NL}$')
+    
+        
+    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnlbias.pdf', bbox_inches='tight')     
     plt.show()
     
     for me,ne in zip([meas0, meas1, meas2, meas3],
@@ -1394,15 +1421,15 @@ def debias_mcmc_mocks():
 
     for case in ['known1', 'knownp', 'allp']:
 
-        d = np.load(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_{case}_steps10k_walkers50.npz')
+        d = np.load(f'{p}logmcmc_0_lrg_zero_desic_256_dnnp_{case}_steps10k_walkers50.npz')
         dc = dict(d)
         dc['chain'][:, :, 0] = debias(d['chain'][:, :, 0], *debias_params[case])
         dc['best_fit'][0]  = debias(d['best_fit'][0], *debias_params[case])
 
-        np.savez(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_{case}debiased_steps10k_walkers50.npz', **dc)
-        print(f'{p}logmcmc_0_lrg_czero_desic_256_dnnp_{case}debiased_steps10k_walkers50.npz')
-        #print(d['chain'][5000:, :, 0].mean()/1.3)
-        #print(dc['chain'][5000:, :, 0].mean()/1.3)          
+        np.savez(f'{p}logmcmc_0_lrg_zero_desic_256_dnnp_{case}debiased_steps10k_walkers50.npz', **dc)
+        print(f'{p}logmcmc_0_lrg_zero_desic_256_dnnp_{case}debiased_steps10k_walkers50.npz')
+        print(d['chain'][5000:, :, 0].mean()/1.3)
+        print(dc['chain'][5000:, :, 0].mean()/1.3)          
   
     
     
