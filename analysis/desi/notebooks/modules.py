@@ -797,7 +797,15 @@ def plot_mcmc_contmocks():
     g.fig.align_labels()
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_cont.pdf', bbox_inches='tight')        
     
- 
+    g = plots.get_single_plotter(width_inch=6)
+    g.settings.legend_fontsize = 13
+    g.plot_1d([z_now, z_nn1, z_nnp, z_nnap], 'fnl', colors=colors)
+    g.add_legend(['No Weight', 'ConsII', 'ConsII+nStar', 'All+nStar'], 
+                colored_text=True, legend_loc='upper left')    
+    g.fig.align_labels()
+    
+    
+    
 
     z_now  = MCMC(f'{p}logmcmc_0_lrg_po100_desic_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
     z_nn1  = MCMC(f'{p}logmcmc_0_lrg_po100_desic_256_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
@@ -1014,6 +1022,21 @@ def plot_mcmc_data():
             transform=ax.transAxes, fontsize=13)      
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods1d.pdf', bbox_inches='tight')    
     plt.show()    
+    
+    g = plots.get_single_plotter(width_inch=6)
+    g.settings.legend_fontsize = 13
+    ls = ['-', '-', '-', '-', '-', '--', '--', '--']
+    g.plot_1d([ze, dsp, knn1, dskp], 'fnl',
+                 filled=True,lims=[-50, 170], colors=colors, ls=ls) #     
+    g.add_legend(['No weight',
+                  'Nonlin. (All Maps+nStar)',                  
+                  'Nonlinear (Cons. II)',
+                  'Nonlin. (Cons. II+nStar)'], 
+                  colored_text=True, legend_loc='lower left')    
+    g.fig.align_labels()
+    ax = g.get_axes()
+    ax.tick_params(top=False, right=False)
+    ax.text(0.15, 0.92, 'DR9 DESI Footprint (different methods)', transform=ax.transAxes, fontsize=13)          
     
     # Triangle plot
 #     g = plots.get_single_plotter(width_inch=6)
