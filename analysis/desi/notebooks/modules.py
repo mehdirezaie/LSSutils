@@ -368,7 +368,7 @@ def plot_pcc():
         plt.plot(x, pcc_max, ls='-', lw=1, color=colors[i], alpha=0.5)
 
     plt.xticks(x, names, rotation=90)
-    plt.ylabel('PCC (gal density, Imaging)')
+    plt.ylabel('PCC (LRG density, Imaging)')
     plt.legend()
     plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/pcc.pdf', bbox_inches='tight')
     
@@ -563,7 +563,7 @@ def plot_nbartest():
               'DR9 (Linear Conservative I)',
               'DR9 (Linear Conservative II)', 'DR9 (Nonlinear Cons II)',
               'DR9 (Nonlinear Cons II + nStar)']    
-    fg, ax = plt.subplots(ncols=3, nrows=3, figsize=(12, 9), sharey=True)
+    fg, ax = plt.subplots(ncols=3, nrows=3, figsize=(12, 9), sharey='row')
     ax = ax.flatten()
     fg.subplots_adjust(wspace=0.02, hspace=0.35)
 
@@ -675,7 +675,7 @@ def plot_mcmc_mocks():
     stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
            'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
     mc_kw = dict(names=['fnl', 'b', 'n0'], 
-                 labels=['f_{NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+                 labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}'], settings=stg) 
     read_kw = dict(ndim=3, iscale=[2])
 
     po0 = MCMC('/fs/ess/PHS0336/data/lognormal/v3/mcmc/mcmc_0_lrg_pozero_desic_256_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
@@ -745,7 +745,7 @@ def plot_mcmc_contmocks():
     stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
            'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
     mc_kw = dict(names=['fnl', 'b', 'n0'], 
-                 labels=['f_{NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+                 labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}'], settings=stg) 
     read_kw = dict(ndim=3, iscale=[2])
     p = '/fs/ess/PHS0336/data/lognormal/v3/mcmc/'
     
@@ -784,7 +784,7 @@ def plot_mcmc_contmocks():
     #g.add_y_marker(1.43)
 #     #g.get_axes().set_ylim(1.426, 1.434)
 #     #g.get_axes().set_xlim(-2.2, 3.2)    
-#     ax = g.get_axes()
+    ax = g.get_axes()
 #     ax.text(0.08, 0.92, r'Fitting the mean of $f_{\rm NL}$=0 mocks', 
 #             transform=ax.transAxes, fontsize=13)
 #     #ax.text(-2.0, 1.4302, 'Truth', color='grey', fontsize=13, alpha=0.7)
@@ -792,7 +792,8 @@ def plot_mcmc_contmocks():
 #     g.add_legend(['No Weight', 'ConsII', 'ConsII (shifted)', 
 #                  'ConsII+nStar', 'ConsII+nStar (shifted)', 
 #                  'All+nStar', 'All+nStar (shifted)'], 
-    g.add_legend(['No Weight', 'ConsII (shifted)', 'ConsII+nStar (shifted)', 'All+nStar (shifted)'], 
+    ax.tick_params(top=False, right=False)
+    g.add_legend(['No Weight', 'Nonlinear ConsII ', 'Nonlinear ConsII+nStar', 'Nonlinear All+nStar'], 
                 colored_text=True, legend_loc='upper left')    
     g.fig.align_labels()
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_cont.pdf', bbox_inches='tight')        
@@ -800,9 +801,15 @@ def plot_mcmc_contmocks():
     g = plots.get_single_plotter(width_inch=6)
     g.settings.legend_fontsize = 13
     g.plot_1d([z_now, z_nn1, z_nnp, z_nnap], 'fnl', colors=colors)
-    g.add_legend(['No Weight', 'ConsII', 'ConsII+nStar', 'All+nStar'], 
-                colored_text=True, legend_loc='upper left')    
+    g.add_legend(['No Weight', 'Nonlinear ConsII ', 'Nonlinear ConsII+nStar', 'Nonlinear All+nStar'],
+                colored_text=True, legend_loc='upper left') 
+    ax = g.get_axes()
+    ax.text(0.45, 0.85, 'Not accounted for mitigation bias', 
+            transform=ax.transAxes, fontsize=13) 
+    ax.tick_params(top=False, right=False)
     g.fig.align_labels()
+    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_contnoshift.pdf', bbox_inches='tight')        
+
     
     
     
@@ -898,7 +905,7 @@ def plot_mcmc_data():
     stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
            'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
     mc_kw = dict(names=['fnl', 'b', 'n0'], 
-                 labels=['f_{NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+                 labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}'], settings=stg) 
     read_kw = dict(ndim=3, iscale=[2])
     
     p = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
@@ -992,9 +999,9 @@ def plot_mcmc_data():
               'fnl', 'b', 
               filled=True,lims=[-50, 170, 1.28, 1.57], colors='Dark2') # 
     g.add_legend(['No weight',
-                  'Nonlin. (All Maps+nStar)',                  
-                  'Nonlinear (Cons. II)',
-                  'Nonlin. (Cons. II+nStar)'], 
+                  'Nonlinear All Maps+nStar',                  
+                  'Nonlinear Cons. II',
+                  'Nonlinear Cons. II+nStar'], 
                   colored_text=True, legend_loc='lower left')    
     g.fig.align_labels()
     ax = g.get_axes()
@@ -1011,9 +1018,9 @@ def plot_mcmc_data():
     g.plot_1d([ze, dsp_s, knn1_s, dskp_s], 'fnl',
                  filled=True,lims=[-50, 170], colors=colors, ls=ls) #     
     g.add_legend(['No weight',
-                  'Nonlin. (All Maps+nStar)',                  
-                  'Nonlinear (Cons. II)',
-                  'Nonlin. (Cons. II+nStar)'], 
+                  'Nonlinear All Maps+nStar',                  
+                  'Nonlinear Cons. II',
+                  'Nonlinear Cons. II+nStar'], 
                   colored_text=True, legend_loc='lower left')    
     g.fig.align_labels()
     ax = g.get_axes()
@@ -1029,14 +1036,18 @@ def plot_mcmc_data():
     g.plot_1d([ze, dsp, knn1, dskp], 'fnl',
                  filled=True,lims=[-50, 170], colors=colors, ls=ls) #     
     g.add_legend(['No weight',
-                  'Nonlin. (All Maps+nStar)',                  
-                  'Nonlinear (Cons. II)',
-                  'Nonlin. (Cons. II+nStar)'], 
+                  'Nonlinear All Maps+nStar',                  
+                  'Nonlinear Cons. II',
+                  'Nonlinear Cons. II+nStar'], 
                   colored_text=True, legend_loc='lower left')    
     g.fig.align_labels()
     ax = g.get_axes()
     ax.tick_params(top=False, right=False)
-    ax.text(0.15, 0.92, 'DR9 DESI Footprint (different methods)', transform=ax.transAxes, fontsize=13)          
+    ax.text(0.15, 0.92, 'DR9 DESI Footprint (different methods)', transform=ax.transAxes, fontsize=13)   
+    ax.text(0.15, 0.85, 'Not accounted for mitigation bias', 
+            transform=ax.transAxes, fontsize=13)     
+    g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods1dnoshift.pdf',
+                  bbox_inches='tight')           
     
     # Triangle plot
 #     g = plots.get_single_plotter(width_inch=6)
@@ -1155,9 +1166,9 @@ def plot_model(fnltag='po100'):
 
 
     ax1.legend(ncol=1)
-    ax1.set(xscale='log', ylabel=r'$\logC_{\ell}$') #, yscale='log')
+    ax1.set(xscale='log', ylabel=r'$\log C_{\ell}$') #, yscale='log')
     ax1.tick_params(labelbottom=False)
-    ax2.set(xscale='log', xlabel=r'$\ell$', ylabel=r'$\Delta \logC_{\ell}$', xlim=ax1.get_xlim(), ylim=(-0.025, +0.025))
+    ax2.set(xscale='log', xlabel=r'$\ell$', ylabel=r'$\Delta \log C_{\ell}$', xlim=ax1.get_xlim(), ylim=(-0.025, +0.025))
 
     fig.subplots_adjust(hspace=0.0, wspace=0.02)
     fig.align_labels()
@@ -1192,7 +1203,7 @@ def plot_dr9cl():
     plt.fill_between(cl_['el_bin'], cl_['cl']-cl_err, cl_['cl']+cl_err, alpha=0.1, color=ln.get_color())
 
     for i, (n, nm) in enumerate(zip(['linp_all', 'linp_known', 'linp_known1', 'dnnp_known1', 'dnnp_knownp', 'noweight'],
-                     ['All Maps', 'Conservative I', 'Conservative II','Nonlinear (Cons. II)', 'Nonlin. (Cons. II+nStar)', 'No weight'])):
+                     ['Linear All Maps', 'Linear Conservative I', 'Linear Conservative II','Nonlinear Cons. II', 'Nonlinear Cons. II+nStar', 'No weight'])):
         cl_d = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_{n}.npy', allow_pickle=True).item()
         cl_b = np.log10(ut.histogram_cell(cl_d['cl_gg']['l'], cl_d['cl_gg']['cl'], bins=ut.ell_edges)[1])
 
@@ -1208,19 +1219,55 @@ def plot_dr9cl():
     plt.xscale('log')
     #plt.yscale('log')
     plt.xlabel(r'$\ell$')
-    plt.ylabel(r'$\logC_{\ell}$')
+    plt.ylabel(r'$\log C_{\ell}$')
     #plt.ylim(1.2e-6, 2.2e-4)
     plt.xlim(xmin=1.9)
-    plt.legend(ncol=1, loc='upper right')
+    lgn = plt.legend(ncol=1, loc='upper right')
+    for i, txt in enumerate(lgn.get_texts()):
+        txt.set_color('C%d'%i)
     plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/model_dr9.pdf', bbox_inches='tight')         
     
 
 def plot_fnl_lmin():
+    
+    fig, ax = plt.subplots(ncols=4, figsize=(10, 4), sharey=True)
+    fig.subplots_adjust(wspace=0.02)
+    
+    colors = ['C0', 'C1', 'C2', 'C3']
+    names = ['DESI', 'BASS+MzLS', 'DECaLS North', 'DECaLS South']
+    markers = ['.', 'o']
+    p_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'
+    
+    for i, r in enumerate(['desic','bmzls', 'ndecalsc', 'sdecalsc']):
+        for j, n in enumerate(['noweight', 'dnnp_known1']):
+            
+            cl_d = np.load(f'{p_}cl_lrg_{r}_256_{n}.npy', allow_pickle=True).item()
+            elb, clb = ut.histogram_cell(cl_d['cl_gg']['l'], cl_d['cl_gg']['cl'], bins=ut.ell_edges)
+            cl_b = np.log10(clb)
+            ln = ax[i].plot(elb, cl_b, marker=markers[j], ls='none', color=colors[i], alpha=0.5)
+        ax[i].text(0.1, 0.85, names[i], color=colors[i], transform=ax[i].transAxes)
+        
+        cl_ = np.load(f'/fs/ess/PHS0336/data/lognormal/v3/clustering/logclmock_0_lrg_zero_{r}_256_noweight_mean.npz')
+        cl_cov_ = np.load(f'/fs/ess/PHS0336/data/lognormal/v3/clustering/logclmock_0_lrg_zero_{r}_256_noweight_cov.npz')
+        cl_err = np.diagonal(cl_cov_['clcov']*1000.)**0.5
+        ax[i].plot(cl_['el_bin'], cl_['cl'], label='Mean of Mocks', alpha=0.5, color='k')
+        ax[i].fill_between(cl_['el_bin'], cl_['cl']-cl_err, cl_['cl']+cl_err, alpha=0.1, color='k')
+
+    for a in ax:
+        a.set(xlim=(1.9, 41), ylim=(-6, -3), 
+              xlabel=r'$\ell$', xscale='log')
+    ax[0].set_ylabel(r'$\log C_{\ell}$')
+    ax[3].text(0.1, 0.1, r'68\% $f_{\rm NL}=0$ mocks', transform=ax[3].transAxes, fontsize=13, alpha=0.8)    
+    fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/cldr9_lowell.pdf', bbox_inches='tight')
+    
+    
+    
+    
     p = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
     stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
            'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
     mc_kw = dict(names=['fnl', 'b', 'n0'], 
-                 labels=['f_{NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+                 labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}'], settings=stg) 
 
     stats = {}
     elmin = np.arange(16)
@@ -1231,7 +1278,7 @@ def plot_fnl_lmin():
             d.append(d_.stats)
         stats[r] = np.array(d)    
     
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(8, 5))
     names = ['DESI', 'BASS+MzLS', 'DECaLS North', 'DECaLS South',]
     markers = ['o', 'x', '^', 's']
     for i, st in enumerate(['desic', 'bmzls', 'ndecalsc', 'sdecalsc']):
@@ -1246,8 +1293,8 @@ def plot_fnl_lmin():
         #ax.errorbar(elmin+(i*0.1-0.1), stats[st][:, 0], yerr=[yn2, yp2], capsize=5, ls='none', 
         #           color=ln.lines[0].get_color(), alpha=alpha, zorder=-10)   
 
-    lgn = ax.legend(loc='lower left', bbox_to_anchor=(0, 1.02, 1, 0.4),
-                    mode="expand", borderaxespad=0, ncol=4, frameon=False)
+    lgn = ax.legend(loc='lower left', #bbox_to_anchor=(0, 1.02, 1, 0.4),
+                    ncol=2, frameon=False)#mode="expand", borderaxespad=0, 
     for i, li in enumerate(lgn.get_texts()):
         li.set_color('C%d'%i)
     dv.add_locators(ax, xmajor=None, ymajor=50)    
@@ -1357,12 +1404,12 @@ def plot_fnlbias():
 
     colors = [plt.cm.Dark2(i) for i in [0, 2, 3, 1]]        
     
-    fig, ax = plt.subplots(figsize=(5, 4), sharex=True, sharey=True)
+    fig, ax = plt.subplots(figsize=(6, 5), sharex=True, sharey=True)
     
     ax.plot(meas0, truth, label='No weight', color=colors[0], ls='-')    
     i = 0
     for me,ne in zip([meas1, meas2, meas3],
-                     ['Cons II', 'Cons II+nStar', 'All Maps+nStar']):
+                     ['Nonlinear Cons II', 'Nonlinear Cons II+nStar', 'Nonlinear All Maps+nStar']):
         ax.plot(me, truth, label=ne, ls='-', color=colors[i+1])
         i += 1
     lgn = ax.legend()
@@ -1385,15 +1432,15 @@ def plot_fnlbias():
     #plt.plot(1.15*meas1+14, truth, ls=':', color='C1', )
     #plt.plot(1.3*meas2+27, truth, ls=':', color='C2')
 
-    ax.set_xlabel(r'Measured $f_{\rm NL}$')
-    ax.set_ylabel(r'True $f_{\rm NL}$')
+    ax.set_xlabel(r'Mitigated $f_{\rm NL}$')
+    ax.set_ylabel(r'No mitigation, clean $f_{\rm NL}$')
     
         
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnlbias.pdf', bbox_inches='tight')     
     plt.show()
     
     for me,ne in zip([meas0, meas1, meas2, meas3],
-                     ['No weight', 'Cons II', 'Cons II+nStar', 'All Maps+nStar']):
+                     ['No weight', 'Nonlinear Cons II', 'Nonlinear Cons II+nStar', 'Nonlinear All Maps+nStar']):
         plt.plot(me, truth, label=ne, zorder=-10, alpha=0.3, lw=3, marker='o', mfc='w', ls='-')
 
     plt.plot(1.17*meas1+13.95, truth, ls=':', color='C1', lw=5)

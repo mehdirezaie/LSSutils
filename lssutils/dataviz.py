@@ -75,7 +75,8 @@ def setup_color():
     mpl.rcParams['ytick.minor.size'] = 6.0
     mpl.rcParams['ytick.right'] = True
     mpl.rcParams['xtick.top'] = True
-    #mpl.rcParams['font.family'] = "Nimbus Sans Narrow" #'DejaVu Sans'
+    mpl.rcParams['font.family'] = ['DeJavu Serif']
+    mpl.rcParams['font.serif'] = ['Times New Roman']
     mpl.rcParams['font.size'] = 16
     mpl.rcParams['axes.linewidth'] = 2       
     mpl.rcParams['legend.frameon'] = False
