@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=03:00:00
+#SBATCH --time=00:10:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -24,34 +24,34 @@ do_nn=false          # 10 h
 do_pullnn=false       # 10 m x 1
 do_regrs=false       # 25 min
 do_nbar=false        # 10 m x 4
-do_cl=false          # 10 m x 4
+do_cl=true          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        # 3 h x 14
 do_mcmc_scale=false  #
 do_mcmc_log=false     # 3h x 14
 do_mcmc_logscale=false
-do_bfit=true        # 3 h x 14
+do_bfit=false        # 3 h x 14
 do_mcmc_cont=false   # 
 do_mcmc_joint=false  # 3hx14
 do_mcmc_joint3=false # 5x14
 
-#mockid=2 # for debugging
+#mockid=1 # for debugging
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=5000
-region="desic" # desi, bmzls, ndecals, sdecals
-iscont=0      # redundant, will use zero or czero for null or cont mocks
-maps=""       #e.g., "known5" or "all"
+region=$1 # desic, bmzls, ndecalsc, sdecalsc
+iscont=0  # redundant, will use zero or czero for null or cont mocks
+maps="known1"       #e.g., "known5" or "all"
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
-model=dnnp
-method=$2 #${model}_${maps} # noweight, nn_all
+model=dnn # dnnp or dnn
+method=${model}_${maps} # noweight, nn_all
 target="lrg"
-fnltag=$1 #zero, po100
+fnltag="zero" #zero, po100
 ver=v3 # 
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
 root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys
 nside=256
-loss=pnll
+loss=mse # pnll or mse
 nns=(4 20)
 nepoch=70 # or 150
 nchain=20
@@ -123,7 +123,7 @@ then
     output_path=${root_dir}/regression/fnl_${fnltag}/${mockid}/${model}_${maps}/${region}/
     echo $output_path 
     du -h $input_path $input_map
-    srun -n 1 python $nnfit -i ${input_path} ${input_map} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain --do_tar
+    srun -n 1 python $nnfit -i ${input_path} ${input_map} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain --do_tar 
 fi
 
 

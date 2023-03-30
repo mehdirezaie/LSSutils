@@ -31,8 +31,8 @@ def plot_nz():
     nz = np.loadtxt('/fs/ess/PHS0336/data/rongpu/sv3_lrg_dndz_denali.txt')
 
     fg, ax = plt.subplots()
-
-    ax.step(nz[:, 0], nz[:, 2], where='pre', lw=1)#, label='dN/dz')
+    
+    ax.step(nz[:, 0], nz[:, 2], where='post', lw=1)#, label='dN/dz')
     ax.set(xlim=(-0.05, 1.45), xlabel='z', ylabel='dN/dz')
     ax.text(0.25, 0.7, 'dN/dz', color='C0', transform=ax.transAxes)
 
@@ -40,7 +40,7 @@ def plot_nz():
     z_g = np.linspace(0.1, 1.38, num=200)
 
     ax1.plot(z_g, 1.4*bias_model_lrg(z_g), 'C1--', lw=3, alpha=0.5, zorder=10)#, label='b(z)')
-    ax1.text(0.7, 0.47, 'b(z)$\propto$ D$^{-1}$(z)', color='C1', transform=ax1.transAxes)
+    ax1.text(0.72, 0.47, 'b(z)$\propto$ D$^{-1}$(z)', color='C1', transform=ax1.transAxes)
     ax1.set_ylabel('b(z)')
     ax1.set_ylim((1.3, 3.1))
 
