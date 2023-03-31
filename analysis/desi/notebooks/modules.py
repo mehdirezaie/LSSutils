@@ -1592,6 +1592,57 @@ def plot_clmocks():
 
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/clmocks.pdf', bbox_inches='tight')       
     
+    
+def fnltime():
+    
+    fNL = [105,-12,47]
+    fNLerr_lower = [150,39.0, 22]
+    fNLerr_upper = [90,40., 29]
+    fNL_upper = np.array(fNL)+np.array(fNLerr_upper)
+    fNL_lower = np.array(fNL)-np.array(fNLerr_lower)
+    measurement = ['BOSS \n LRG DR9','eBOSS \n QSO DR16','DESI \n photo LRG']
+    year = [2012,2021,2023]
+    
+    fNL_CMB = [38,32,2.7,-0.9]
+    fNLerr_lower_CMB = [96,42,11.6,10.2]
+    fNLerr_upper_CMB = [96,42,11.6,10.2]    
+    fNL_upper_CMB = np.array(fNL_CMB)+np.array(fNLerr_upper_CMB)
+    fNL_lower_CMB = np.array(fNL_CMB)-np.array(fNLerr_lower_CMB)
+    measurement_CMB = ['WMAP 1','WMAP 7','Planck 13','Planck 18']
+    year_CMB = [2003,2010,2013.5,2018]  
+        
+    fig, ax = plt.subplots() 
+    #LSS measurement
+    ax.errorbar(year,fNL,yerr=[fNLerr_lower,fNLerr_upper], fmt='o', color='C0', capsize=3,)
+    #adjust label
+    labelshift=[45,45, 70]
+    xshift=[2,2,1]
+    for i, txt in enumerate(measurement):
+        ax.annotate(txt, (year[i]-xshift[i], fNL[i]-fNLerr_lower[i]-labelshift[i]), color='C0',fontsize=14)   
+        
+    #CMB measurement    
+    ax.errorbar(year_CMB,fNL_CMB,yerr=[fNLerr_lower_CMB,fNLerr_upper_CMB],fmt='x', color='C1', capsize=3)
+    labelshift=[10,5,10,10]
+    xshift = [-2, -3, -1.3, -1.4]
+    for i, txt in enumerate(measurement_CMB):
+        ax.annotate(txt, (year_CMB[i]+xshift[i], fNL_CMB[i]+fNLerr_upper_CMB[i]+labelshift[i]),color='C1',fontsize=12)
+
+    lgn = ax.legend(['LSS','CMB'],frameon=False,fontsize=14)
+    txts = lgn.get_texts()
+    txts[0].set_color('C0')
+    txts[1].set_color('C1')
+    
+    ax.fill_between(year,fNL_lower,fNL_upper,color='C2',alpha=0.02) 
+    ax.fill_between(year_CMB,fNL_lower_CMB,fNL_upper_CMB,color='C1',alpha=0.02)
+    ax.set_ylabel('local PNG $f_\mathrm{NL}$')
+    ax.set_xlabel('Publication year')
+    ax.set_ylim(-120,220)
+    ax.set_xlim(2000.5,2028)
+    ax.axhline(0,color='grey',linestyle='dashed')
+    plt.tight_layout()
+    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_history.pdf', bbox_inches='tight')       
+    
+    
 # import sys
 # import os
 # import matplotlib.pyplot as plt
