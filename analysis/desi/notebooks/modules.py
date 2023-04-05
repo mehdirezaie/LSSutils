@@ -466,31 +466,61 @@ def plot_clxtest():
     fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/clx_mocks.pdf', bbox_inches='tight')    
     plt.show()
     
-    plt.figure()
-    ls = ['-', '--']
-    for i, (name_i, chi2_i) in enumerate(chi2s.items()):
-        print(np.max(chi2_i), np.min(chi2_i))
-        plt.hist(chi2_i, histtype='step', bins=58, ls=ls[i],
-                 label=name_i, range=(0, 550.))    
-    # plt.yscale('log')
-
-    plt.text(170., 68., f'DR9 (No Weight) = {chi2_dr9:.1f}', fontsize=12)
-    plt.text(170., 61., f'DR9 (Linear Two Maps) = {chi2_dr9known:.1f}', fontsize=12)
-    plt.text(170., 54., f'DR9 (Linear Three Maps) = {chi2_dr9known1:.1f}', fontsize=12)
-    plt.text(170., 47., f'DR9 (Linear Eight Maps) = {chi2_dr9all:.1f}', fontsize=12)
-    plt.text(170., 40., f'DR9 (Nonlinear Three Maps) = {chi2_dr9nknown1:.1f}', fontsize=12)
-    plt.text(170., 33., f'DR9 (Nonlinear Four Maps) = {chi2_dr9nknownp:.1f}', fontsize=12)
     
+    xlabel = r'Cross Spectrum $\chi^{2}$'
+    xlim1 = (-10, 450)
+    xlim2 = (19970, 20110)
+    ylim = (0., 120.)
+
+    fig = plt.figure()
+    fig.subplots_adjust(wspace=0.03)
+    gs  = GridSpec(1, 2, width_ratios=[3, 1], figure=fig)
+    ax1 = plt.subplot(gs[0])
+    ax2 = plt.subplot(gs[1])
+
+    ax1.tick_params(direction='in', axis='both', right=False)
+    ax2.tick_params(direction='in', axis='both', which='both', left=False, right=True)
+
+    ax1.spines['right'].set_visible(False)
+    ax2.spines['left'].set_visible(False)
+    ax1.set(xlim=xlim1, ylim=ylim, xlabel=xlabel)
+    ax2.set(xlim=xlim2, ylim=ylim)#, xticks=xticks2)
+    ax2.set_yticklabels([])
+    d = 0.01
+    kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
+    ax1.plot((1 - d/2, 1 + d/2), (-d, +d), **kwargs)  # bottom-left diagonal
+    ax1.plot((1 - d/2, 1 + d/2), (1-d, 1+d), **kwargs)  # bottom-left diagonal
+    kwargs.update(transform=ax2.transAxes)            # switch to the bottom axes
+    ax2.plot((-d/2, +d/2), (-d, +d), **kwargs)        # top-left diagonal
+    ax2.plot((-d/2, +d/2), (1-d, 1+d), **kwargs)        # top-left diagonal
+
+    ls = ['-', '--']
+    names = ['$f_\mathrm{NL}$=0', '$f_\mathrm{NL}$=76.9']
+    for i, (__, chi2_i) in enumerate(chi2s.items()):
+        print(np.max(chi2_i), np.min(chi2_i))
+        ax1.hist(chi2_i, histtype='step', bins=58, 
+                 ls=ls[i], label=names[i], range=(0, 550.), color='C%d'%i) 
+    lgn = ax1.legend(title='Clean Mocks', frameon=True)
+    for i,txt in enumerate(lgn.get_texts()):
+        txt.set_color('C%d'%i)
+
+    ax2.axvline(chi2_dr9, lw=1)
+    ax2.annotate('No Weight', (chi2_dr9+7, 20), rotation=90, fontsize=13)
+
+    ax1.axvline(chi2_dr9nknown1, lw=1, color='C4', ls='--')
+    ax1.annotate('Nonlinear Three Maps', (chi2_dr9nknown1-20, 8), rotation=90, fontsize=13, color='C4')
+
+    ax1.axvline(chi2_dr9known1, lw=1, color='C3', ls=':')
+    ax1.annotate('Linear Three Maps', (chi2_dr9known1+7, 20), rotation=90, fontsize=13, color='C3')
+
+    ax1.axvline(chi2_dr9known, lw=1, color='C2', ls='-.')
+    ax1.annotate('Linear Two Maps', (chi2_dr9known+7, 20), rotation=90, fontsize=13, color='C2')
+
+
     for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp]:
         is_gt = np.array(chi2s['fNL=0']) > chi_i
         print('p-value:', is_gt.mean())
-    
-    
-    # plt.yscale('log')
-    plt.xticks([0, 100, 200, 300, 400, 500])
-    plt.legend(title='Clean Mocks', frameon=False)
-    plt.xlabel(r'Cross Spectrum $\chi^{2}$')
-    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test.pdf', bbox_inches='tight')         
+    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test.pdf', bbox_inches='tight')         
 
 
 def test_chi2lmax():
@@ -597,29 +627,62 @@ def plot_nbartest():
     chi2s = {}
     chi2s['fNL=0'] = ut.get_chi2pdf(err_0)
     chi2s['fNL=76.92'] = ut.get_chi2pdf(err_100)
-    plt.figure()
+    
+    xlabel = r'Mean Density $\chi^{2}$'
+    xlim1 = (20, 240)
+    xlim2 = (630, 710)
+    ylim = (0., 120.)
+
+    fig = plt.figure()
+    fig.subplots_adjust(wspace=0.03)
+    gs  = GridSpec(1, 2, width_ratios=[3, 1], figure=fig)
+    ax1 = plt.subplot(gs[0])
+    ax2 = plt.subplot(gs[1])
+
+    ax1.tick_params(direction='in', axis='both', right=False)
+    ax2.tick_params(direction='in', axis='both', which='both', left=False, right=True)
+
+    ax1.spines['right'].set_visible(False)
+    ax2.spines['left'].set_visible(False)
+    ax1.set(xlim=xlim1, ylim=ylim, xlabel=xlabel)
+    ax2.set(xlim=xlim2, ylim=ylim)#, xticks=xticks2)
+    ax2.set_yticklabels([])
+    d = 0.01
+    kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
+    ax1.plot((1 - d/2, 1 + d/2), (-d, +d), **kwargs)  # bottom-left diagonal
+    ax1.plot((1 - d/2, 1 + d/2), (1-d, 1+d), **kwargs)  # bottom-left diagonal
+    kwargs.update(transform=ax2.transAxes)            # switch to the bottom axes
+    ax2.plot((-d/2, +d/2), (-d, +d), **kwargs)        # top-left diagonal
+    ax2.plot((-d/2, +d/2), (1-d, 1+d), **kwargs)        # top-left diagonal
+
     ls = ['-', '--']
-    for i, (name_i, chi2_i) in enumerate(chi2s.items()):
+    names = ['$f_\mathrm{NL}$=0', '$f_\mathrm{NL}$=76.9']
+    for i, (__, chi2_i) in enumerate(chi2s.items()):
         print(np.max(chi2_i), np.min(chi2_i))
-        plt.hist(chi2_i, histtype='step', bins=65, ls=ls[i],
-                 label=name_i, range=(30, 160.))    
-        
-        
+        ax1.hist(chi2_i, histtype='step', bins=65, 
+                 ls=ls[i], label=names[i], range=(30., 160.), color='C%d'%i) 
+    lgn = ax1.legend(title='Clean Mocks', frameon=True)
+    for i,txt in enumerate(lgn.get_texts()):
+        txt.set_color('C%d'%i)
+
+    ax2.axvline(chi2_dr9, lw=1)
+    ax2.annotate('No Weight', (chi2_dr9+5, 20), rotation=90, fontsize=13)
+
+    ax1.axvline(chi2_dr9nknown1, lw=1, color='C4', ls='--')
+    ax1.annotate('Nonlinear\n Three Maps', (chi2_dr9nknown1-9, 78), rotation=90, fontsize=13, color='C4')
+
+    ax1.axvline(chi2_dr9known1, lw=1, color='C3', ls=':')
+    ax1.annotate('Linear Three Maps', (chi2_dr9known1+4, 20), rotation=90, fontsize=13, color='C3')
+
+    ax1.axvline(chi2_dr9known, lw=1, color='C2', ls='-.')
+    ax1.annotate('Linear Two Maps', (chi2_dr9known+4, 20), rotation=90, fontsize=13, color='C2')
+
+
     for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp]:
         is_gt = np.array(chi2s['fNL=0']) > chi_i
-        print('p-value:', is_gt.mean())        
+        print('p-value:', is_gt.mean())    
 
-    plt.text(91., 48., f'DR9 (No Weight) = {chi2_dr9:.1f}', fontsize=12)
-    plt.text(91., 43., f'DR9 (Linear Two Maps) = {chi2_dr9known:.1f}', fontsize=12)
-    plt.text(91., 38., f'DR9 (Linear Three Maps) = {chi2_dr9known1:.1f}', fontsize=12)
-    plt.text(91., 33., f'DR9 (Linear Eight Maps) = {chi2_dr9all:.1f}', fontsize=12)
-    plt.text(91., 28., f'DR9 (Nonlinear Three Maps) = {chi2_dr9nknown1:.1f}', fontsize=12)
-    plt.text(91., 23., f'DR9 (Nonlinear Four Maps) = {chi2_dr9nknownp:.1f}', fontsize=12)
-    plt.xlim(26, 260)
-    plt.xticks([50, 75, 100, 125, 150, 175, 200, 225, 250])
-    plt.legend(title='Clean Mocks', frameon=False)
-    plt.xlabel(r'Mean Density $\chi^{2}$')
-    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test2.pdf', bbox_inches='tight')    
+    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test2.pdf', bbox_inches='tight')    
  
             
 def plot_clhist():
@@ -1595,13 +1658,13 @@ def plot_clmocks():
     
 def fnltime():
     
-    fNL = [105,-12,47]
-    fNLerr_lower = [150,39.0, 22]
-    fNLerr_upper = [90,40., 29]
+    fNL = [63, 105, -12, 47]
+    fNLerr_lower = [331, 150, 39.0, 22]
+    fNLerr_upper = [101, 90,  40.,  29]
     fNL_upper = np.array(fNL)+np.array(fNLerr_upper)
     fNL_lower = np.array(fNL)-np.array(fNLerr_lower)
-    measurement = ['BOSS \n LRG DR9','eBOSS \n QSO DR16','DESI \n photo LRG']
-    year = [2012,2021,2023]
+    measurement = ['SDSS \n photo LRG', 'BOSS \n LRG DR9','eBOSS \n QSO DR16','DESI \n photo LRG']
+    year = [2008, 2013, 2021, 2023]
     
     fNL_CMB = [38,32,2.7,-0.9]
     fNLerr_lower_CMB = [96,42,11.6,10.2]
@@ -1609,34 +1672,36 @@ def fnltime():
     fNL_upper_CMB = np.array(fNL_CMB)+np.array(fNLerr_upper_CMB)
     fNL_lower_CMB = np.array(fNL_CMB)-np.array(fNLerr_lower_CMB)
     measurement_CMB = ['WMAP 1','WMAP 7','Planck 13','Planck 18']
-    year_CMB = [2003,2010,2013.5,2018]  
+    year_CMB = [2003, 2010, 2013.5, 2018]  
         
-    fig, ax = plt.subplots() 
+    fig, ax = plt.subplots(figsize=(7, 5)) 
     #LSS measurement
-    ax.errorbar(year,fNL,yerr=[fNLerr_lower,fNLerr_upper], fmt='o', color='C0', capsize=3,)
+    ax.errorbar(year, fNL, yerr=[fNLerr_lower,fNLerr_upper], fmt='o', color='C0', capsize=3, alpha=0.8)
+    ax.scatter(year[-1], fNL[-1], s=200, marker='*', color='C0')
+    
     #adjust label
-    labelshift=[45,45, 70]
-    xshift=[2,2,1]
+    labelshift=[-40, 55, 50, -60]
+    xshift=[-0.5, 1, 1,1]
     for i, txt in enumerate(measurement):
         ax.annotate(txt, (year[i]-xshift[i], fNL[i]-fNLerr_lower[i]-labelshift[i]), color='C0',fontsize=14)   
         
     #CMB measurement    
-    ax.errorbar(year_CMB,fNL_CMB,yerr=[fNLerr_lower_CMB,fNLerr_upper_CMB],fmt='x', color='C1', capsize=3)
-    labelshift=[10,5,10,10]
-    xshift = [-2, -3, -1.3, -1.4]
+    ax.errorbar(year_CMB,fNL_CMB,yerr=[fNLerr_lower_CMB,fNLerr_upper_CMB],fmt='x', color='C1', capsize=3, alpha=0.8)
+    labelshift=[10, 7, 10, -40]
+    xshift = [-2, -1.5, -0.2, -1]
     for i, txt in enumerate(measurement_CMB):
         ax.annotate(txt, (year_CMB[i]+xshift[i], fNL_CMB[i]+fNLerr_upper_CMB[i]+labelshift[i]),color='C1',fontsize=12)
 
-    lgn = ax.legend(['LSS','CMB'],frameon=False,fontsize=14)
-    txts = lgn.get_texts()
-    txts[0].set_color('C0')
-    txts[1].set_color('C1')
+    #lgn = ax.legend(['LSS','CMB'],frameon=False,fontsize=14)
+    #txts = lgn.get_texts()
+    #txts[0].set_color('C0')
+    #txts[1].set_color('C1')
     
-    ax.fill_between(year,fNL_lower,fNL_upper,color='C2',alpha=0.02) 
-    ax.fill_between(year_CMB,fNL_lower_CMB,fNL_upper_CMB,color='C1',alpha=0.02)
+    #ax.fill_between(year,fNL_lower,fNL_upper,color='C2',alpha=0.05) 
+    #ax.fill_between(year_CMB,fNL_lower_CMB,fNL_upper_CMB,color='C1',alpha=0.05)
     ax.set_ylabel('local PNG $f_\mathrm{NL}$')
     ax.set_xlabel('Publication year')
-    ax.set_ylim(-120,220)
+    ax.set_ylim(-300,220)
     ax.set_xlim(2000.5,2028)
     ax.axhline(0,color='grey',linestyle='dashed')
     plt.tight_layout()
