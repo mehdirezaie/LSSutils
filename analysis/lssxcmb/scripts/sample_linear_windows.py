@@ -2,6 +2,7 @@
     Sample from the posterior distribution of linear models
 
 """
+import sys
 import os
 import numpy as np
 import fitsio as ft
@@ -47,7 +48,7 @@ class Chains:
 np.random.seed(85)
 nside = 1024     #
 nwindows = 1000  # 
-version = 'v5'
+version = sys.argv[1]
 regions = ['bmzls', 'ndecals', 'sdecals']
 axes = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
 

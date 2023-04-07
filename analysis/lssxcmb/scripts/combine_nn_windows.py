@@ -1,12 +1,16 @@
 import os
+import sys
 import numpy as np
 import healpy as hp
 from glob import glob
 import fitsio as ft
 
+
+version = sys.argv[1]
+
 windows = dict()
 for region in ['bmzls', 'ndecals', 'sdecals']:
-    windows[region] = glob(f'/fs/ess/PHS0336/data/tanveer/dr9/v5/elg_dnnp/{region}_1024/windows/window_model_*fits')
+    windows[region] = glob(f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_dnnp/{region}_1024/windows/window_model_*fits')
     print(region)
 
 
@@ -23,7 +27,7 @@ for i in range(nwindows):
         count_i[d_['hpix']] += 1.0
 
     
-    output_path = f'/fs/ess/PHS0336/data/tanveer/dr9/v5/elg_dnnp/windows/nnwindow_{i}.hp{nside}.fits'
+    output_path = f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_dnnp/windows/nnwindow_{i}.hp{nside}.fits'
     output_dir = os.path.dirname(output_path)
     if not os.path.exists(output_dir):
          os.makedirs(output_dir)
