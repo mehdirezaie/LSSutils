@@ -755,7 +755,7 @@ def plot_mcmc_mocks():
     stats[r'Clean $76.92$ & DESI & $C_{\ell}$ + $f_{\rm NL}=0$ cov '] = po0.stats
 
 
-    g = plots.get_single_plotter(width_inch=6)
+    g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
     g.plot_2d([lpo100, po100, lpo0, po0], 'fnl', 'b', filled=True, colors='Dark2')
     g.add_x_marker(100./1.3)
@@ -787,7 +787,7 @@ def plot_mcmc_mocks():
     stats[r'Clean $0$ & DECaLS South &  log$C_{\ell}$'] = sd.stats
 
     
-    g = plots.get_single_plotter(width_inch=6)
+    g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
     g.plot_2d([bm, nd, sd, ze], 'fnl', 'b', filled=True, colors=['C1', 'C2', 'C3', 'C0'])
     g.add_x_marker(0)
@@ -844,7 +844,7 @@ def plot_mcmc_contmocks():
     
 
     colors = [plt.cm.Dark2(i) for i in [0, 2, 3, 1, 2, 3, 1]]        
-    g = plots.get_single_plotter(width_inch=6)
+    g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
     g.plot_1d([z_now, z_nn1_s, z_nnp_s, z_nnap_s], 'fnl', colors=colors)
     ax = g.get_axes()
@@ -855,7 +855,7 @@ def plot_mcmc_contmocks():
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_cont.pdf', bbox_inches='tight')        
     
     
-    g = plots.get_single_plotter(width_inch=6)
+    g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
     g.plot_1d([z_now, z_nn1, z_nnp, z_nnap, cz_nn1, cz_nnp, cz_nnap], 'fnl', colors=colors,
              ls = ['-', '-', '-', '-', '--', '--', '--'])
@@ -895,7 +895,7 @@ def plot_mcmc_contmocks():
     stats[r'Contaminated $76.92$ & Nine Maps'] = cz_nnap.stats   
     
     colors = [plt.cm.Dark2(i) for i in [0, 2, 3, 1, 2, 3, 1]]        
-    g = plots.get_single_plotter(width_inch=6)
+    g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
     g.plot_1d([z_now, z_nn1_s, z_nnp_s, z_nnap_s], 'fnl', colors=colors)
     ax = g.get_axes()
@@ -906,7 +906,7 @@ def plot_mcmc_contmocks():
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmcp_cont.pdf', bbox_inches='tight')        
     
     
-    g = plots.get_single_plotter(width_inch=6)
+    g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
     g.plot_1d([z_now, z_nn1, z_nnp, z_nnap, cz_nn1, cz_nnp, cz_nnap], 'fnl', colors=colors,
              ls = ['-', '-', '-', '-', '--', '--', '--'])
@@ -1064,7 +1064,7 @@ def plot_mcmc_data():
     
     # Triangle plot
     colors = [plt.cm.Dark2(i) for i in [0, 1, 2, 3, 4, 2, 3, 4]]        
-    g = plots.get_single_plotter(width_inch=6)
+    g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
     g.plot_2d([ze, dsp_s, knn1_s, dskp_s], 
               'fnl', 'b', 
@@ -1081,7 +1081,7 @@ def plot_mcmc_data():
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods.pdf', bbox_inches='tight')    
     plt.show()
     
-    g = plots.get_single_plotter(width_inch=6)
+    g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
     ls = ['-', '-', '-', '-', '-', '--', '--', '--']
     #g.plot_1d([ze, kn1, knn1, dskp, dsp, knn1_s, dskp_s, dsp_s], 'fnl',
@@ -1101,7 +1101,7 @@ def plot_mcmc_data():
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods1d.pdf', bbox_inches='tight')    
     plt.show()    
     
-    g = plots.get_single_plotter(width_inch=6)
+    g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
     ls = ['-', '-', '-', '-', '-', '--', '--', '--']
     g.plot_1d([ze, dsp, knn1, dskp], 'fnl',
@@ -1122,7 +1122,7 @@ def plot_mcmc_data():
                   bbox_inches='tight')              
     
     # Triangle plot
-    g = plots.get_single_plotter(width_inch=6)
+    g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
     g.plot_2d([knn1b, knn1n, knn1s, knn1], 'fnl', 'b', filled=True,
               lims=[-100, 120, 1.28, 1.57], colors=['C1', 'C2', 'C3', 'C0'])
@@ -1199,7 +1199,7 @@ def plot_model(fnltag='po100'):
         cl_models[name] = ut.histogram_cell(el_g, cl_i, bins=el_edges)
 
 
-    fig = plt.figure(figsize=(7, 7), constrained_layout=False)
+    fig = plt.figure(figsize=(6, 6), constrained_layout=False)
     gs = GridSpec(3, 1, figure=fig)
 
     ax1 = fig.add_subplot(gs[:2, 0])
@@ -1253,7 +1253,7 @@ def plot_dr9cl():
     mk = ['.', 'o', 'x', '^', 's', '1']
     el_g = np.arange(300)
 
-    plt.figure(figsize=(8, 6))
+    plt.figure(figsize=(6, 6))
 
     for i, (n, nm) in enumerate(zip(['noweight', 'linp_all', 'linp_known', 'linp_known1', 'dnnp_known1', 'dnnp_knownp'],
                      ['No Weight', 'Linear Eight Maps', 'Linear Two Maps', 'Linear Three Maps','Nonlinear Three Maps', 'Nonlinear Four Maps'])):
@@ -1463,7 +1463,7 @@ def plot_fnlbias():
 
     colors = [plt.cm.Dark2(i) for i in [0, 2, 3, 1]]        
     
-    fig, ax = plt.subplots(figsize=(6, 5), sharex=True, sharey=True)
+    fig, ax = plt.subplots(figsize=(6, 4), sharex=True, sharey=True)
     
     ax.plot(meas0, truth, label='No weight', color=colors[0], ls='-')    
     i = 0
@@ -1625,7 +1625,7 @@ def plot_npred():
     
 
 def plot_clmocks():    
-    fig, ax = plt.subplots(ncols=2, sharey=True, sharex=True, figsize=(14, 6))
+    fig, ax = plt.subplots(ncols=2, sharey=True, sharex=True, figsize=(12, 4))
     fig.subplots_adjust(wspace=0.05)
     colors = [plt.cm.Dark2(i) for i in [0, 2, 3, 1]]
 

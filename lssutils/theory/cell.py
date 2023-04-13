@@ -44,6 +44,30 @@ def dNdz_model(sample='qso', z_low=0.1, kind=1):
         dNdz_g = dNdz_interp(z_g)
         
         return z_g, dNdz_g
+    
+    elif sample == 'lrg_ed1n':
+        
+        zmid, nz, vol = np.loadtxt('/users/PHS0336/medirz90/github/LSSutils/analysis/desi/notebooks/LRG_N_nz.txt', 
+                                      usecols=(0, 3, 5), unpack=True)        
+        dNdz = nz*vol
+        dNdz_interp = IUS(zmid, dNdz, ext=1)
+        dNdz_interp.set_smoothing_factor(2.0)
+        z_g = np.linspace(0.0, 5.0, 500)
+        dNdz_g = dNdz_interp(z_g)
+        
+        return z_g, dNdz_g  
+    
+    elif sample == 'lrg_ed1s':
+        
+        zmid, nz, vol = np.loadtxt('/users/PHS0336/medirz90/github/LSSutils/analysis/desi/notebooks/LRG_S_nz.txt', 
+                                      usecols=(0, 3, 5), unpack=True)        
+        dNdz = nz*vol
+        dNdz_interp = IUS(zmid, dNdz, ext=1)
+        dNdz_interp.set_smoothing_factor(2.0)
+        z_g = np.linspace(0.0, 5.0, 500)
+        dNdz_g = dNdz_interp(z_g)
+        
+        return z_g, dNdz_g      
         
     
     elif sample == 'mock':
@@ -92,7 +116,8 @@ def init_sample(kind='qso', plot=False):
         z, dNdz = dNdz_model(kind)
         b = bias_model_qso(z)
         
-    elif kind=='lrg':
+    elif 'lrg' in kind:
+        print(kind)
         z, dNdz = dNdz_model(kind)
         b = bias_model_lrg(z)
         
