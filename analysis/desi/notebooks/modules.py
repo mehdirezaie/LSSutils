@@ -32,8 +32,8 @@ def plot_nz():
 
     fg, ax = plt.subplots()
     
-    ax.step(nz[:, 0], nz[:, 2], where='post', lw=1)#, label='dN/dz')
-    ax.set(xlim=(-0.05, 1.45), xlabel='z', ylabel='dN/dz')
+    ax.step(nz[:, 0], nz[:, 2]/(nz[:, 2].sum()*np.diff(nz[:, 0])[0]), where='post', lw=1)#, label='dN/dz')
+    ax.set(xlim=(-0.05, 1.45), xlabel='z', ylabel='Normalized dN/dz')
     ax.text(0.25, 0.7, 'dN/dz', color='C0', transform=ax.transAxes)
 
     ax1 = ax.twinx()
