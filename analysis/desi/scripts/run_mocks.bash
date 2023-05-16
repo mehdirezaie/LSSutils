@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:10:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -20,11 +20,11 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false        #
-do_nn=false          # 10 h
-do_pullnn=false       # 10 m x 1
+do_nn=true           # 10 h
+do_pullnn=false      # 10 m x 1
 do_regrs=false       # 25 min
 do_nbar=false        # 10 m x 4
-do_cl=true          # 10 m x 4
+do_cl=false          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        # 3 h x 14
 do_mcmc_scale=false  #
@@ -35,8 +35,8 @@ do_mcmc_cont=false   #
 do_mcmc_joint=false  # 3hx14
 do_mcmc_joint3=false # 5x14
 
-#mockid=1 # for debugging
-printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
+mockid=103 # for debugging
+#printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=5000
 region=$1 # desic, bmzls, ndecalsc, sdecalsc
@@ -46,7 +46,7 @@ tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 model=dnn # dnnp or dnn
 method=${model}_${maps} # noweight, nn_all
 target="lrg"
-fnltag="zero" #zero, po100
+fnltag="csamezero" #zero, po100
 ver=v3 # 
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
 root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys
@@ -57,7 +57,6 @@ nepoch=70 # or 150
 nchain=20
 etamin=0.001
 lr=0.2
-
 
 prep=${HOME}/github/LSSutils/analysis/desi/scripts/prep_mocks.py
 regrs=${HOME}/github/LSSutils/analysis/desi/scripts/run_regressis.py

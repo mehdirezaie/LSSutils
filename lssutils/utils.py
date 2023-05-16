@@ -1287,7 +1287,7 @@ def hpixsum(nside, ra, dec, weights=None):
     return weight_hp
 
 
-def make_overdensity(ngal, nran, mask, selection_fn=None, is_sys=False, nnbar=False):
+def make_overdensity(ngal, nran, mask, selection_fn=None, is_sys=False, nnbar=False, fill=np.nan):
     """
     Constructs the density contrast field, \delta
 
@@ -1318,7 +1318,7 @@ def make_overdensity(ngal, nran, mask, selection_fn=None, is_sys=False, nnbar=Fa
     assert np.all(nran[mask]>1.0e-8), "'weight' must be > 0"
     
     delta = np.empty_like(ngal)
-    delta[:] = np.nan    
+    delta[:] = fill
     ngal_ = ngal.copy()
     
     if selection_fn is not None:
