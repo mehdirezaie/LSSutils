@@ -430,16 +430,15 @@ def plot_clxtest():
     chi2_dr9nknownp = ut.chi2_fn(err_dr9nknownp, icov)
 
     
-    labels = ['No Weight', 'Linear Eight Maps', 'Linear Two Maps',
-              'Linear Three Maps', 'Nonlinear Three Maps', 'Nonlinear Four Maps']    
+    labels = ['No Weight', 'Linear Two Maps', 'Linear Three Maps', 'Linear Eight Maps', 
+              'Nonlinear Three Maps', 'Nonlinear Four Maps']    
     
     fg, ax = plt.subplots(ncols=3, nrows=3, 
                              figsize=(12, 9), sharey=True, sharex=True)
     ax = ax.flatten()
     fg.subplots_adjust(wspace=0.02, hspace=0.02)
 
-    for j, err_j in enumerate([err_dr9, err_dr9all, 
-                               err_dr9known, err_dr9known1, 
+    for j, err_j in enumerate([err_dr9, err_dr9known, err_dr9known1, err_dr9all,
                                err_dr9nknown1, err_dr9nknownp]):
         for i, ax_i in enumerate(ax):
             ax[i].semilogy(el_b, err_j[i*9:(i+1)*9], label=labels[j])
@@ -499,10 +498,10 @@ def plot_clxtest():
     for i, (__, chi2_i) in enumerate(chi2s.items()):
         print(np.max(chi2_i), np.min(chi2_i))
         ax1.hist(chi2_i, histtype='step', bins=58, 
-                 ls=ls[i], label=names[i], range=(0, 550.), color='C%d'%i) 
+                 ls=ls[i], label=names[i], range=(0, 550.), color='grey') 
     lgn = ax1.legend(title='Clean Mocks', frameon=True)
     for i,txt in enumerate(lgn.get_texts()):
-        txt.set_color('C%d'%i)
+        txt.set_color('grey')
 
     ax2.axvline(chi2_dr9, lw=1)
     ax2.annotate('No Weight', (chi2_dr9+7, 20), rotation=90, fontsize=13)
@@ -510,11 +509,11 @@ def plot_clxtest():
     ax1.axvline(chi2_dr9nknown1, lw=1, color='C4', ls='--')
     ax1.annotate('Nonlinear Three Maps', (chi2_dr9nknown1-20, 8), rotation=90, fontsize=13, color='C4')
 
-    ax1.axvline(chi2_dr9known1, lw=1, color='C3', ls=':')
-    ax1.annotate('Linear Three Maps', (chi2_dr9known1+7, 20), rotation=90, fontsize=13, color='C3')
+    ax1.axvline(chi2_dr9known1, lw=1, color='C2', ls='-.')
+    ax1.annotate('Linear Three Maps', (chi2_dr9known1+7, 20), rotation=90, fontsize=13, color='C2')
 
-    ax1.axvline(chi2_dr9known, lw=1, color='C2', ls='-.')
-    ax1.annotate('Linear Two Maps', (chi2_dr9known+7, 20), rotation=90, fontsize=13, color='C2')
+    ax1.axvline(chi2_dr9known, lw=1, color='C1', ls='--')
+    ax1.annotate('Linear Two Maps', (chi2_dr9known+7, 20), rotation=90, fontsize=13, color='C1')
 
 
     for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp]:
@@ -552,11 +551,11 @@ def test_chi2lmax():
     plt.fill_between(ell_maxes, chi2_16, chi2_84, alpha=0.06, color='C0')
     
     plt.plot(ell_maxes, chi2_median, label='Mocks Median', lw=1, color='C0')
-    plt.scatter(ell_maxes, chi2_data[:, 0],  marker='^', alpha=0.5, color='C3')
+    plt.scatter(ell_maxes, chi2_data[:, 0],  marker='x', alpha=0.5, color='C2')
     plt.scatter(ell_maxes, chi2_data[:, 1], marker='s', alpha=1.0, color='C4')
     lgn = plt.legend(loc=4)
 
-    plt.text(28, 310, 'Linear Three Maps', color='C3', fontsize=13)
+    plt.text(28, 310, 'Linear Three Maps', color='C2', fontsize=13)
     plt.text(40, 175, 'Nonlinear Three Maps', color='C4', fontsize=13)
     plt.text(70, 100, r'Mocks 68\% (95\%)', color='C0', alpha=0.4, fontsize=13)
     plt.xlabel(r'$\ell_{\rm max}$')
@@ -592,15 +591,14 @@ def plot_nbartest():
     err_0m = np.std(err_0,  axis=0)
     err_100m = np.std(err_100, axis=0)
     
-    labels = ['No Weight', 'Linear Eight Maps', 'Linear Two Maps',
-              'Linear Three Maps', 'Nonlinear Three Maps', 'Nonlinear Four Maps']
+    labels = ['No Weight', 'Linear Two Maps', 'Linear Three Maps', 'Linear Eight Maps',
+              'Nonlinear Three Maps', 'Nonlinear Four Maps']
     
     fg, ax = plt.subplots(ncols=3, nrows=3, figsize=(12, 9), sharey='row')
     ax = ax.flatten()
     fg.subplots_adjust(wspace=0.02, hspace=0.35)
 
-    for j, err_j in enumerate([err_dr9, err_dr9all, 
-                               err_dr9known, err_dr9known1, 
+    for j, err_j in enumerate([err_dr9, err_dr9known, err_dr9known1, err_dr9all,
                                err_dr9nknown1, err_dr9nknownp]):
         for i, ax_i in enumerate(ax):
             ax[i].plot(xbins[i], err_j[i*8:(i+1)*8], label=labels[j])
@@ -620,6 +618,7 @@ def plot_nbartest():
 
     for i, lgn_tx in enumerate(lgnd.get_texts()):
         lgn_tx.set_color('C%d'%i)
+    fg.align_ylabels()
     fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/nbar_mocks.pdf', bbox_inches='tight')    
     plt.show()
     
@@ -660,10 +659,10 @@ def plot_nbartest():
     for i, (__, chi2_i) in enumerate(chi2s.items()):
         print(np.max(chi2_i), np.min(chi2_i))
         ax1.hist(chi2_i, histtype='step', bins=65, 
-                 ls=ls[i], label=names[i], range=(30., 160.), color='C%d'%i) 
+                 ls=ls[i], label=names[i], range=(30., 160.), color='grey') 
     lgn = ax1.legend(title='Clean Mocks', frameon=True)
     for i,txt in enumerate(lgn.get_texts()):
-        txt.set_color('C%d'%i)
+        txt.set_color('grey')
 
     ax2.axvline(chi2_dr9, lw=1)
     ax2.annotate('No Weight', (chi2_dr9+5, 20), rotation=90, fontsize=13)
@@ -671,11 +670,11 @@ def plot_nbartest():
     ax1.axvline(chi2_dr9nknown1, lw=1, color='C4', ls='--')
     ax1.annotate('Nonlinear\n Three Maps', (chi2_dr9nknown1-9, 78), rotation=90, fontsize=13, color='C4')
 
-    ax1.axvline(chi2_dr9known1, lw=1, color='C3', ls=':')
-    ax1.annotate('Linear Three Maps', (chi2_dr9known1+4, 20), rotation=90, fontsize=13, color='C3')
+    ax1.axvline(chi2_dr9known1, lw=1, color='C2', ls='-.')
+    ax1.annotate('Linear Three Maps', (chi2_dr9known1+4, 20), rotation=90, fontsize=13, color='C2')
 
-    ax1.axvline(chi2_dr9known, lw=1, color='C2', ls='-.')
-    ax1.annotate('Linear Two Maps', (chi2_dr9known+4, 20), rotation=90, fontsize=13, color='C2')
+    ax1.axvline(chi2_dr9known, lw=1, color='C1', ls='--')
+    ax1.annotate('Linear Two Maps', (chi2_dr9known+4, 20), rotation=90, fontsize=13, color='C1')
 
 
     for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp]:
@@ -1066,13 +1065,13 @@ def plot_mcmc_data():
     colors = [plt.cm.Dark2(i) for i in [0, 1, 2, 3, 4, 2, 3, 4]]        
     g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
-    g.plot_2d([ze, dsp_s, knn1_s, dskp_s], 
+    g.plot_2d([ze, knn1_s, dskp_s, dsp_s], 
               'fnl', 'b', 
               filled=True,lims=[-50, 170, 1.28, 1.57], colors='Dark2') # 
-    g.add_legend(['No weight',
-                  'Nonlinear Nine Maps',                  
+    g.add_legend(['No weight',                  
                   'Nonlinear Three Maps',
-                  'Nonlinear Four Maps'], 
+                  'Nonlinear Four Maps',
+                  'Nonlinear Nine Maps'], 
                   colored_text=True, legend_loc='lower left')    
     g.fig.align_labels()
     ax = g.get_axes()
@@ -1086,12 +1085,12 @@ def plot_mcmc_data():
     ls = ['-', '-', '-', '-', '-', '--', '--', '--']
     #g.plot_1d([ze, kn1, knn1, dskp, dsp, knn1_s, dskp_s, dsp_s], 'fnl',
     #          filled=True,lims=[-50, 170], colors=colors, ls=ls) # 
-    g.plot_1d([ze, dsp_s, knn1_s, dskp_s], 'fnl',
+    g.plot_1d([ze, knn1_s, dskp_s, dsp_s], 'fnl',
                  filled=True,lims=[-50, 170], colors=colors, ls=ls) #     
     g.add_legend(['No weight',
-                  'Nonlinear Nine Maps',                  
                   'Nonlinear Three Maps',
-                  'Nonlinear Four Maps'],
+                  'Nonlinear Four Maps',
+                  'Nonlinear Nine Maps'],
                   colored_text=True, legend_loc='lower left')    
     g.fig.align_labels()
     ax = g.get_axes()
@@ -1104,12 +1103,12 @@ def plot_mcmc_data():
     g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
     ls = ['-', '-', '-', '-', '-', '--', '--', '--']
-    g.plot_1d([ze, dsp, knn1, dskp], 'fnl',
+    g.plot_1d([ze, knn1, dskp, dsp], 'fnl',
                  filled=True,lims=[-50, 170], colors=colors, ls=ls) #     
     g.add_legend(['No weight',
-                  'Nonlinear Nine Maps',                  
                   'Nonlinear Three Maps',
-                  'Nonlinear Four Maps'],
+                  'Nonlinear Four Maps',
+                  'Nonlinear Nine Maps'],
                   colored_text=True, legend_loc='lower left')    
     g.fig.align_labels()
     ax = g.get_axes()
@@ -1253,10 +1252,10 @@ def plot_dr9cl():
     mk = ['.', 'o', 'x', '^', 's', '1']
     el_g = np.arange(300)
 
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=(6, 5))
 
-    for i, (n, nm) in enumerate(zip(['noweight', 'linp_all', 'linp_known', 'linp_known1', 'dnnp_known1', 'dnnp_knownp'],
-                     ['No Weight', 'Linear Eight Maps', 'Linear Two Maps', 'Linear Three Maps','Nonlinear Three Maps', 'Nonlinear Four Maps'])):
+    for i, (n, nm) in enumerate(zip(['noweight', 'linp_known', 'linp_known1', 'linp_all', 'dnnp_known1', 'dnnp_knownp'],
+                     ['No Weight', 'Linear Two Maps', 'Linear Three Maps', 'Linear Eight Maps', 'Nonlinear Three Maps', 'Nonlinear Four Maps'])):
         cl_d = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_{n}.npy', allow_pickle=True).item()
         cl_b = np.log10(ut.histogram_cell(cl_d['cl_gg']['l'], cl_d['cl_gg']['cl'], bins=ut.ell_edges)[1])
 
@@ -1265,8 +1264,8 @@ def plot_dr9cl():
         print(nm, fnl/gratio, b)
 
         cl_bf = np.log10(model(el_g, fnl=fnl, b=b, noise=noise))
-        ln = plt.plot(el_g[2:], cl_bf[2:], lw=1, alpha=0.6)
-        plt.scatter(cl_['el_bin'], cl_b, label=nm, marker=mk[i], color=ln[0].get_color(), alpha=0.8)
+        ln = plt.plot(el_g[2:], cl_bf[2:], lw=1)
+        plt.scatter(cl_['el_bin'], cl_b, label=nm, marker=mk[i], color=ln[0].get_color())
         
         
     ln, = plt.plot(cl_['el_bin'], cl_['cl'], label='Mean of Mocks', ls='-', lw=3, alpha=0.8, color='grey')
@@ -1680,17 +1679,17 @@ def fnltime():
     ax.scatter(year[-1], fNL[-1], s=200, marker='*', color='C0')
     
     #adjust label
-    labelshift=[-40, 55, 50, -60]
-    xshift=[-0.5, 1, 1,1]
+    labelshift=[-40, 55, 60, -60]
+    xshift=[-0.5, 1, 1, 1]
     for i, txt in enumerate(measurement):
-        ax.annotate(txt, (year[i]-xshift[i], fNL[i]-fNLerr_lower[i]-labelshift[i]), color='C0',fontsize=14)   
+        ax.annotate(txt, (year[i]-xshift[i], fNL[i]-fNLerr_lower[i]-labelshift[i]), color='C0',fontsize=15)   
         
     #CMB measurement    
     ax.errorbar(year_CMB,fNL_CMB,yerr=[fNLerr_lower_CMB,fNLerr_upper_CMB],fmt='x', color='C1', capsize=3, alpha=0.8)
     labelshift=[10, 7, 10, -40]
-    xshift = [-2, -1.5, -0.2, -1]
+    xshift = [-2, -1.5, -0.2, -2]
     for i, txt in enumerate(measurement_CMB):
-        ax.annotate(txt, (year_CMB[i]+xshift[i], fNL_CMB[i]+fNLerr_upper_CMB[i]+labelshift[i]),color='C1',fontsize=12)
+        ax.annotate(txt, (year_CMB[i]+xshift[i], fNL_CMB[i]+fNLerr_upper_CMB[i]+labelshift[i]),color='C1',fontsize=15)
 
     #lgn = ax.legend(['LSS','CMB'],frameon=False,fontsize=14)
     #txts = lgn.get_texts()
