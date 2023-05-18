@@ -18,11 +18,11 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/lssxcmb/scripts/
 
 
-do_linfit=false    # 10 h x 14
+do_linfit=true    # 10 h x 14
 do_nnfit=false      # 10 m x1 lr finder, 120x1 h fit 
 do_linsamp=false   # 1 h x 1
 do_nnsamp=false    # 3h x 10tpn
-do_nnpull=true    # 1 h
+do_nnpull=false    # 1 h
 do_lincell=false   # 5hx14tpn
 do_nncell=false    # 5hx14tpn
 do_cl=false        #
@@ -31,15 +31,15 @@ do_clx=false       # 10min x 6tpn
 
 target=elg
 region=$1   # options are bmzls, ndecals, sdecals
+maps=$2     # options are sfd, lens, mud15, mud6
 nside=1024
-version=v6
+version=v7
 #printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 #mockid=$2
 echo $mockid
 
 # nn parameters
-#axes=({0..12})
-axes=(0 1 2 3 4 5 6 7 10 11 12)    # ELG's do not need 8 and 9, which are W1 and W1 bands
+
 nchain=5
 nepoch=200
 nns=(4 20)
@@ -48,7 +48,6 @@ lr=0.008
 model=dnnp
 loss=pnll
 etamin=0.00001
-
 
 linfit=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/run_wlinear_mcmc_p.py
 nnfit=${HOME}/github/sysnetdev/scripts/app.py
@@ -60,10 +59,33 @@ cl=${HOME}/github/LSSutils/analysis/lssxcmb/scripts/run_cell_sv3.py
 root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
 
 
+function get_axes(){
+    if [ $1 = "sfd" ]
+    then
+        axes=(0 1 2 3 4 5 6 7 10 11 12) # ELG's do not need 8 and 9, which are W1 and W1 bands
+    elif [ $1 = "lens" ]
+    then
+        axes=(1 2 3 4 5 6 7 10 11 12 13) # ELG's do not need 8 and 9, which are W1 and W1 bands
+    elif [ $1 = "mud15" ]
+    then
+        axes=(1 2 3 4 5 6 7 10 11 12 14)
+    elif [ $1 = "mud6" ]
+    then
+        axes=(1 2 3 4 5 6 7 10 11 12 15)        
+    fi
+    echo ${axes[@]}
+}
+
+
+
+
 if [ "${do_linfit}" = true ]
 then
+    axes=$(get_axes ${maps})
+
     input_path=${root_dir}/tables/${version}/n${target}_features_${region}_${nside}.fits
-    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_linearp/mcmc_${region}_${nside}.npz
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_linearp/mcmc_${maps}_${region}_${nside}.npz
+    
     du -h $input_path
     echo $output_path
     python $linfit -d $input_path -o $output_path -ax ${axes[@]}
@@ -72,8 +94,10 @@ fi
 
 if [ "${do_nnfit}" = true ]
 then
+    axes=$(get_axes ${maps})
+    
     input_path=${root_dir}/tables/${version}/n${target}_features_${region}_${nside}.fits
-    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_dnnp/${region}_${nside}/
+    output_path=/fs/ess/PHS0336/data/tanveer/dr9/${version}/${target}_dnnp/${maps}_${region}_${nside}/
     du -h $input_path
     echo $output_path
     # find lr

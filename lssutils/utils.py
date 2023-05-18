@@ -67,7 +67,10 @@ maps_dr9elg = ['EBV',
              'psfdepth_w2mag_ebv',
              'PSFSIZE_R',
              'PSFSIZE_G',
-             'PSFSIZE_Z']
+             'PSFSIZE_Z',
+             'EBVLenz',
+             'EBVMud15',
+             'EBVMud6']
 
 ell_edges = np.concatenate([np.arange(2, 22, 2), np.arange(30, 301, 10)])
 # np.array([2, 6, 10, 14, 18, 22, 26] \
