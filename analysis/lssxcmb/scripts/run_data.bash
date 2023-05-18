@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=nnsam
+#SBATCH --job-name=nn
 #SBATCH --account=PHS0336 
-#SBATCH --time=01:00:00
+#SBATCH --time=120:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
@@ -18,8 +18,8 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/lssxcmb/scripts/
 
 
-do_linfit=true    # 10 h x 14
-do_nnfit=false      # 10 m x1 lr finder, 120x1 h fit 
+do_linfit=false    # 10 h x 14
+do_nnfit=true      # 10 m x1 lr finder, 120x1 h fit 
 do_linsamp=false   # 1 h x 1
 do_nnsamp=false    # 3h x 10tpn
 do_nnpull=false    # 1 h
