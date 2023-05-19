@@ -44,13 +44,29 @@ class Chains:
         return self.chains[skip_rows:, :, :].reshape(-1, self.ndim)
 
 
+def get_axes(maps):
+    if maps == "sfd":
+        axes=[0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12] # ELG's do not need 8 and 9, which are W1 and W1 bands
+    elif maps == "lens":
+        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13] # ELG's do not need 8 and 9, which are W1 and W1 bands
+    elif maps == "mud15":
+        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 14]
+    elif maps == "mud6":
+        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 15]
+    else:
+        raise ValueError(f'{maps} not known')
+    return axes
+    
+   
+
 #--- read mcmc chains
 np.random.seed(85)
 nside = 1024     #
 nwindows = 1000  # 
 version = sys.argv[1]
+maps = sys.argv[2]
 regions = ['bmzls', 'ndecals', 'sdecals']
-axes = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
+axes = get_axes(maps) 
 
 hpix = {}
 features = {}
@@ -60,7 +76,7 @@ stats = {}
 for region in regions:
 
     df = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/{version}/nelg_features_{region}_{nside}.fits')    
-    ch1 = Chains(f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_linearp/mcmc_{region}_{nside}.npz')
+    ch1 = Chains(f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_linearp/mcmc_{maps}_{region}_{nside}.npz')
 
     params[region] = ch1.get_sample(skip_rows=1000)
     stats[region] = ch1.stats
@@ -87,7 +103,7 @@ for j, i in enumerate(ix):
     print('.', end='')
     if (j+1)%100==0:
         print()
-    output_path = f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_linearp/windows/linwindow_{j}.hp{nside}.fits'
+    output_path = f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_linearp/windows_{maps}/linwindow_{j}.hp{nside}.fits'
 
     output_dir = os.path.dirname(output_path)
     if not os.path.exists(output_dir):

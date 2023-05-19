@@ -20,9 +20,23 @@ def chck2pid(chck):
     return '_'.join([ch_[-2], ch_[-1].split('.')[0]])
 
 
-def do_forward(checkpoints, rank, oudir):
+def get_axes(maps):
+    if maps == "sfd":
+        axes=[0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12] # ELG's do not need 8 and 9, which are W1 and W1 bands
+    elif maps == "lens":
+        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13] # ELG's do not need 8 and 9, which are W1 and W1 bands
+    elif maps == "mud15":
+        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 14]
+    elif maps == "mud6":
+        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 15]
+    else:
+        raise ValueError(f'{maps} not known')
+    return axes
+ 
 
-    axes = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
+def do_forward(checkpoints, rank, maps, oudir):
+
+    axes = get_axes(maps) #[0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
     nfolds = 5 
     num_features = len(axes) # nside=1024, 27 for nside=256
     nnstruct = (4, 20)
@@ -59,13 +73,14 @@ rank = comm.Get_rank()
 if rank==0:
     region = sys.argv[1]
     version = sys.argv[2]
-    print('region', region)
+    maps = sys.argv[3]
+    print('region', region, maps)
     
-    chcks = glob(f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_dnnp/{region}_1024/model_*/snapshot_*.pth.tar')
+    chcks = glob(f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_dnnp/{maps}_{region}_1024/model_*/snapshot_*.pth.tar')
     templates = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/{version}/nelg_features_{region}_1024.fits')    
 
    # nside=1024
-    oudir = f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_dnnp/{region}_1024/windows'
+    oudir = f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_dnnp/{maps}_{region}_1024/windows'
     if not os.path.exists(oudir):
         os.makedirs(oudir)
         print('rank 0 creates ', oudir)
@@ -73,11 +88,12 @@ else:
     chcks = None
     templates = None
     oudir = None
-
+    maps = None
 
 templates = comm.bcast(templates, root=0)
 chcks = comm.bcast(chcks, root=0)
 oudir = comm.bcast(oudir, root=0)
+maps = comm.bcast(maps, root=0)
 
 comm.Barrier()
 
@@ -85,4 +101,4 @@ my_i, my_f = split_NtoM(len(chcks), size, rank)
 my_chcks = chcks[my_i:my_f+1]
 
 if rank==0:print(rank, len(my_chcks), templates.size, my_chcks[:2])
-do_forward(my_chcks, rank, oudir)
+do_forward(my_chcks, rank, maps, oudir)

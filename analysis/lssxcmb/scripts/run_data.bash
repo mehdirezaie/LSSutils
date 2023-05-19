@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=nn
 #SBATCH --account=PHS0336 
-#SBATCH --time=120:00:00
+#SBATCH --time=3:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=10
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -19,9 +19,9 @@ cd ${HOME}/github/LSSutils/analysis/lssxcmb/scripts/
 
 
 do_linfit=false    # 10 h x 14
-do_nnfit=true      # 10 m x1 lr finder, 120x1 h fit 
+do_nnfit=false      # 10 m x1 lr finder, 120x1 h fit 
 do_linsamp=false   # 1 h x 1
-do_nnsamp=false    # 3h x 10tpn
+do_nnsamp=true    # 3h x 10tpn
 do_nnpull=false    # 1 h
 do_lincell=false   # 5hx14tpn
 do_nncell=false    # 5hx14tpn
@@ -111,12 +111,12 @@ fi
 if [ "${do_linsamp}" = true ]
 then
     # will do all regions at once
-    srun -n 1 python $linsamp $version
+    srun -n 1 python $linsamp $version $maps
 fi
 
 if [ "${do_nnsamp}" = true ]
 then
-    srun -n 10 python $nnsamp $region $version
+    srun -n 10 python $nnsamp $region $version $maps
 fi
 
 
