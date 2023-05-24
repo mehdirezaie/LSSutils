@@ -7,10 +7,11 @@ import fitsio as ft
 
 
 version = sys.argv[1]
+maps = sys.argv[2]
 
 windows = dict()
 for region in ['bmzls', 'ndecals', 'sdecals']:
-    windows[region] = glob(f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_dnnp/{region}_1024/windows/window_model_*fits')
+    windows[region] = glob(f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_dnnp/{maps}_{region}_1024/windows/window_model_*fits')
     print(region)
 
 
@@ -27,7 +28,7 @@ for i in range(nwindows):
         count_i[d_['hpix']] += 1.0
 
     
-    output_path = f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_dnnp/windows/nnwindow_{i}.hp{nside}.fits'
+    output_path = f'/fs/ess/PHS0336/data/tanveer/dr9/{version}/elg_dnnp/windows_{maps}/nnwindow_{i}.hp{nside}.fits'
     output_dir = os.path.dirname(output_path)
     if not os.path.exists(output_dir):
          os.makedirs(output_dir)

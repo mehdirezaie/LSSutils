@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=nn
 #SBATCH --account=PHS0336 
-#SBATCH --time=3:00:00
+#SBATCH --time=1:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=10
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -21,8 +21,8 @@ cd ${HOME}/github/LSSutils/analysis/lssxcmb/scripts/
 do_linfit=false    # 10 h x 14
 do_nnfit=false      # 10 m x1 lr finder, 120x1 h fit 
 do_linsamp=false   # 1 h x 1
-do_nnsamp=true    # 3h x 10tpn
-do_nnpull=false    # 1 h
+do_nnsamp=false    # 3h x 10tpn
+do_nnpull=true    # 1 h
 do_lincell=false   # 5hx14tpn
 do_nncell=false    # 5hx14tpn
 do_cl=false        #
@@ -122,7 +122,7 @@ fi
 
 if [ "${do_nnpull}" = true ]
 then
-    srun -n 1 python $nnpull $version
+    srun -n 1 python $nnpull $version $maps
 fi
 
 
