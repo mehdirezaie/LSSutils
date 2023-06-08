@@ -446,9 +446,9 @@ def plot_clxtest():
 
     for i, ax_i in enumerate(ax):
         ax_i.fill_between(el_b, err_100m[i*9:(i+1)*9], 
-                           color='k', alpha=0.04)    
+                           color='k', alpha=0.05)    
         ax_i.fill_between(el_b, err_0m[i*9:(i+1)*9], 
-                           color='k', alpha=0.08)   
+                           color='k', alpha=0.10)   
         ax_i.text(0.5, 0.85, f'LRG x {names[i]}', transform=ax_i.transAxes)
         if i > 5: ax_i.set(xlabel=r'$\ell$')
 
@@ -606,9 +606,9 @@ def plot_nbartest():
 
     for i, ax_i in enumerate(ax):
         ax_i.fill_between(xbins[i], -err_100m[i*8:(i+1)*8], err_100m[i*8:(i+1)*8], 
-                           color='k', alpha=0.04)    
+                           color='k', alpha=0.05)    
         ax_i.fill_between(xbins[i], -err_0m[i*8:(i+1)*8], err_0m[i*8:(i+1)*8], 
-                           color='k', alpha=0.08)   
+                           color='k', alpha=0.10)   
         ax_i.set_xlabel(names[i])
         ax[3].set_ylabel('Mean Density Contrast')
 
@@ -1215,8 +1215,8 @@ def plot_model(fnltag='po100'):
     f = np.sqrt(1000.)
     ax1.plot(el, cl, 'C0--', label='Mean of Mocks')
     #ax2.axhline(0.0, color='C0', ls='--')
-    ax2.fill_between(el, -cl_err, cl_err, alpha=0.2, color='grey')
-    ax2.fill_between(el, -f*cl_err, f*cl_err, alpha=0.05, color='grey')
+    ax2.fill_between(el, -cl_err, cl_err, alpha=0.10, color='k')
+    ax2.fill_between(el, -f*cl_err, f*cl_err, alpha=0.05, color='k')
 
 
     ax1.legend(ncol=1)
@@ -1662,7 +1662,7 @@ def fnltime():
     fNLerr_upper = [101, 90,  40.,  29]
     fNL_upper = np.array(fNL)+np.array(fNLerr_upper)
     fNL_lower = np.array(fNL)-np.array(fNLerr_lower)
-    measurement = ['SDSS \n photo LRG', 'BOSS \n LRG DR9','eBOSS \n QSO DR16','DESI \n photo LRG']
+    measurement = ['SDSS \n photo LRG', 'BOSS \n LRG DR9','eBOSS \n QSO DR16','DESI \n photo LRG\n (This work)']
     year = [2008, 2013, 2021, 2023]
     
     fNL_CMB = [38,32,2.7,-0.9]
@@ -1679,17 +1679,17 @@ def fnltime():
     ax.scatter(year[-1], fNL[-1], s=200, marker='*', color='C0')
     
     #adjust label
-    labelshift=[-40, 55, 60, -60]
+    labelshift=[-40, 55, 60, -80]
     xshift=[-0.5, 1, 1, 1]
     for i, txt in enumerate(measurement):
-        ax.annotate(txt, (year[i]-xshift[i], fNL[i]-fNLerr_lower[i]-labelshift[i]), color='C0',fontsize=15)   
+        ax.annotate(txt, (year[i]-xshift[i], fNL[i]-fNLerr_lower[i]-labelshift[i]), color='C0',fontsize=17)   
         
     #CMB measurement    
     ax.errorbar(year_CMB,fNL_CMB,yerr=[fNLerr_lower_CMB,fNLerr_upper_CMB],fmt='x', color='C1', capsize=3, alpha=0.8)
     labelshift=[10, 7, 10, -40]
-    xshift = [-2, -1.5, -0.2, -2]
+    xshift = [-2, -1.9, -0.2, -2]
     for i, txt in enumerate(measurement_CMB):
-        ax.annotate(txt, (year_CMB[i]+xshift[i], fNL_CMB[i]+fNLerr_upper_CMB[i]+labelshift[i]),color='C1',fontsize=15)
+        ax.annotate(txt, (year_CMB[i]+xshift[i], fNL_CMB[i]+fNLerr_upper_CMB[i]+labelshift[i]),color='C1',fontsize=17)
 
     #lgn = ax.legend(['LSS','CMB'],frameon=False,fontsize=14)
     #txts = lgn.get_texts()
