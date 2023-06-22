@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=mcmc
+#SBATCH --job-name=cl
 #SBATCH --account=PHS0336 
-#SBATCH --time=10:00:00
+#SBATCH --time=00:10:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -20,11 +20,11 @@ source activate sysnet
 cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false        #
-do_nn=true           # 10 h
+do_nn=false           # 10 h
 do_pullnn=false      # 10 m x 1
 do_regrs=false       # 25 min
 do_nbar=false        # 10 m x 4
-do_cl=false          # 10 m x 4
+do_cl=true          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        # 3 h x 14
 do_mcmc_scale=false  #
@@ -35,23 +35,23 @@ do_mcmc_cont=false   #
 do_mcmc_joint=false  # 3hx14
 do_mcmc_joint3=false # 5x14
 
-mockid=103 # for debugging
-#printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
+#mockid=1 # for debugging
+printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=5000
 region=$1 # desic, bmzls, ndecalsc, sdecalsc
 iscont=0  # redundant, will use zero or czero for null or cont mocks
 maps="known1"       #e.g., "known5" or "all"
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
-model=dnn # dnnp or dnn
+model=dnnp # dnnp or dnn
 method=${model}_${maps} # noweight, nn_all
 target="lrg"
-fnltag="csamezero" #zero, po100
+fnltag="zero" #zero, po100
 ver=v3 # 
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
 root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys
 nside=256
-loss=mse # pnll or mse
+loss=pnll # pnll or mse
 nns=(4 20)
 nepoch=70 # or 150
 nchain=20
