@@ -30,23 +30,27 @@ gratio = 1.3
 def plot_nz():
     nz = np.loadtxt('/fs/ess/PHS0336/data/rongpu/sv3_lrg_dndz_denali.txt')
 
-    fg, ax = plt.subplots()
+    x1 =  nz[:, 0]
+    y1 = nz[:, 2]/(nz[:, 2].sum()*np.diff(nz[:, 0])[0])
     
-    ax.step(nz[:, 0], nz[:, 2]/(nz[:, 2].sum()*np.diff(nz[:, 0])[0]), where='post', lw=1)#, label='dN/dz')
+    fg, ax = plt.subplots()
+    ax.step(x1, y1, where='post', lw=1)#, label='dN/dz')
     ax.set(xlim=(-0.05, 1.45), xlabel='z', ylabel='Normalized dN/dz')
     ax.text(0.25, 0.7, 'dN/dz', color='C0', transform=ax.transAxes)
 
     ax1 = ax.twinx()
-    z_g = np.linspace(0.1, 1.38, num=200)
-
-    ax1.plot(z_g, 1.4*bias_model_lrg(z_g), 'C1--', lw=3, alpha=0.5, zorder=10)#, label='b(z)')
+    x2 = np.linspace(0.1, 1.38, num=200)
+    y2 = 1.4*bias_model_lrg(x2)
+    
+    ax1.plot(x2, y2, 'C1--', lw=3, alpha=0.5, zorder=10)#, label='b(z)')
     ax1.text(0.72, 0.47, 'b(z)$\propto$ D$^{-1}$(z)', color='C1', transform=ax1.transAxes)
     ax1.set_ylabel('b(z)')
     ax1.set_ylim((1.3, 3.1))
 
     #ax1.legend(loc='upper right')
     #ax.legend(loc='upper left')
-
+    np.savetxt(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fig1_nz_lrg1.txt', np.column_stack([x1, y1]))
+    np.savetxt(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fig1_nz_lrg2.txt', np.column_stack([x2, y2]))               
     fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/nz_lrg.pdf', bbox_inches='tight') 
 
 
@@ -289,6 +293,9 @@ def combine_regions2():
 
 
 def plot_xmaps():
+    ydata = []
+    
+    
     d = ft.read('/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desi_256.fits')
 
     desi = ft.read('/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desi_256.fits')
@@ -320,16 +327,19 @@ def plot_xmaps():
         ax[i].text(0.55, 0.2, names[i], 
                    transform=ax[i].transAxes, alpha=0.8, fontsize=20)
         
+        ydata.append(mi)
+        
     dv.mollview(ng, 400, 1200, r'LRG Density [deg$^{-2}$]', 
             cmap=dv.mycolor(), colorbar=True, galaxy=False, 
                 figax=[fig, ax_map], cax_axes=[1.6, 1.95, 0.6, 0.02]) # 'YlOrRd_r',       
+    ydata.append(ng)
     
     for ax_ in ax:    
         ax_.xaxis.set_ticklabels([])
         ax_.yaxis.set_ticklabels([])
         ax_.xaxis.set_ticks([])
         ax_.yaxis.set_ticks([])          
-    
+    np.savetxt(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fig2_dr9data.txt', np.column_stack(ydata))
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/dr9data.pdf', bbox_inches='tight') 
     
     
@@ -353,6 +363,8 @@ def plot_pcc():
     names = [r'EBV', r'nStar']+[fr'depth$_{b}$' for b in ['g', 'r', 'z', '{w1}']]\
             + [fr'psfsize$_{b}$' for b in ['g', 'r', 'z']]
 
+    ydata = []
+    
     for i, (region, name) in enumerate(zip(['bmzls', 'ndecalsc', 'sdecalsc'],
                                           ['BASS+MzLS', 'DECaLS North', 'DECaLS South'])):
         p_, er_ = pccs[region]
@@ -366,12 +378,17 @@ def plot_pcc():
         plt.bar(x, pcc_, width=0.2, alpha=0.6, color=colors[i], label=name)
         plt.plot(x, pcc_min, ls='-', lw=1, color=colors[i], alpha=0.5)
         plt.plot(x, pcc_max, ls='-', lw=1, color=colors[i], alpha=0.5)
+        ydata.append(pcc_)
+        ydata.append(pcc_min)
+        ydata.append(pcc_max)
 
     plt.xticks(x, names, rotation=90)
     plt.ylabel('Pearson (LRG, Imaging)')
     lgn = plt.legend()
     for i, txt in enumerate(lgn.get_texts()):
         txt.set_color('C%d'%(i+1))
+        
+    np.savetxt(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fig3_pcc_1.txt', np.column_stack(ydata))
     plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/pcc.pdf', bbox_inches='tight')
     
     
@@ -390,6 +407,7 @@ def plot_corrmax():
     sns.heatmap(corr_cf, **kw)
     ax.yaxis.set_tick_params(right=False)
     ax.xaxis.set_tick_params(top=False)
+    np.savetxt(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fig3_pcc_2.txt', corr_cf)
     plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/pccx.pdf', bbox_inches='tight')
     plt.show()
     
@@ -438,8 +456,12 @@ def plot_clxtest():
     ax = ax.flatten()
     fg.subplots_adjust(wspace=0.02, hspace=0.02)
 
+    ydata = []
+
+    
     for j, err_j in enumerate([err_dr9, err_dr9known, err_dr9known1, err_dr9all,
                                err_dr9nknown1, err_dr9nknownp]):
+        ydata.append(err_j)
         for i, ax_i in enumerate(ax):
             ax[i].semilogy(el_b, err_j[i*9:(i+1)*9], label=labels[j])
 
@@ -461,7 +483,8 @@ def plot_clxtest():
     
     ax[0].set_ylim(9.5e-9, 1.2e-4)
     #ax[3].set_ylabel(r'$C_{s, g}^{2}/C_{s,s}$')        
-    ax[3].set_ylabel(r'$\tilde{C}_{x, \ell}$')        
+    ax[3].set_ylabel(r'$\tilde{C}_{x, \ell}$') 
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig6_clx_mocks.txt', np.column_stack(ydata))
     fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/clx_mocks.pdf', bbox_inches='tight')    
     plt.show()
     
@@ -515,10 +538,13 @@ def plot_clxtest():
     ax1.axvline(chi2_dr9known, lw=1, color='C1', ls='--')
     ax1.annotate('Linear Two Maps', (chi2_dr9known+7, 20), rotation=90, fontsize=13, color='C1')
 
-
+    
     for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp]:
         is_gt = np.array(chi2s['fNL=0']) > chi_i
         print('p-value:', is_gt.mean())
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig8_chi2test_1.txt', 
+              [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp])
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig8_chi2test_2.txt', [chi2s['fNL=0'], chi2s['fNL=76.92']])
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test.pdf', bbox_inches='tight')         
 
 
@@ -560,6 +586,9 @@ def test_chi2lmax():
     plt.text(70, 100, r'Mocks 68\% (95\%)', color='C0', alpha=0.4, fontsize=13)
     plt.xlabel(r'$\ell_{\rm max}$')
     plt.ylabel(r'Cross Spectrum $\chi^{2}$')
+    
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/figA1_chi2lmax.txt',
+              [ell_maxes, chi2_min, chi2_16, chi2_median, chi2_84, chi2_max, chi2_data[:, 0], chi2_data[:, 1]])
     plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2lmax.pdf', bbox_inches='tight')    
         
     
@@ -619,6 +648,8 @@ def plot_nbartest():
     for i, lgn_tx in enumerate(lgnd.get_texts()):
         lgn_tx.set_color('C%d'%i)
     fg.align_ylabels()
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig7_nbar_mocks_1.txt', 
+              [err_dr9, err_dr9known, err_dr9known1, err_dr9all, err_dr9nknown1, err_dr9nknownp])
     fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/nbar_mocks.pdf', bbox_inches='tight')    
     plt.show()
     
@@ -681,6 +712,9 @@ def plot_nbartest():
         is_gt = np.array(chi2s['fNL=0']) > chi_i
         print('p-value:', is_gt.mean())    
 
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig8_chi2test2_1.txt',
+              [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp])
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig8_chi2test2_2.txt', [chi2s['fNL=0'], chi2s['fNL=76.92']])    
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test2.pdf', bbox_inches='tight')    
  
             
@@ -732,6 +766,7 @@ def plot_clhist():
         ax[2+i].set(xlabel=r'Log of first bin $C_{\ell}$')
         ax[2+i].text(0.5, 0.2, fr'$f_{{\rm NL}}={fnl:.2f}$', transform=ax[2+i].transAxes, color='C1')
 
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig5_hist_cl.txt', np.column_stack([cl_0[:, 0], cl_100[:, 0]]))
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/hist_cl.pdf', bbox_inches='tight')
     
     
@@ -1076,7 +1111,10 @@ def plot_mcmc_data():
     g.fig.align_labels()
     ax = g.get_axes()
     ax.text(0.15, 0.92, 'DR9 DESI Footprint (different methods)', 
-            transform=ax.transAxes, fontsize=13)      
+            transform=ax.transAxes, fontsize=13)          
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig11_mcmc_dr9methods.txt',
+              [ze.samples[:, 0], knn1_s.samples[:, 0], dskp_s.samples[:, 0], dsp_s.samples[:, 0]])
+
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods.pdf', bbox_inches='tight')    
     plt.show()
     
@@ -1096,7 +1134,7 @@ def plot_mcmc_data():
     ax = g.get_axes()
     ax.tick_params(top=False, right=False)
     ax.text(0.15, 0.92, 'DR9 DESI Footprint (different methods)', 
-            transform=ax.transAxes, fontsize=13)      
+            transform=ax.transAxes, fontsize=13)    
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods1d.pdf', bbox_inches='tight')    
     plt.show()    
     
@@ -1116,7 +1154,9 @@ def plot_mcmc_data():
     ax.tick_params(top=False, right=False)
     ax.text(0.15, 0.92, 'DR9 DESI Footprint (different methods)', transform=ax.transAxes, fontsize=13)   
     #ax.text(0.15, 0.85, 'Not accounted for mitigation bias', 
-    #        transform=ax.transAxes, fontsize=13)     
+    #        transform=ax.transAxes, fontsize=13)
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig12_mcmc_dr9methodsnoshift.txt',
+              [ze.samples[:, 0], knn1.samples[:, 0], dskp.samples[:, 0], dsp.samples[:, 0]])    
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9methods1dnoshift.pdf',
                   bbox_inches='tight')              
     
@@ -1134,6 +1174,8 @@ def plot_mcmc_data():
     #        transform=ax.transAxes, fontsize=13)  
     ax.set_xlabel(r'$f_{\rm NL}$ + Mitigation Systematics')
     g.fig.align_labels()
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig13_mcmc_dr9regions.txt',
+              [knn1b.samples[:, 0], knn1n.samples[:, 0], knn1s.samples[:, 0], knn1.samples[:, 0]])    
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9regions.pdf', bbox_inches='tight')    
     plt.show() 
 
@@ -1207,11 +1249,19 @@ def plot_model(fnltag='po100'):
     lw = [0.8, 0.8, 3.]
     ls = ['-', '-', '-']
     al = [1., 1., 0.7]
+    
+    ydata = []
+    ydata.append(el)
+    ydata.append(cl)
+    ydata.append(cl_err)
+    
     for i, (n, v) in enumerate(cl_models.items()):
         kw = dict(label=n, lw=lw[i], ls=ls[i], alpha=al[i])
         ax1.plot(v[0], np.log10(v[1]), **kw)
         ax2.plot(el, np.log10(v[1])-cl, **kw)
-
+        
+        ydata.append(np.log10(v[1]))
+        
     f = np.sqrt(1000.)
     ax1.plot(el, cl, 'C0--', label='Mean of Mocks')
     #ax2.axhline(0.0, color='C0', ls='--')
@@ -1226,6 +1276,7 @@ def plot_model(fnltag='po100'):
 
     fig.subplots_adjust(hspace=0.0, wspace=0.02)
     fig.align_labels()
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig4_model_mock.txt', np.column_stack(ydata))
     fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/model_mock.pdf', bbox_inches='tight')     
     
     
@@ -1254,6 +1305,9 @@ def plot_dr9cl():
 
     plt.figure(figsize=(6, 5))
 
+    ydata1=[]
+    ydata2=[]
+    
     for i, (n, nm) in enumerate(zip(['noweight', 'linp_known', 'linp_known1', 'linp_all', 'dnnp_known1', 'dnnp_knownp'],
                      ['No Weight', 'Linear Two Maps', 'Linear Three Maps', 'Linear Eight Maps', 'Nonlinear Three Maps', 'Nonlinear Four Maps'])):
         cl_d = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_{n}.npy', allow_pickle=True).item()
@@ -1265,8 +1319,10 @@ def plot_dr9cl():
 
         cl_bf = np.log10(model(el_g, fnl=fnl, b=b, noise=noise))
         ln = plt.plot(el_g[2:], cl_bf[2:], lw=1)
-        plt.scatter(cl_['el_bin'], cl_b, label=nm, marker=mk[i], color=ln[0].get_color())
         
+        ydata1.append([el_g[2:], cl_bf[2:]])
+        plt.scatter(cl_['el_bin'], cl_b, label=nm, marker=mk[i], color=ln[0].get_color())
+        ydata2.append([cl_['el_bin'], cl_b])
         
     ln, = plt.plot(cl_['el_bin'], cl_['cl'], label='Mean of Mocks', ls='-', lw=3, alpha=0.8, color='grey')
     plt.fill_between(cl_['el_bin'], cl_['cl']-cl_err, cl_['cl']+cl_err, alpha=0.1, color=ln.get_color())
@@ -1280,6 +1336,9 @@ def plot_dr9cl():
     for i, txt in enumerate(lgn.get_texts()):
         if i ==0:continue
         txt.set_color('C%d'%(i-1))
+        
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig10_model_dr9_1.txt', np.column_stack(ydata1))
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig10_model_dr9_2.txt', np.column_stack(ydata2))    
     plt.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/model_dr9.pdf', bbox_inches='tight')         
     
 
@@ -1337,6 +1396,8 @@ def plot_fnl_lmin():
         stats[r] = np.array(d)    
     
     fig, ax = plt.subplots(figsize=(8, 5))
+    ydata = []
+    
     names = ['DESI', 'BASS+MzLS', 'DECaLS North', 'DECaLS South',]
     markers = ['o', 'x', '^', 's']
     for i, st in enumerate(['desic', 'bmzls', 'ndecalsc', 'sdecalsc']):
@@ -1345,6 +1406,11 @@ def plot_fnl_lmin():
         alpha = 1.0 if st=='desic' else 0.8
         ln = ax.errorbar(elmin+(i*0.1-0.1), stats[st][:, 0], yerr=[yn, yp], 
                          label=names[i], marker=markers[i], capsize=6, ls='none', alpha=alpha)
+        
+        ydata.append(stats[st][:, 0])
+        ydata.append(yn)
+        ydata.append(yp)
+        
         # --- 95%
         #yp2 = stats[st][:, 5]-stats[st][:, 0]
         #yn2 = stats[st][:, 0]-stats[st][:, 4]    
@@ -1363,7 +1429,10 @@ def plot_fnl_lmin():
     ax.axhline(0.0, ls=':', color='grey', lw=1)
     ax.set_xlim(-0.5, 9.5)
     ax.set(xlabel=r'$\ell_{\rm min}$', ylabel=r'$f_{\rm NL}$ + Mitigation Systematics')
-    fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_elmin.pdf', bbox_inches='tight')    
+    fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_elmin.pdf', bbox_inches='tight')  
+    
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig14_fnl_elmin.txt',
+              np.column_stack(ydata))
 
 
 def test_nz():
@@ -1493,7 +1562,9 @@ def plot_fnlbias():
     ax.set_xlabel(r'Mitigated $f_{\rm NL}$')
     ax.set_ylabel(r'No mitigation, clean $f_{\rm NL}$')
     
-        
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig9_fnlbias.txt',
+              [p['params'][:, 0]/1.3, pk['params'][:, 0]/1.3, pkp['params'][:, 0]/1.3, pp['params'][:, 0]/1.3,
+               z['params'][:, 0]/1.3, zk['params'][:, 0]/1.3, zkp['params'][:, 0]/1.3, zp['params'][:, 0]/1.3])
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnlbias.pdf', bbox_inches='tight')     
     plt.show()
     
@@ -1706,6 +1777,9 @@ def fnltime():
     plt.tight_layout()
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_history.pdf', bbox_inches='tight')       
     
+    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig15_fnl_history.txt',
+              [year, fNL, fNL_lower, fNL_upper, 
+               year_CMB, fNL_CMB, fNL_lower_CMB, fNL_upper_CMB])
     
 # import sys
 # import os
@@ -2458,4 +2532,3 @@ def fnltime():
 #     for chi2_i in [chi2_truth, chi2_cont, chi2_known5]:
 #         plt.hist(chi2_i, histtype='step', range=(0, 600), bins=60)    
 #     plt.show()
-

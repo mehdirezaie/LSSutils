@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=nnfit
+#SBATCH --job-name=mcjoint
 #SBATCH --account=PHS0336 
-#SBATCH --time=20:00:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -20,20 +20,19 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
-do_fit=true       # linmcmc:20m x 14, nn:20 h x 1 tpn
+do_fit=false       # linmcmc:20m x 14, nn:20 h x 1 tpn
 do_linsam=false   # 10 min x 1
 do_rfe=false      # 
 do_assign=false   #
 do_nbar=false     # 10 min x 4 tpn
 do_cl=false       # 20 min x 4 tpn
 do_mcmc=false     # 3 h x 14 tpn
-do_mcmc_joint=false # 3x14
-do_mcmc_joint3=false # 5x14
+do_mcmc_joint3=true # 5x14
 
 bsize=5000    # 
 target="lrg"  # lrg
-region="bmzlss"     # bmzls, ndecals, sdecals, or desi
-maps="knownpp" # known, all, known1, known2
+region="bmzls"     # bmzls, ndecalsc, sdecalsc, or desic
+maps="known1" # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
 fnltag="zero"
@@ -205,48 +204,27 @@ then
 fi
 
 
-if [ "${do_mcmc_joint}" = true ]
-then
-    region=$1
-    region1=$2
-    fnltag=zero
-    method=$3
-    path_cl=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${method}.npy
-    path_cov=${mock_dir}/clustering/clmock_0_${target}_${fnltag}_${region}_256_noweight_cov.npz
-    path_cl1=${root_dir}/clustering/${tag_d}/cl_${target}_${region1}_${nside}_${method}.npy
-    path_cov1=${mock_dir}/clustering/clmock_0_${target}_${fnltag}_${region1}_256_noweight_cov.npz
-    regionj=${region}${region1}
-    output_mcmc=${root_dir}/mcmc/${tag_d}/mcmc_${target}_${fnltag}_${regionj}_${method}_steps10k_walkers50.npz
-        
-    du -h $path_cl $path_cov
-    du -h $path_cl1 $path_cov1
-    echo $target $region $reion1 $method $output_mcmc
-    
-    python $mcmc_joint $path_cl $path_cl1 $path_cov $path_cov1 $region $region1 $output_mcmc
-fi
-
 if [ "${do_mcmc_joint3}" = true ]
 then
     region=$1
     region1=$2
     region2=$3
-    fnltag=zero
-    method=$4
 
     path_cl=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${method}.npy
-    path_cov=${mock_dir}/clustering/clmock_0_${target}_${fnltag}_${region}_256_noweight_cov.npz
+    path_cov=${mock_dir}/clustering/logclmock_0_${target}_${fnltag}_${region}_256_noweight_cov.npz
     path_cl1=${root_dir}/clustering/${tag_d}/cl_${target}_${region1}_${nside}_${method}.npy
-    path_cov1=${mock_dir}/clustering/clmock_0_${target}_${fnltag}_${region1}_256_noweight_cov.npz
+    path_cov1=${mock_dir}/clustering/logclmock_0_${target}_${fnltag}_${region1}_256_noweight_cov.npz
     path_cl2=${root_dir}/clustering/${tag_d}/cl_${target}_${region2}_${nside}_${method}.npy
-    path_cov2=${mock_dir}/clustering/clmock_0_${target}_${fnltag}_${region2}_256_noweight_cov.npz
+    path_cov2=${mock_dir}/clustering/logclmock_0_${target}_${fnltag}_${region2}_256_noweight_cov.npz
+     
     regionj=${region}${region1}${region2}
-    output_mcmc=${root_dir}/mcmc/${tag_d}/mcmc_${target}_${fnltag}_${regionj}_${maps}_steps10k_walkers50.npz
-        
+    output_mcmc=${root_dir}/mcmc/${tag_d}/logmcmc_${target}_${fnltag}_${regionj}_${method}_steps10k_walkers50_elmin${lmin}.npz   
+    
     du -h $path_cl $path_cov
     du -h $path_cl1 $path_cov1
     du -h $path_cl2 $path_cov2
     echo $target $region $reion1 $region2 $maps $output_mcmc
-    
+
     python $mcmc_joint3 $path_cl $path_cl1 $path_cl2 $path_cov $path_cov1 $path_cov2 $region $region1 $region2 $output_mcmc 1.0
 fi
 

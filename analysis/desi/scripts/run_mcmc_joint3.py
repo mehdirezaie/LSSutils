@@ -12,26 +12,37 @@ from multiprocessing import cpu_count, Pool
 from scipy.optimize import minimize
 from time import time
 from lssutils.theory.cell import dNdz_model, init_sample, SurveySpectrum
-from lssutils.extrn.mcmc import Posterior
-
+from lssutils.extrn.mcmc import LogPosterior
 
 SEED = 85
 
-def read_inputs(path_cl, path_cov, scale=True):
+def load_cl(path_cl):
+    d = np.load(path_cl, allow_pickle=True)
+    if hasattr(d, 'files'):
+        return d
+    else:
+        from lssutils.utils import histogram_cell, ell_edges
+        cl = d.item()
+        lb, clb = histogram_cell(cl['cl_gg']['l'], cl['cl_gg']['cl'], bins=ell_edges)
+        return {'el_edges':ell_edges, 'el_bin':lb, 'cl':np.log10(clb)}
+
+def read_inputs(path_cl, path_cov, scale=True, elmin=0):
     
-    dcl_obs = np.load(path_cl)
+    dcl_obs = load_cl(path_cl)
     dclcov_obs = np.load(path_cov)
     assert np.array_equal(dcl_obs['el_edges'], dclcov_obs['el_edges'])
     
-    el_edges = dcl_obs['el_edges']
-    cl_obs = dcl_obs['cl']
-    clcov = dclcov_obs['clcov']
+    el_edges = dcl_obs['el_edges'][elmin:]
+    cl_obs = dcl_obs['cl'][elmin:]
+    clcov = dclcov_obs['clcov'][elmin:,][:, elmin:]
     if scale:
         clcov *= 1000.
- 
+    
+    print(el_edges[:10], len(el_edges))
+    print(cl_obs[:10], len(cl_obs))
+    print(clcov[:10, :][:, :10], clcov.shape)
 
     invcov_obs = np.linalg.inv(clcov)
-
     return el_edges, cl_obs, invcov_obs
 
 def read_mask(region):
@@ -40,19 +51,18 @@ def read_mask(region):
     import healpy as hp
     from lssutils.utils import make_hp
 
-    if region in ['bmzls', 'ndecals', 'sdecals', 'ngc', 'desi']:
-        # read survey geometry
-        data_path = '/fs/ess/PHS0336/data/'    
-        dt = ft.read(f'{data_path}/rongpu/imaging_sys/tables/0.57.0/nlrg_features_{region}_256.fits')
-        mask_ = make_hp(256, dt['hpix'], 1.0) > 0.5
-        mask = hp.ud_grade(mask_, 1024)
+    # read survey geometry
+    data_path = f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_{region}_256.fits'
+    if os.path.exists(data_path):
+        dt = ft.read(data_path)
+        weight_ = make_hp(256, dt['hpix'], dt['fracgood'])
+        weight  = hp.ud_grade(weight_, 1024)        
     else:
         # full sky
-        mask = np.ones(12*1024*1024, '?')
+        weight = np.ones(12*1024*1024, 'f8')
+    print('fsky', weight.mean())
+    return weight, weight > 0
 
-    return mask*1.0, mask
-
-    
 
 # --- inputs
 path_cl  = sys.argv[1:4]
@@ -60,6 +70,7 @@ path_cov = sys.argv[4:7]
 region   = sys.argv[7:10]  # for window
 output   = sys.argv[10]
 scale    = float(sys.argv[11]) > 0
+elmin    = 0 
 
 print(path_cl)
 print(path_cov)
@@ -91,7 +102,7 @@ model.add_tracer(z, b, dNdz, p=1.0)
 model.add_kernels(model.el_model)
 model.add_window(weight, mask, np.arange(2048), ngauss=2048)  
 
-lg = Posterior(model, cl_obs, invcov_obs, el_edges)
+lg = LogPosterior(model, cl_obs, invcov_obs, el_edges)
 
 # region 2
 el_edges2, cl_obs2, invcov_obs2 = read_inputs(path_cl[1], path_cov[1], scale)
@@ -102,7 +113,7 @@ model2.add_tracer(z, b, dNdz, p=1.0)
 model2.add_kernels(model2.el_model)
 model2.add_window(weight, mask, np.arange(2048), ngauss=2048)  
 
-lg2 = Posterior(model2, cl_obs2, invcov_obs2, el_edges2)
+lg2 = LogPosterior(model2, cl_obs2, invcov_obs2, el_edges2)
 
 # region 3
 el_edges3, cl_obs3, invcov_obs3 = read_inputs(path_cl[2], path_cov[2], scale)
@@ -113,7 +124,7 @@ model3.add_tracer(z, b, dNdz, p=1.0)
 model3.add_kernels(model3.el_model)
 model3.add_window(weight, mask, np.arange(2048), ngauss=2048)  
 
-lg3 = Posterior(model3, cl_obs3, invcov_obs3, el_edges3)
+lg3 = LogPosterior(model3, cl_obs3, invcov_obs3, el_edges3)
 
 def logpost(params):
     fnl, b1, sn1, b2, sn2, b3, sn3 = params
@@ -140,5 +151,5 @@ np.savez(output, **{'chain':sampler.get_chain(),
                     'best_fit':res.x,
                     'best_fit_logprob':res.fun,
                     'best_fit_success':res.success, 
-                    '#data':cl_obs.size+cl_obs2.size,
+                    '#data':cl_obs.size+cl_obs2.size+cl_obs3.size,
                     '#params':ndim})
