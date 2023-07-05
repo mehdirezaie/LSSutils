@@ -1013,6 +1013,10 @@ def plot_mcmc_data():
                  labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}'], settings=stg) 
     read_kw = dict(ndim=3, iscale=[2])
     
+    mc_kwj = dict(names=['fnl', 'b1', 'n1', 'b2', 'n2', 'b3', 'n3'], 
+                 labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}', 'b', '10^{7}n_{0}', 'b', '10^{7}n_{0}'], settings=stg) 
+    read_kwj = dict(ndim=7, iscale=[2, 4, 6])
+    
     p = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
     ze   = MCMC(f'{p}logmcmc_lrg_zero_desic_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
     po   = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_all_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
@@ -1027,6 +1031,7 @@ def plot_mcmc_data():
     knn1_s = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_known1debiased_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
     dsp_s  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_allpdebiased_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
     dskp_s  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_knownpdebiased_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
+    knn1joint = MCMC(f'{p}logmcmc_lrg_zero_bmzlsndecalscsdecalsc_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kwj, read_kw=read_kwj)
 
     knn1b = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
     bml   = MCMC(f'{p}logmcmc_lrg_zero_bmzlsl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)  
@@ -1179,6 +1184,24 @@ def plot_mcmc_data():
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9regions.pdf', bbox_inches='tight')    
     plt.show() 
 
+    g = plots.get_single_plotter(width_inch=5)
+    g.settings.legend_fontsize = 13
+    g.plot_1d([knn1b, knn1n, knn1s, knn1, knn1joint], 'fnl', filled=True,
+              lims=[-100, 120], colors=['C1', 'C2', 'C3', 'C0', 'C4'])
+    g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', 'DESI', 'DESI (joint)'], 
+                 colored_text=True, legend_loc='lower left')  
+    ax = g.get_axes()
+    ax.text(0.15, 0.92, 'Nonlinear Three Maps (different regions)', 
+            transform=ax.transAxes, fontsize=13)
+    #ax.text(0.15, 0.85, 'Not accounted for mitigation bias', 
+    #        transform=ax.transAxes, fontsize=13)  
+    ax.set_xlabel(r'$f_{\rm NL}$ + Mitigation Systematics')
+    g.fig.align_labels()
+    plt.show() 
+
+    
+    
+    
 #     # Triangle plot
 #     g = plots.get_single_plotter(width_inch=4*1.5)
 #     g.settings.legend_fontsize = 14
