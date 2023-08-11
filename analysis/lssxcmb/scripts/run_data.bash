@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=nn
 #SBATCH --account=PHS0336 
-#SBATCH --time=1:00:00
+#SBATCH --time=120:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
@@ -19,10 +19,10 @@ cd ${HOME}/github/LSSutils/analysis/lssxcmb/scripts/
 
 
 do_linfit=false    # 10 h x 14
-do_nnfit=false      # 10 m x1 lr finder, 120x1 h fit 
+do_nnfit=true      # 10 m x1 lr finder, 120x1 h fit 
 do_linsamp=false   # 1 h x 1
 do_nnsamp=false    # 3h x 10tpn
-do_nnpull=true    # 1 h
+do_nnpull=false    # 1 h
 do_lincell=false   # 5hx14tpn
 do_nncell=false    # 5hx14tpn
 do_cl=false        #
@@ -31,9 +31,9 @@ do_clx=false       # 10min x 6tpn
 
 target=elg
 region=$1   # options are bmzls, ndecals, sdecals
-maps=$2     # options are sfd, lens, mud15, mud6
+maps=$2     # options are sfd, rongr, csfd, mud15, planck
 nside=1024
-version=v7
+version=v8
 #printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 #mockid=$2
 echo $mockid
@@ -62,16 +62,19 @@ root_dir=/fs/ess/PHS0336/data/rongpu/imaging_sys
 function get_axes(){
     if [ $1 = "sfd" ]
     then
-        axes=(0 1 2 3 4 5 6 7 10 11 12) # ELG's do not need 8 and 9, which are W1 and W1 bands
-    elif [ $1 = "lens" ]
+        axes=(0 1 2 3 4 5 6 7 10 11 12 13) # ELG's do not need 8 and 9, which are W1 and W1 bands
+    elif [ $1 = "rongr" ]
     then
-        axes=(1 2 3 4 5 6 7 10 11 12 13) # ELG's do not need 8 and 9, which are W1 and W1 bands
+        axes=(1 2 3 4 5 6 7 10 11 12 13 14) # ELG's do not need 8 and 9, which are W1 and W1 bands
+    elif [ $1 = "csfd" ]
+    then
+        axes=(1 2 3 4 5 6 7 10 11 12 13 15)
     elif [ $1 = "mud15" ]
     then
-        axes=(1 2 3 4 5 6 7 10 11 12 14)
-    elif [ $1 = "mud6" ]
+        axes=(1 2 3 4 5 6 7 10 11 12 13 16)     
+    elif [ $1 = "planck" ]
     then
-        axes=(1 2 3 4 5 6 7 10 11 12 15)        
+        axes=(1 2 3 4 5 6 7 10 11 12 13 17) 
     fi
     echo ${axes[@]}
 }
