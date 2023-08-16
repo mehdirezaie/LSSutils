@@ -22,13 +22,17 @@ def chck2pid(chck):
 
 def get_axes(maps):
     if maps == "sfd":
-        axes=[0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12] # ELG's do not need 8 and 9, which are W1 and W1 bands
-    elif maps == "lens":
-        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13] # ELG's do not need 8 and 9, which are W1 and W1 bands
-    elif maps == "mud15":
-        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 14]
-    elif maps == "mud6":
-        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 15]
+        axes=[0, 1, 2, 3, 4, 5, 6, 7,  10, 11, 12, 13]
+    elif maps=="rongr":
+        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14]
+    elif maps=="csfd":
+        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 15]
+    elif maps=="mud15":
+        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 16]
+    elif maps=="planck":
+        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 17]
+    elif maps=="all":
+        axes=[1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17]
     else:
         raise ValueError(f'{maps} not known')
     return axes
@@ -36,7 +40,7 @@ def get_axes(maps):
 
 def do_forward(checkpoints, rank, maps, oudir):
 
-    axes = get_axes(maps) #[0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
+    axes = get_axes(maps) 
     nfolds = 5 
     num_features = len(axes) # nside=1024, 27 for nside=256
     nnstruct = (4, 20)
