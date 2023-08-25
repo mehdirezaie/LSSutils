@@ -98,7 +98,7 @@ else:
 
 z, b, dNdz = init_sample(kind='lrg')
 model = SurveySpectrum()
-model.add_tracer(z, b, dNdz, p=1.6)
+model.add_tracer(z, b, dNdz, p=1.0)
 model.add_kernels(model.el_model)
 model.add_window(weight, mask, np.arange(2048), ngauss=2048)  
 

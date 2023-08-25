@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=mc
+#SBATCH --job-name=nn
 #SBATCH --account=PHS0336 
-#SBATCH --time=3:00:00
+#SBATCH --time=20:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -20,20 +20,20 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
-do_fit=false       # linmcmc:20m x 14, nn:20 h x 1 tpn
+do_fit=true       # linmcmc:20m x 14, nn:20 h x 1 tpn
 do_linsam=false   # 10 min x 1
 do_rfe=false      # 
 do_assign=false   #
 do_nbar=false     # 10 min x 4 tpn
 do_cl=false       # 20 min x 4 tpn
-do_mcmc=true     # 3 h x 14 tpn
+do_mcmc=false     # 3 h x 14 tpn
 do_mcmc_joint3=false # 5x14
 
 bsize=5000    # 
 target="lrg"  # lrg
-region="desic"     # bmzls, ndecalsc, sdecalsc, or desic
+region=$1     # bmzls, ndecalsc, sdecalsc, or desic
 maps="known1" # known, all, known1, known2
-tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
+tag_d=0.57.1  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
 fnltag="zero"
 model="dnnp"    # dnnp, linp
@@ -196,8 +196,8 @@ if [ "${do_mcmc}" = true ]
 then
     path_cl=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${method}.npy
     path_cov=${mock_dir}/clustering/logclmock_0_${target}_${fnltag}_${region}_256_noweight_cov.npz
-    #output_mcmc=${root_dir}/mcmc/${tag_d}/logmcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50_elmin${lmin}.npz  
-    output_mcmc=${root_dir}/mcmc/${tag_d}/logmcmc_${target}_${fnltag}_${region}p1p6_${method}_steps10k_walkers50_elmin${lmin}.npz   
+    output_mcmc=${root_dir}/mcmc/${tag_d}/logmcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50_elmin${lmin}.npz  
+    #output_mcmc=${root_dir}/mcmc/${tag_d}/logmcmc_${target}_${fnltag}_${region}p1p6_${method}_steps10k_walkers50_elmin${lmin}.npz   
 
     
     du -h $path_cl $path_cov
