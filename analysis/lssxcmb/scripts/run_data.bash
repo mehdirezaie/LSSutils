@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=nn
 #SBATCH --account=PHS0336 
-#SBATCH --time=1:00:00
+#SBATCH --time=120:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
@@ -19,10 +19,10 @@ cd ${HOME}/github/LSSutils/analysis/lssxcmb/scripts/
 
 
 do_linfit=false    # 10 h x 14
-do_nnfit=false      # 10 m x1 lr finder, 120x1 h fit 
+do_nnfit=true      # 10 m x1 lr finder, 120x1 h fit 
 do_linsamp=false   # 1 h x 1
 do_nnsamp=false    # 3h x 10tpn
-do_nnpull=true    # 1 h
+do_nnpull=false    # 1 h
 do_lincell=false   # 5hx14tpn
 do_nncell=false    # 5hx14tpn
 do_cl=false        #
@@ -31,9 +31,9 @@ do_clx=false       # 10min x 6tpn
 
 target=elg
 region=$1   # options are bmzls, ndecals, sdecals
-maps=all     # options are sfd, rongr, csfd, mud15, planck
+maps=$2     # options are sfd, rongr, csfd, mud15, planck
 nside=1024
-version=v8
+version=v9
 #printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 #mockid=$2
 echo $mockid

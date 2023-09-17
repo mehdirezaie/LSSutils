@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as IUS
-from scipy.integrate import romberg, simps
+from scipy.integrate import romberg, simps, quad
 
 import nbodykit.cosmology as cosmology
 from lssutils.extrn.fftlog import fftlog
@@ -40,7 +40,7 @@ def dNdz_model(sample='qso', z_low=0.1, kind=1):
         zmid = 0.5*(zmin+zmax)
         dNdz_interp = IUS(zmid, dNdz, ext=1)
         dNdz_interp.set_smoothing_factor(2.0)
-        z_g = np.linspace(0.0, 5.0, 500)
+        z_g = np.linspace(0.1, 1.5, 140)
         dNdz_g = dNdz_interp(z_g)
         
         return z_g, dNdz_g
@@ -179,9 +179,12 @@ class Spectrum:
         self.Dc = cosmo.comoving_distance              
         self.h = cosmo.efunc
         self.inv_pi = 2.0 / np.pi
+        self.DH = DH
                  
         # alpha_fnl: equation 2 of Mueller et al 2017    
-        self.alpha_fnl  = 3.0*delta_crit*Omega0_m*(DH**2)
+        self.alpha_fnl  = 3.0*delta_crit*Omega0_m*(DH*DH)
+        
+        self.alpha_mag = DH*DH*Omega0_m
         
     def __call__(self, ell, fnl=0.0, b=1.0, noise=0.0, **kwargs):
 
@@ -195,12 +198,22 @@ class Spectrum:
                        
         return self.run(fnl, b, noise)
         
-    def add_tracer(self, z, b, dNdz, p=1.6):
+    def add_tracer(self, z, b, dNdz, p=1.0):
         print(f'p = {p:.1f}')
-        # dz/dr
-        dNdr_spl = IUS(self.Dc(z), dNdz*self.h(z), ext=1) 
-        dNdr_tot = romberg(dNdr_spl, self.Dc(z.min()), self.Dc(z.max()), divmax=1000)
-        #print(dNdr_tot)
+        
+        # normalize dN/dz 
+        nz_spl = IUS(z, dNdz, ext=1)
+        dNdz_norm = quad(nz_spl, z.min(), z.max(), limit=100)[0]
+        nz = IUS(z, dNdz/dNdz_norm, ext=1)
+        nr = IUS(self.Dc(z), dNdz/dNdz_norm*self.h(z)*self.DH, ext=1)
+        
+        # magnification bias
+        w_mag = np.zeros(z.size)*np.nan
+        for i, z_i in enumerate(z):
+            intg = IUS(z, nz(z) * (self.Dc(z_i) - self.Dc(z)) / (self.Dc(z_i)*self.Dc(z)), ext=1)
+            w_mag[i] = quad(intg, z_i, z.max()+1.0e-8, limit=100)[0]
+        w_mag *= (1.+z)
+        w_mag_spl = IUS(self.Dc(z), w_mag, ext=1)
         
         # bias
         b_spl = IUS(self.Dc(z), b, ext=1)
@@ -212,10 +225,12 @@ class Spectrum:
         f_spl = IUS(self.Dc(z), self.f(z), ext=1)
 
         # prepare kernels
-        self.fr_wk = lambda r:r * b_spl(r) * d_spl(r) * (dNdr_spl(r)/dNdr_tot)   # W_ell: r*b*(D(r)/D(0))*dN/dr         
-        self.fr_wrk = lambda r:r * f_spl(r) * d_spl(r) * (dNdr_spl(r)/dNdr_tot)  # Wr_ell:r*f*(D(r)/D(0))*dN/dr
-        self.fr_wkfnl1 = lambda r: r * b_spl(r) * (dNdr_spl(r)/dNdr_tot) # Wfnl_ell:r*b*dN/dr   
-        self.fr_wkfnl2 = lambda r: r * -p * (dNdr_spl(r)/dNdr_tot) # Wfnl_ell:r*-p*dN/dr   
+        self.fr_wk = lambda r:r * b_spl(r) * d_spl(r) * nr(r)   # W_ell: r*b*(D(r)/D(0))*dN/dr         
+        self.fr_wrk = lambda r:r * f_spl(r) * d_spl(r) * nr(r)  # Wr_ell:r*f*(D(r)/D(0))*dN/dr
+        self.fr_wkfnl1 = lambda r: r * b_spl(r) * nr(r)         # Wfnl_ell:r*b*dN/dr   
+        self.fr_wkfnl2 = lambda r: r * -p * nr(r)               # Wfnl_ell:r*-p*dN/dr 
+        self.fr_wkmag = lambda r: r * d_spl(r) * w_mag_spl(r)
+        
         self.kernels_ready = False
 
     def add_kernels(self, ell, logrmin=-10., logrmax=10., num=10000):        
