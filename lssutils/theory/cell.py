@@ -162,6 +162,7 @@ class Spectrum:
         cosmo = cosmology.Cosmology(**kw_cosmo).match(sigma8=sigma8) 
                 
         # --- cosmology calculators
+        sm = 0.999
         redshift = 0.0
         delta_crit = 1.686      # critical overdensity for collapse from Press-Schechter
         DH = (cosmo.H0/cosmo.C) # in units of h/Mpc, eq. 4 https://arxiv.org/pdf/astro-ph/9905116.pdf
@@ -184,7 +185,7 @@ class Spectrum:
         # alpha_fnl: equation 2 of Mueller et al 2017    
         self.alpha_fnl  = 3.0*delta_crit*Omega0_m*(DH*DH)
         
-        self.alpha_mag = DH*DH*Omega0_m
+        self.alpha_mag = 3.0*DH*DH*Omega0_m*(2.-5*sm)/2.
         
     def __call__(self, ell, fnl=0.0, b=1.0, noise=0.0, **kwargs):
 
@@ -204,6 +205,7 @@ class Spectrum:
         # normalize dN/dz 
         nz_spl = IUS(z, dNdz, ext=1)
         dNdz_norm = quad(nz_spl, z.min(), z.max(), limit=100)[0]
+        print(dNdz_norm)
         nz = IUS(z, dNdz/dNdz_norm, ext=1)
         nr = IUS(self.Dc(z), dNdz/dNdz_norm*self.h(z)*self.DH, ext=1)
         
@@ -226,19 +228,20 @@ class Spectrum:
 
         # prepare kernels
         self.fr_wk = lambda r:r * b_spl(r) * d_spl(r) * nr(r)   # W_ell: r*b*(D(r)/D(0))*dN/dr         
-        self.fr_wrk = lambda r:r * f_spl(r) * d_spl(r) * nr(r)  # Wr_ell:r*f*(D(r)/D(0))*dN/dr
+        self.fr_wrk = lambda r:r * -f_spl(r) * d_spl(r) * nr(r)  # Wr_ell:r*f*(D(r)/D(0))*dN/dr
         self.fr_wkfnl1 = lambda r: r * b_spl(r) * nr(r)         # Wfnl_ell:r*b*dN/dr   
         self.fr_wkfnl2 = lambda r: r * -p * nr(r)               # Wfnl_ell:r*-p*dN/dr 
-        self.fr_wkmag = lambda r: r * d_spl(r) * w_mag_spl(r)
+        self.fr_wkmag = lambda r: r * d_spl(r) * w_mag_spl(r)   # Wmag_ell:r*D(r)/D(0)*Wm
         
-        self.kernels_ready = False
+        self.kernels_ready = False 
 
     def add_kernels(self, ell, logrmin=-10., logrmax=10., num=10000):        
         assert (ell[1:] > ell[:-1]).all(), "ell must be increasing"        
         kw_fft = dict(nu=1.01, N_extrap_low=0, N_extrap_high=0, 
                       c_window_width=0.25, N_pad=0)
         
-        self.ell = ell            
+        self.ell = ell    
+        self.ell2 = ell*(ell+1.)
         r = np.logspace(logrmin, logrmax, num=num) # k = (ell+0.5) / r
         
         # w_ell(k)
@@ -256,6 +259,10 @@ class Spectrum:
         # wfnl_ell(k)
         fr = self.fr_wkfnl2(r)
         self.wfnlk2 = self.fftlog(0, r, fr, **kw_fft)
+        
+        # wmag_ell(k)
+        fr = self.fr_wkmag(r)
+        self.wmag = self.fftlog(0, r, fr, **kw_fft)
         
         self.add_integrals()
         self.kernels_ready = True
@@ -286,6 +293,7 @@ class Spectrum:
         i_rr = []
         i_f1f1 = []
         i_f2f2 = []
+        i_mm = []
         
         i_gr = []
         i_gf1 = []
@@ -293,6 +301,11 @@ class Spectrum:
         i_rf1 = []
         i_rf2 = []
         i_f1f2 = []
+        i_gm = []
+        i_rm = []        
+        i_mf1 = []
+        i_mf2 = []
+
         
         for i in range(len(self.wk)):
             
@@ -303,6 +316,8 @@ class Spectrum:
             fnl_f = self.alpha_fnl/(k2*self.Tlin(k))
             w_f1 = self.wfnlk1[i][1]*fnl_f
             w_f2 = self.wfnlk2[i][1]*fnl_f
+            
+            w_m = self.ell2[i]*self.alpha_mag*self.wmag[i][1]/k2   
             
             lnk = np.log(k)
             k3pk = k2*k*self.Plin(k)
@@ -317,11 +332,18 @@ class Spectrum:
             i_rf1.append(self.simps(k3pk*w_r*w_f1, lnk))
             i_rf2.append(self.simps(k3pk*w_r*w_f2, lnk))
             i_f1f2.append(self.simps(k3pk*w_f1*w_f2, lnk))
+            i_mm.append(self.simps(k3pk*w_m*w_m, lnk))
+            i_gm.append(self.simps(k3pk*w_g*w_m, lnk))
+            i_rm.append(self.simps(k3pk*w_r*w_m, lnk))
+            i_mf1.append(self.simps(k3pk*w_m*w_f1, lnk))
+            i_mf2.append(self.simps(k3pk*w_m*w_f2, lnk))            
+            
             
         self.i_gg = np.array(i_gg)
         self.i_rr = np.array(i_rr)
         self.i_f1f1 = np.array(i_f1f1)
         self.i_f2f2 = np.array(i_f2f2)
+        self.i_mm = np.array(i_mm)
         
         self.i_gr = np.array(i_gr)
         self.i_gf1 = np.array(i_gf1)
@@ -329,13 +351,17 @@ class Spectrum:
         self.i_rf1 = np.array(i_rf1)
         self.i_rf2 = np.array(i_rf2)
         self.i_f1f2 = np.array(i_f1f2)            
+        self.i_gm = np.array(i_gm)
+        self.i_rm = np.array(i_rm)
+        self.i_mf1 = np.array(i_mf1)
+        self.i_mf2 = np.array(i_mf2)
             
             
     def run(self, fnl, b, noise):
         #print("fnl, b", fnl, b)
-        return self.inv_pi*(b*b*self.i_gg + self.i_rr + fnl*fnl*b*b*self.i_f1f1 + fnl*fnl*self.i_f2f2 \
-                       - 2*b*self.i_gr + 2*fnl*b*b*self.i_gf1 + 2*fnl*b*(self.i_gf2-self.i_rf1) \
-                       - 2*fnl*self.i_rf2 + 2*fnl*fnl*b*self.i_f1f2) + noise
+        return self.inv_pi*(b*b*self.i_gg + self.i_rr + fnl*fnl*b*b*self.i_f1f1 + fnl*fnl*self.i_f2f2 + self.i_mm \
+                       + 2*b*self.i_gr + 2*fnl*b*b*self.i_gf1 + 2*fnl*b*(self.i_gf2+self.i_rf1+self.i_mf1) \
+                       + 2*fnl*self.i_rf2 + 2*fnl*fnl*b*self.i_f1f2 + 2*b*self.i_gm + 2*fnl*self.i_mf2 + 2*self.i_rm) + noise
     
     
 class SurveySpectrum(Spectrum, WindowSHT):
