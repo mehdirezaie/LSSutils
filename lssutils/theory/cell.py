@@ -185,8 +185,8 @@ class Spectrum:
         # alpha_fnl: equation 2 of Mueller et al 2017    
         self.alpha_fnl  = 3.0*delta_crit*Omega0_m*(DH*DH)
         
-        self.alpha_mag = 3.0*DH*DH*Omega0_m*(2.-5*sm)/2.
-        
+        self.alpha_mag_ = 1.5*DH*DH*Omega0_m
+
     def __call__(self, ell, fnl=0.0, b=1.0, noise=0.0, **kwargs):
 
         if not self.kernels_ready:
@@ -199,8 +199,14 @@ class Spectrum:
                        
         return self.run(fnl, b, noise)
         
-    def add_tracer(self, z, b, dNdz, p=1.0):
+    def add_tracer(self, z, b, dNdz, p=1.0, s=None):
         print(f'p = {p:.1f}')
+        print(f's = {s:.3f}')
+        if s is not None:
+            self.alpha_mag = self.alpha_mag_*(2.-5*s)
+        else:
+            self.alpha_mag = 0.0
+
         
         # normalize dN/dz 
         nz_spl = IUS(z, dNdz, ext=1)
