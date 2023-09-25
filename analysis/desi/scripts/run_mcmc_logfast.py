@@ -66,12 +66,20 @@ def read_mask(region):
     
 
 # --- inputs
-path_cl  = sys.argv[1]
-path_cov = sys.argv[2]
-region   = sys.argv[3]  # for window
-output   = sys.argv[4]
-scale    = float(sys.argv[5]) > 0
-elmin    = int(sys.argv[6])
+from argparse import ArgumentParser
+ap = ArgumentParser(description='MCMC')
+ap.add_argument('--path_cl', required=True)
+ap.add_argument('--path_cov', required=True)
+ap.add_argument('--region', required=True)
+ap.add_argument('--output', required=True)
+ap.add_argument('--scale', action='store_true')
+ap.add_argument('--elmin', default=0, type=int)
+ap.add_argument('--p', default=1.0, type=float)
+ap.add_argument('--s', default=0.945, type=float)
+ns = ap.parse_args()
+
+for (key, value) in ns.__dict__.items():
+    print(f'{key:15s} : {value}')                
 
 nsteps   = 10000   # int(sys.argv[2])
 ndim     = 3      # Number of parameters/dimensions
@@ -80,17 +88,16 @@ assert nwalkers > 2*ndim
 
 ncpu = cpu_count()
 print("{0} CPUs".format(ncpu))    
-print("scale it", scale)
-print("elmin bin id", elmin) 
-if not os.path.exists(os.path.dirname(output)):
-    print(f'create {os.path.dirname(output)}')
-    os.makedirs(os.path.dirname(output))
 
-el_edges, cl_obs, invcov_obs = read_inputs(path_cl, path_cov, scale, elmin)
-weight, mask = read_mask(region)
+if not os.path.exists(os.path.dirname(ns.output)):
+    print(f'create {os.path.dirname(ns.output)}')
+    os.makedirs(os.path.dirname(ns.output))
+
+el_edges, cl_obs, invcov_obs = read_inputs(ns.path_cl, ns.path_cov, ns.scale, ns.elmin)
+weight, mask = read_mask(ns.region)
 print('fsky', mask.mean())
 
-if not scale:
+if not ns.scale:
     print('using mock window')
     weight[mask] = 1.0 # if scale is not activate, then it is a mock, no fpix needed
 else:
@@ -98,7 +105,7 @@ else:
 
 z, b, dNdz = init_sample(kind='lrg')
 model = SurveySpectrum()
-model.add_tracer(z, b, dNdz, p=1.0)
+model.add_tracer(z, b, dNdz, p=ns.p, s=ns.s)
 model.add_kernels(model.el_model)
 model.add_window(weight, mask, np.arange(2048), ngauss=2048)  
 
@@ -122,7 +129,7 @@ with Pool() as pool:
     sampler = emcee.EnsembleSampler(nwalkers, ndim, logpost, pool=pool)
     sampler.run_mcmc(start, nsteps, progress=True)
 
-np.savez(output, **{'chain':sampler.get_chain(), 
+np.savez(ns.output, **{'chain':sampler.get_chain(), 
                     'log_prob':sampler.get_log_prob(), 
                     'best_fit':res.x,
                     'best_fit_logprob':res.fun,

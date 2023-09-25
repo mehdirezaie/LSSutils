@@ -57,7 +57,7 @@ def plot_nz():
 # --- helper functions
 def print_stats(stats):
     for s, v in stats.items():
-        msg = r"{0:40s}& ${1:6.2f}$& ${2:6.2f}$& ${3:6.2f}<\fnl<{4:6.2f}$& ${5:6.2f}<\fnl<{6:6.2f}$ & {7:6.1f}\\"\
+        msg = r"{0:40s}& ${1:6.0f}$& ${2:6.0f}$& ${3:6.0f}<\fnl<{4:6.0f}$& ${5:6.0f}<\fnl<{6:6.0f}$ & {7:6.1f}\\"\
                 .format(s, v[0], v[1], v[2], v[3], v[4], v[5], -v[6])
         print(msg)     
 
@@ -1007,7 +1007,7 @@ def plot_bestfit():
 
     
 def plot_mcmc_data():
-    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
+    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.3, 
            'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
     mc_kw = dict(names=['fnl', 'b', 'n0'], 
                  labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}'], settings=stg) 
@@ -1018,42 +1018,42 @@ def plot_mcmc_data():
     read_kwj = dict(ndim=7, iscale=[2, 4, 6])
     
     p = '/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
-    ze   = MCMC(f'{p}logmcmc_lrg_zero_desic_noweight_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
-    po   = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_all_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
-    kn   = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_known_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
-    kn1  = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)        
-    knn1 = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    dsl  = MCMC(f'{p}logmcmc_lrg_zero_desicl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)         
-    dsf  = MCMC(f'{p}logmcmc_lrg_zero_desicf_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)           
-    dss  = MCMC(f'{p}logmcmc_lrg_po100_desic_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)      
-    dsp  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_allp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
-    dskp  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_knownp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
-    knn1_s = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_known1debiased_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
-    dsp_s  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_allpdebiased_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
-    dskp_s  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_knownpdebiased_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
-    knn1joint = MCMC(f'{p}logmcmc_lrg_zero_bmzlsndecalscsdecalsc_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kwj, read_kw=read_kwj)
+    ze   = MCMC(f'{p}logmcmc_lrg_zero_desic_noweight_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)
+    po   = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_all_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    kn   = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_known_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    kn1  = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_known1_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)        
+    knn1 = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    dsl  = MCMC(f'{p}logmcmc_lrg_zero_desicl_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)         
+    dsf  = MCMC(f'{p}logmcmc_lrg_zero_desicf_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)           
+    dss  = MCMC(f'{p}logmcmc_lrg_po100_desic_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)      
+    dsp  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)
+    dskp  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_knownp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)
+    knn1_s = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_known1debiased_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)
+    dsp_s  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_allpdebiased_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)
+    dskp_s  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_knownpdebiased_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)
+    #knn1joint = MCMC(f'{p}logmcmc_lrg_zero_bmzlsndecalscsdecalsc_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kwj, read_kw=read_kwj)
 
-    knn1b = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)                
-    bml   = MCMC(f'{p}logmcmc_lrg_zero_bmzlsl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)  
-    bmf   = MCMC(f'{p}logmcmc_lrg_zero_bmzlsf_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)  
-    bmp  = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_allp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
-    bmkp  = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_knownp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
+    knn1b = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.951.npz', mc_kw=mc_kw, read_kw=read_kw)                
+    bml   = MCMC(f'{p}logmcmc_lrg_zero_bmzlsl_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.951.npz', mc_kw=mc_kw, read_kw=read_kw)  
+    bmf   = MCMC(f'{p}logmcmc_lrg_zero_bmzlsf_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.951.npz', mc_kw=mc_kw, read_kw=read_kw)  
+    bmp  = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.951.npz', mc_kw=mc_kw, read_kw=read_kw)
+    bmkp  = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_knownp_steps10k_walkers50_elmin0_p1.0_s0.951.npz', mc_kw=mc_kw, read_kw=read_kw)
     
-    knn1n = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)
-    ndce  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
-    nd    = MCMC(f'{p}logmcmc_lrg_zero_ndecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    ndl   = MCMC(f'{p}logmcmc_lrg_zero_ndecalscl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
-    ndf   = MCMC(f'{p}logmcmc_lrg_zero_ndecalscf_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
-    ndp  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_allp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
-    ndkp  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_knownp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
+    knn1n = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
+    ndce  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1ext_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    nd    = MCMC(f'{p}logmcmc_lrg_zero_ndecals_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    ndl   = MCMC(f'{p}logmcmc_lrg_zero_ndecalscl_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
+    ndf   = MCMC(f'{p}logmcmc_lrg_zero_ndecalscf_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
+    ndp  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
+    ndkp  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_knownp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
     
-    knn1s = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)    
-    sdce  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1ext_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)  
-    sd    = MCMC(f'{p}logmcmc_lrg_zero_sdecals_dnnp_known1_steps10k_walkers50.npz', mc_kw=mc_kw, read_kw=read_kw)            
-    sdl   = MCMC(f'{p}logmcmc_lrg_zero_sdecalscl_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
-    sdf   = MCMC(f'{p}logmcmc_lrg_zero_sdecalscf_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
-    sdp  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_allp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
-    sdkp  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_knownp_steps10k_walkers50_elmin0.npz', mc_kw=mc_kw, read_kw=read_kw)
+    knn1s = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)    
+    sdce  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1ext_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)  
+    sd    = MCMC(f'{p}logmcmc_lrg_zero_sdecals_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)            
+    sdl   = MCMC(f'{p}logmcmc_lrg_zero_sdecalscl_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
+    sdf   = MCMC(f'{p}logmcmc_lrg_zero_sdecalscf_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
+    sdp  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
+    sdkp  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_knownp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
     
     stats1 = {}
     stats1['DESI                      & No Weight'] = ze.stats
@@ -1107,7 +1107,7 @@ def plot_mcmc_data():
     g.settings.legend_fontsize = 13
     g.plot_2d([ze, knn1_s, dskp_s, dsp_s], 
               'fnl', 'b', 
-              filled=True,lims=[-50, 170, 1.28, 1.57], colors='Dark2') # 
+              filled=True,lims=[-100, 200, 1.2, 1.5], colors='Dark2') # 
     g.add_legend(['No weight',                  
                   'Nonlinear Three Maps',
                   'Nonlinear Four Maps',
@@ -1129,7 +1129,7 @@ def plot_mcmc_data():
     #g.plot_1d([ze, kn1, knn1, dskp, dsp, knn1_s, dskp_s, dsp_s], 'fnl',
     #          filled=True,lims=[-50, 170], colors=colors, ls=ls) # 
     g.plot_1d([ze, knn1_s, dskp_s, dsp_s], 'fnl',
-                 filled=True,lims=[-50, 170], colors=colors, ls=ls) #     
+                 filled=True,lims=[-100,200], colors=colors, ls=ls) #     
     g.add_legend(['No weight',
                   'Nonlinear Three Maps',
                   'Nonlinear Four Maps',
@@ -1147,7 +1147,7 @@ def plot_mcmc_data():
     g.settings.legend_fontsize = 13
     ls = ['-', '-', '-', '-', '-', '--', '--', '--']
     g.plot_1d([ze, knn1, dskp, dsp], 'fnl',
-                 filled=True,lims=[-50, 170], colors=colors, ls=ls) #     
+                 filled=True,lims=[-100, 200], colors=colors, ls=ls) #     
     g.add_legend(['No weight',
                   'Nonlinear Three Maps',
                   'Nonlinear Four Maps',
@@ -1169,7 +1169,7 @@ def plot_mcmc_data():
     g = plots.get_single_plotter(width_inch=5)
     g.settings.legend_fontsize = 13
     g.plot_2d([knn1b, knn1n, knn1s, knn1], 'fnl', 'b', filled=True,
-              lims=[-100, 120, 1.28, 1.57], colors=['C1', 'C2', 'C3', 'C0'])
+              lims=[-100, 200, 1.2, 1.5], colors=['C1', 'C2', 'C3', 'C0'])
     g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', 'DESI'], 
                  colored_text=True, legend_loc='lower left')  
     ax = g.get_axes()
@@ -1184,20 +1184,20 @@ def plot_mcmc_data():
     g.fig.savefig('/users/PHS0336/medirz90/github/dimagfnl/figures/mcmc_dr9regions.pdf', bbox_inches='tight')    
     plt.show() 
 
-    g = plots.get_single_plotter(width_inch=5)
-    g.settings.legend_fontsize = 13
-    g.plot_1d([knn1b, knn1n, knn1s, knn1, knn1joint], 'fnl', filled=True,
-              lims=[-100, 120], colors=['C1', 'C2', 'C3', 'C0', 'C4'])
-    g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', 'DESI', 'DESI (joint)'], 
-                 colored_text=True, legend_loc='lower left')  
-    ax = g.get_axes()
-    ax.text(0.15, 0.92, 'Nonlinear Three Maps (different regions)', 
-            transform=ax.transAxes, fontsize=13)
-    #ax.text(0.15, 0.85, 'Not accounted for mitigation bias', 
-    #        transform=ax.transAxes, fontsize=13)  
-    ax.set_xlabel(r'$f_{\rm NL}$ + Mitigation Systematics')
-    g.fig.align_labels()
-    plt.show() 
+#     g = plots.get_single_plotter(width_inch=5)
+#     g.settings.legend_fontsize = 13
+#     g.plot_1d([knn1b, knn1n, knn1s, knn1, knn1joint], 'fnl', filled=True,
+#               lims=[-100, 120], colors=['C1', 'C2', 'C3', 'C0', 'C4'])
+#     g.add_legend(['BASS+MzLS', 'DECaLS North', 'DECaLS South', 'DESI', 'DESI (joint)'], 
+#                  colored_text=True, legend_loc='lower left')  
+#     ax = g.get_axes()
+#     ax.text(0.15, 0.92, 'Nonlinear Three Maps (different regions)', 
+#             transform=ax.transAxes, fontsize=13)
+#     #ax.text(0.15, 0.85, 'Not accounted for mitigation bias', 
+#     #        transform=ax.transAxes, fontsize=13)  
+#     ax.set_xlabel(r'$f_{\rm NL}$ + Mitigation Systematics')
+#     g.fig.align_labels()
+#     plt.show() 
 
     
     
@@ -1313,7 +1313,7 @@ def plot_dr9cl():
 
     z, b, dNdz = init_sample(kind='lrg')
     model = SurveySpectrum()
-    model.add_tracer(z, b, dNdz, p=1.0)
+    model.add_tracer(z, b, dNdz, p=1.0, s=0.945)
     model.add_kernels(model.el_model)
     model.add_window(weight, mask, np.arange(2048), ngauss=2048)  
     
@@ -1336,7 +1336,7 @@ def plot_dr9cl():
         cl_d = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/cl_lrg_desic_256_{n}.npy', allow_pickle=True).item()
         cl_b = np.log10(ut.histogram_cell(cl_d['cl_gg']['l'], cl_d['cl_gg']['cl'], bins=ut.ell_edges)[1])
 
-        bestp = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_{n}_steps10k_walkers50_elmin0.npz')
+        bestp = np.load(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/logmcmc_lrg_zero_desic_{n}_steps10k_walkers50_elmin0_p1.0_s0.945.npz')
         fnl, b, noise = bestp['best_fit']
         print(nm, fnl/gratio, b)
 
@@ -1410,11 +1410,14 @@ def plot_fnl_lmin():
                  labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}'], settings=stg) 
 
     stats = {}
-    elmin = np.arange(16)
+    elmin = np.arange(10)
+    s = {'desic':0.945, 'bmzls':0.951, 'ndecalsc':0.943, 'sdecalsc':0.943}
+    
     for r in ['desic', 'bmzls', 'ndecalsc', 'sdecalsc']:
         d = []
+        s_ = s[r]
         for elmin_ in elmin:
-            d_ = MCMC(f'{p}logmcmc_lrg_zero_{r}_dnnp_known1_steps10k_walkers50_elmin{elmin_}.npz', mc_kw=mc_kw)
+            d_ = MCMC(f'{p}logmcmc_lrg_zero_{r}_dnnp_known1_steps10k_walkers50_elmin{elmin_}_p1.0_s{s_}.npz', mc_kw=mc_kw)
             d.append(d_.stats)
         stats[r] = np.array(d)    
     
@@ -1617,12 +1620,12 @@ def debias_mcmc():
 
     for case in ['known1', 'knownp', 'allp']:
 
-        d = np.load(f'{p}logmcmc_lrg_zero_desic_dnnp_{case}_steps10k_walkers50_elmin0.npz')
+        d = np.load(f'{p}logmcmc_lrg_zero_desic_dnnp_{case}_steps10k_walkers50_elmin0_p1.0_s0.945.npz')
         dc = dict(d)
         dc['chain'][:, :, 0] = debias(d['chain'][:, :, 0], *debias_params[case])
         dc['best_fit'][0]  = debias(d['best_fit'][0], *debias_params[case])
 
-        np.savez(f'{p}logmcmc_lrg_zero_desic_dnnp_{case}debiased_steps10k_walkers50_elmin0.npz', **dc)
+        np.savez(f'{p}logmcmc_lrg_zero_desic_dnnp_{case}debiased_steps10k_walkers50_elmin0_p1.0_s0.945.npz', **dc)
         #print(f'{p}logmcmc_lrg_zero_desic_dnnp_{case}debiased_steps10k_walkers50_elmin0.npz')
         #print(d['chain'][5000:, :, 0].mean()/1.3)
         #print(dc['chain'][5000:, :, 0].mean()/1.3)    
@@ -1751,9 +1754,9 @@ def plot_clmocks():
     
 def fnltime():
     
-    fNL = [63, 105, -12, 47]
-    fNLerr_lower = [331, 150, 39.0, 22]
-    fNLerr_upper = [101, 90,  40.,  29]
+    fNL = [63, 105, -12, 46]
+    fNLerr_lower = [331, 150, 39.0, 25]
+    fNLerr_upper = [101, 90,  40.,  30]
     fNL_upper = np.array(fNL)+np.array(fNLerr_upper)
     fNL_lower = np.array(fNL)-np.array(fNLerr_lower)
     measurement = ['SDSS \n photo LRG', 'BOSS \n LRG DR9','eBOSS \n QSO DR16','DESI \n photo LRG\n (This work)']
@@ -1804,6 +1807,28 @@ def fnltime():
               [year, fNL, fNL_lower, fNL_upper, 
                year_CMB, fNL_CMB, fNL_lower_CMB, fNL_upper_CMB])
     
+    
+    
+def fnl_magbias():
+    dirp='/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
+    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
+           'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
+    mc_kw = dict(names=['fnl', 'b', 'n0'], 
+                 labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+    stats = {}
+    list_p = [0.55, 0.7, 0.9, 1.0, 1.2, 1.4, 1.6]
+    for p in list_p:
+        d_ = MCMC(f'{dirp}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50_elmin0_p{p}_s0.945.npz', mc_kw=mc_kw)
+        stats[p] = d_.stats
+
+    stats = pd.DataFrame(stats)    
+    plt.plot(stats.iloc[0, :], marker='o')
+    plt.fill_between(list_p, stats.iloc[4, :], stats.iloc[5, :], alpha=0.05)
+    plt.fill_between(list_p, stats.iloc[2, :], stats.iloc[3, :], alpha=0.1, color='C0')
+    plt.xlabel('p')
+    plt.ylim(ymin=-10)
+    plt.ylabel(r'$f_{\rm NL}$ + Mitigation Systematics')   
+    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_magbias.pdf', bbox_inches='tight')       
 # import sys
 # import os
 # import matplotlib.pyplot as plt

@@ -65,18 +65,20 @@ def read_mask(region):
 
 
 # --- inputs
-path_cl  = sys.argv[1:4]
-path_cov = sys.argv[4:7]
-region   = sys.argv[7:10]  # for window
-output   = sys.argv[10]
-scale    = float(sys.argv[11]) > 0
-elmin    = 0 
+from argparse import ArgumentParser
+ap = ArgumentParser(description='MCMC')
+ap.add_argument('--path_cl', nargs=*, required=True)
+ap.add_argument('--path_cov', nargs=*, required=True)
+ap.add_argument('--region', nargs=*, required=True)
+ap.add_argument('--output', required=True)
+ap.add_argument('--scale', action='store_true')
+ap.add_argument('--elmin', default=0, type=int)
+ap.add_argument('--p', default=1.0, type=float)
+ap.add_argument('--s', nargs=*, default=[0.945, 0.945, 0.945], type=float)
+ns = ap.parse_args()
 
-print(path_cl)
-print(path_cov)
-print(region)
-print(scale)
-
+for (key, value) in ns.__dict__.items():
+    print(f'{key:15s} : {value}')                
 
 
 nsteps   = 10000   # int(sys.argv[2])
@@ -87,40 +89,40 @@ assert nwalkers > 2*ndim
 ncpu = cpu_count()
 print("{0} CPUs".format(ncpu))    
 
-if not os.path.exists(os.path.dirname(output)):
-    print(f'create {os.path.dirname(output)}')
-    os.makedirs(os.path.dirname(output))
+if not os.path.exists(os.path.dirname(ns.output)):
+    print(f'create {os.path.dirname(ns.output)}')
+    os.makedirs(os.path.dirname(ns.output))
 
 z, b, dNdz = init_sample(kind='lrg')
 
 # region 1
-el_edges, cl_obs, invcov_obs = read_inputs(path_cl[0], path_cov[0], scale)
-weight, mask = read_mask(region[0])
+el_edges, cl_obs, invcov_obs = read_inputs(ns.path_cl[0], ns.path_cov[0], ns.scale)
+weight, mask = read_mask(ns.region[0])
 
 model = SurveySpectrum()
-model.add_tracer(z, b, dNdz, p=1.0)
+model.add_tracer(z, b, dNdz, p=ns.p, s=ns.s[0])
 model.add_kernels(model.el_model)
 model.add_window(weight, mask, np.arange(2048), ngauss=2048)  
 
 lg = LogPosterior(model, cl_obs, invcov_obs, el_edges)
 
 # region 2
-el_edges2, cl_obs2, invcov_obs2 = read_inputs(path_cl[1], path_cov[1], scale)
-weight, mask = read_mask(region[1])
+el_edges2, cl_obs2, invcov_obs2 = read_inputs(ns.path_cl[1], ns.path_cov[1], ns.scale)
+weight, mask = read_mask(ns.region[1])
 
 model2 = SurveySpectrum()
-model2.add_tracer(z, b, dNdz, p=1.0)
+model2.add_tracer(z, b, dNdz, p=ns.p, s=ns.s[1])
 model2.add_kernels(model2.el_model)
 model2.add_window(weight, mask, np.arange(2048), ngauss=2048)  
 
 lg2 = LogPosterior(model2, cl_obs2, invcov_obs2, el_edges2)
 
 # region 3
-el_edges3, cl_obs3, invcov_obs3 = read_inputs(path_cl[2], path_cov[2], scale)
-weight, mask = read_mask(region[1])
+el_edges3, cl_obs3, invcov_obs3 = read_inputs(ns.path_cl[2], ns.path_cov[2], ns.scale)
+weight, mask = read_mask(ns.region[2])
 
 model3 = SurveySpectrum()
-model3.add_tracer(z, b, dNdz, p=1.0)
+model3.add_tracer(z, b, dNdz, p=ns.p, s=ns.s[2])
 model3.add_kernels(model3.el_model)
 model3.add_window(weight, mask, np.arange(2048), ngauss=2048)  
 
@@ -146,7 +148,7 @@ with Pool() as pool:
     sampler = emcee.EnsembleSampler(nwalkers, ndim, logpost, pool=pool)
     sampler.run_mcmc(start, nsteps, progress=True)
 
-np.savez(output, **{'chain':sampler.get_chain(), 
+np.savez(ns.output, **{'chain':sampler.get_chain(), 
                     'log_prob':sampler.get_log_prob(), 
                     'best_fit':res.x,
                     'best_fit_logprob':res.fun,
