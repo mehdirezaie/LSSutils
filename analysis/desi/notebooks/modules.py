@@ -1606,6 +1606,16 @@ def plot_fnlbias():
     
     
 def debias_mcmc():
+    
+    """
+    how to get debiasing coefficients
+    # meas0  = md.np.array([0.36,   77.67])
+    # meas1  = md.np.array([-20.14, 38.38])
+
+
+    # a = (meas0[0]-meas0[1])/(meas1[0]-meas1[1])
+    # b = (meas1[0]*meas0[1]-meas1[1]*meas0[0])/(meas1[0]-meas1[1])    
+    """
     #knn1_s.samples[:, 0] = 1.17*knn1_s.samples[:, 0]+13.95
     #dskp_s.samples[:, 0] = 1.32*dskp_s.samples[:, 0]+26.97
     #dsp_s.samples[:, 0]  = 2.35*dsp_s.samples[:, 0]+63.50
@@ -1809,7 +1819,7 @@ def fnltime():
     
     
     
-def fnl_magbias():
+def fnl_magbias_p():
     dirp='/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
     stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
            'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
@@ -1822,13 +1832,50 @@ def fnl_magbias():
         stats[p] = d_.stats
 
     stats = pd.DataFrame(stats)    
-    plt.plot(stats.iloc[0, :], marker='o')
+    plt.plot(list_p, stats.iloc[0, :]/(stats.iloc[3, :]-stats.iloc[2, :]), marker='o')
+    plt.xlabel('p')
+    plt.ylabel(r'$(f_{\rm NL}$ + Mitigation Systematics)/$\sigma (f_{\rm NL})$')   
+    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_p.pdf', bbox_inches='tight') 
+    
+    
+    plt.figure()
+    plt.plot(list_p, stats.iloc[0, :], marker='o')
     plt.fill_between(list_p, stats.iloc[4, :], stats.iloc[5, :], alpha=0.05)
     plt.fill_between(list_p, stats.iloc[2, :], stats.iloc[3, :], alpha=0.1, color='C0')
     plt.xlabel('p')
     plt.ylim(ymin=-10)
     plt.ylabel(r'$f_{\rm NL}$ + Mitigation Systematics')   
-    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_magbias.pdf', bbox_inches='tight')       
+    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_p2.pdf', bbox_inches='tight') 
+    
+    
+    dirp='/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
+    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
+           'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
+    mc_kw = dict(names=['fnl', 'b', 'n0'], 
+                 labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+    stats = {}
+    list_s = ['0.75', '0.80', '0.85', '0.90', '0.939', '0.945', 0.95, 0.951, '1.00', 1.05, '1.10', 1.15, '1.20', 1.25]
+
+    for s in list_s:
+        d_ = MCMC(f'{dirp}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s{s}.npz', mc_kw=mc_kw)
+        stats[str(s)] = d_.stats
+
+    plt.figure()
+    stats = pd.DataFrame(stats, index=['Best Fit', 'Mean', '16th', '84th', '2.5th', '97.5th', '-chi2'])
+    list_s_v = [float(l) for l in list_s]
+    plt.plot(list_s_v, stats.iloc[0, :], marker='o')
+    plt.fill_between(list_s_v, stats.iloc[4, :], stats.iloc[5, :], alpha=0.05)
+    plt.fill_between(list_s_v, stats.iloc[2, :], stats.iloc[3, :], alpha=0.1, color='C0')
+    plt.xlabel('s')
+    plt.ylim(ymin=-10)
+    plt.ylabel(r'$f_{\rm NL}$ + Mitigation Systematics')
+    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_magbias.pdf', bbox_inches='tight')    
+
+    
+
+    
+    
+    
 # import sys
 # import os
 # import matplotlib.pyplot as plt

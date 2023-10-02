@@ -80,3 +80,51 @@ for name in data_nn.dtype.names:
 #    data_nn = ut.remove_islands(data_nn, nside)
     
 ft.write(path_out, data_nn, clobber=True)
+
+
+
+## ---  code below is for adding extra columns
+
+"""
+import fitsio as ft
+import lssutils.utils as ut
+from lssutils.stats.nnbar import get_meandensity
+import healpy as hp
+import matplotlib.pyplot as plt
+import numpy as np
+from lssutils.extrn.galactic.hpmaps import logHI
+
+def rotate(map1, mask1):
+    map1[mask1] = np.nan
+    map1_ = hp.reorder(map1, n2r=True)
+    return map1_
+
+
+def add_extras(reg):
+    
+    data = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_{reg}_256.fits')
+    extra = ft.read('/fs/ess/PHS0336/data/templates/pixweight_external.fits')
+    lh = logHI(path='/fs/ess/PHS0336/data/templates/NHI_HPX.fits')
+    
+    calibz = rotate(extra['CALIBZ'], extra['CALIBMASKZ']>0.5)
+    #halpha = np.log10(rotate(extra['HALPHA'], extra['HALPHAMASK']==1))
+
+    is_bad = np.isnan(calibz[data['hpix']])
+    print('# bad', is_bad.sum())
+    cmean = np.nanmean(calibz[data['hpix']])
+    print(calibz[data['hpix']][is_bad])
+    calibz[data['hpix'][is_bad]] = cmean
+    print(cmean)
+    print(calibz[data['hpix']][is_bad])
+    sysm = np.column_stack([data['features'], calibz[data['hpix']], lh.map[data['hpix']]]) # halpha[data['hpix']]
+
+    is_good = np.isnan(sysm).sum(axis=1) < 0.5
+    assert(is_good.mean() ==1)
+
+    data_new = ut.to_numpy(data['label'], sysm, data['fracgood'], data['hpix'])
+    output = f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_{reg}ext_256.fits'
+    ft.write(output, data_new)
+    print('wrote ', output)
+    
+add_extras('sdecalsc')
+"""

@@ -31,16 +31,16 @@ do_mcmc_joint3=false # 5x14
 
 bsize=5000    # 
 target="lrg"  # lrg
-region=$1     # bmzls, ndecalsc, sdecalsc, or desic
-maps=$2       # known, all, known1, known2
+region=desic     # bmzls, ndecalsc, sdecalsc, or desic
+maps=known1       # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
 fnltag="zero"
-model=$3    # dnnp, linp
+model=dnnp    # dnnp, linp
 method=${model}_${maps}       # dnnp_known1, linp_known, or noweight
-lmin=$4
-p=$5
-s=$6
+lmin=0
+p=1.0
+s=$1
 loss=pnll
 nns=(4 20)
 nepoch=70  # v0 with 71
