@@ -1764,13 +1764,13 @@ def plot_clmocks():
     
 def fnltime():
     
-    fNL = [63, 105, -12, 46]
-    fNLerr_lower = [331, 150, 39.0, 25]
-    fNLerr_upper = [101, 90,  40.,  30]
+    fNL = [63, 105, -12, -50, 46]
+    fNLerr_lower = [331, 150, 39.0, 80, 25]
+    fNLerr_upper = [101, 90,  40.,  80, 30]
     fNL_upper = np.array(fNL)+np.array(fNLerr_upper)
     fNL_lower = np.array(fNL)-np.array(fNLerr_lower)
-    measurement = ['SDSS \n photo LRG', 'BOSS \n LRG DR9','eBOSS \n QSO DR16','DESI \n photo LRG\n (This work)']
-    year = [2008, 2013, 2021, 2023]
+    measurement = ['SDSS \n photo LRG', 'BOSS \n LRG DR9','eBOSS \n QSO DR16', 'BOSS DR12', 'DESI \n photo LRG\n (This work)']
+    year = [2008, 2013, 2021, 2022, 2023]
     
     fNL_CMB = [38,32,2.7,-0.9]
     fNLerr_lower_CMB = [96,42,11.6,10.2]
@@ -1786,8 +1786,8 @@ def fnltime():
     ax.scatter(year[-1], fNL[-1], s=200, marker='*', color='C0')
     
     #adjust label
-    labelshift=[-40, 55, 60, -80]
-    xshift=[-0.5, 1, 1, 1]
+    labelshift=[-40, 55, 70, 50, -80]
+    xshift=[-0.5, 1, 3, 1, 1]
     for i, txt in enumerate(measurement):
         ax.annotate(txt, (year[i]-xshift[i], fNL[i]-fNLerr_lower[i]-labelshift[i]), color='C0',fontsize=17)   
         
@@ -1813,9 +1813,9 @@ def fnltime():
     plt.tight_layout()
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_history.pdf', bbox_inches='tight')       
     
-    np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig15_fnl_history.txt',
-              [year, fNL, fNL_lower, fNL_upper, 
-               year_CMB, fNL_CMB, fNL_lower_CMB, fNL_upper_CMB])
+    #np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig15_fnl_history.txt',
+    #          [year, fNL, fNL_lower, fNL_upper, 
+    #           year_CMB, fNL_CMB, fNL_lower_CMB, fNL_upper_CMB])
     
     
     
@@ -1829,20 +1829,25 @@ def fnl_magbias_p():
     list_p = [0.55, 0.7, 0.9, 1.0, 1.2, 1.4, 1.6]
     for p in list_p:
         d_ = MCMC(f'{dirp}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50_elmin0_p{p}_s0.945.npz', mc_kw=mc_kw)
-        stats[p] = d_.stats
+        stats[str(p)] = d_.stats
 
     stats = pd.DataFrame(stats)    
-    plt.plot(list_p, stats.iloc[0, :]/(stats.iloc[3, :]-stats.iloc[2, :]), marker='o')
-    plt.xlabel('p')
+    fnl_sn = 2*stats.iloc[0, :]/(stats.iloc[3, :]-stats.iloc[2, :])
+    plt.plot(list_p, fnl_sn, marker='o')
+    plt.scatter(list_p[3], fnl_sn[3], 200, marker='*', color='C0')
+    plt.xlabel('$p$')
+    plt.text(0.7, 0.5, '$s=0.945$', color='C0')    
+    plt.ylim(0, 3)
     plt.ylabel(r'$(f_{\rm NL}$ + Mitigation Systematics)/$\sigma (f_{\rm NL})$')   
     plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_p.pdf', bbox_inches='tight') 
-    
+    print_stats(stats)
     
     plt.figure()
-    plt.plot(list_p, stats.iloc[0, :], marker='o')
-    plt.fill_between(list_p, stats.iloc[4, :], stats.iloc[5, :], alpha=0.05)
+    plt.plot(list_p, stats.iloc[0, :], color='C0', marker='o')
+    plt.scatter(list_p[3], stats.iloc[0, 3], 200, marker='*', color='C0')    
+    plt.fill_between(list_p, stats.iloc[4, :], stats.iloc[5, :], alpha=0.05, color='C0')
     plt.fill_between(list_p, stats.iloc[2, :], stats.iloc[3, :], alpha=0.1, color='C0')
-    plt.xlabel('p')
+    plt.xlabel('$p$')
     plt.ylim(ymin=-10)
     plt.ylabel(r'$f_{\rm NL}$ + Mitigation Systematics')   
     plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_p2.pdf', bbox_inches='tight') 
@@ -1854,7 +1859,7 @@ def fnl_magbias_p():
     mc_kw = dict(names=['fnl', 'b', 'n0'], 
                  labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}'], settings=stg) 
     stats = {}
-    list_s = ['0.75', '0.80', '0.85', '0.90', '0.939', '0.945', 0.95, 0.951, '1.00', 1.05, '1.10', 1.15, '1.20', 1.25]
+    list_s = ['0.75', '0.80', '0.85', '0.90', '0.945', '1.00', 1.05, '1.10', 1.15, '1.20', 1.25]
 
     for s in list_s:
         d_ = MCMC(f'{dirp}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s{s}.npz', mc_kw=mc_kw)
@@ -1864,15 +1869,77 @@ def fnl_magbias_p():
     stats = pd.DataFrame(stats, index=['Best Fit', 'Mean', '16th', '84th', '2.5th', '97.5th', '-chi2'])
     list_s_v = [float(l) for l in list_s]
     plt.plot(list_s_v, stats.iloc[0, :], marker='o')
+    plt.scatter(list_s_v[5], stats.iloc[0, 5], 200, marker='*', color='C0')
     plt.fill_between(list_s_v, stats.iloc[4, :], stats.iloc[5, :], alpha=0.05)
     plt.fill_between(list_s_v, stats.iloc[2, :], stats.iloc[3, :], alpha=0.1, color='C0')
-    plt.xlabel('s')
+    plt.xlabel('$s$')
+    plt.text(0.8, 0, '$p=1$', color='C0')
     plt.ylim(ymin=-10)
     plt.ylabel(r'$f_{\rm NL}$ + Mitigation Systematics')
     plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_magbias.pdf', bbox_inches='tight')    
+    print_stats(stats)
 
     
+def mask_2pf():
+    # read survey geometry
+    dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_desic_256.fits')
+    w = np.zeros(12*256*256)
+    w[dt['hpix']] = 1.0
+    weight = hp.ud_grade(w, 1024)
+    mask = weight > 0.5
+    print(mask.mean())
+    wind = WindowSHT(weight, mask, np.arange(501))
+    
+    # read survey geometry
+    dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_bmzls_256.fits')
+    w = np.zeros(12*256*256)
+    w[dt['hpix']] = 1.0
+    weight = hp.ud_grade(w, 1024)
+    mask = weight > 0.5
+    wind1 = WindowSHT(weight, mask, np.arange(501))    
 
+    # read survey geometry
+    dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_sdecalsc_256.fits')
+    w = np.zeros(12*256*256)
+    w[dt['hpix']] = 1.0
+    weight = hp.ud_grade(w, 1024)
+    mask = weight > 0.5
+    wind2 = WindowSHT(weight, mask, np.arange(501))
+    
+    # read survey geometry
+    dt = ft.read(f'/fs/ess/PHS0336/data/rongpu/imaging_sys/tables/0.57.0/nlrg_features_ndecalsc_256.fits')
+    w = np.zeros(12*256*256)
+    w[dt['hpix']] = 1.0
+    weight = hp.ud_grade(w, 1024)
+    mask = weight > 0.5
+    wind3 = WindowSHT(weight, mask, np.arange(501))
+    
+    fig, ax = plt.subplots()
+    ax.plot(np.rad2deg(np.arccos(wind.x)),  wind.xi_mask,   label='DESI')
+    ax.plot(np.rad2deg(np.arccos(wind1.x)), wind1.xi_mask, label='BASS+MzLS', ls='--')
+    ax.plot(np.rad2deg(np.arccos(wind2.x)), wind2.xi_mask, label='DECaLS South', ls=':')
+    ax.plot(np.rad2deg(np.arccos(wind3.x)), wind3.xi_mask, label='DECaLS North', ls='-.')
+    ax.set_xscale('log')
+    ax.set_xlabel('separation [deg]')
+    ax.set_ylabel(r'$\omega$')
+    lgn = ax.legend(frameon=False, ncol=2, loc='lower left')
+
+    ax1 = ax.inset_axes([0.15, 0.4, 0.4, 0.4])
+    ax1.set_xlim(100, 181)
+    ax1.set_ylim(-0.01, 0.1)
+
+    ax.indicate_inset_zoom(ax1, alpha=0.3)
+
+    ax1.plot(np.rad2deg(np.arccos(wind.x)),  wind.xi_mask,   label='DESI')
+    ax1.plot(np.rad2deg(np.arccos(wind1.x)), wind1.xi_mask, label='BASS+MzLS', ls='--')
+    ax1.plot(np.rad2deg(np.arccos(wind2.x)), wind2.xi_mask, label='DECaLS South', ls=':')
+    ax1.plot(np.rad2deg(np.arccos(wind3.x)), wind3.xi_mask, label='DECaLS North', ls='-.')
+    ax1.set(xticks=[], yticks=[])
+
+    for i, txt in enumerate(lgn.get_texts()):
+        txt.set_color('C%d'%i)   
+        
+    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/mask_2pf.pdf', bbox_inches='tight')    
     
     
     

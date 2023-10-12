@@ -4,11 +4,32 @@ import numpy as np
 from scipy.interpolate import interp1d
 from lssutils.stats.cl import AnaFast, gauleg
 
+from scipy.optimize import curve_fit
 
+def model(l, *p):
+    return p[0]*np.log10(l)+p[1]
 
+def smooth_cl(cl_wind):
+    el_p = 2
+    el = np.arange(cl_wind.size)
+    is_small = el < el_p
+
+    lmin = 10
+    lmax = 200 #2*nside-1
+    x = np.arange(lmin, lmax+1)
+    y = cl_wind[lmin:lmax+1]
+    res = curve_fit(model, x, np.log10(y), p0=[1, 1])
+
+    cl_window = np.zeros(el.size)
+    cl_window[:el_p] = cl_wind[:el_p]
+    cl_window[~is_small] = 10**model(el[~is_small], *res[0])
+    return cl_window
+    
+    
+    
 class WindowSHT:
     
-    def __init__(self, weight, mask, ell_ob, ngauss=2**12):
+    def __init__(self, weight, mask, ell_ob, ngauss=2**12, smooth_window=False):
         af = AnaFast()
         cl_ = af(mask*1.0, weight, mask)        
         
@@ -20,6 +41,8 @@ class WindowSHT:
         self.x, self.w = gauleg(ngauss)
         self.xi_mask = self.cl2xi(cl_['l'], cl_['cl']) / xi_zero
         self.cl_mask = cl_['cl']
+        if smooth_window:
+            self.cl_mask = smooth_cl(self.cl_mask*1.0)
         
         self.xi_sht = interp1d(self.x, self.xi_mask)
                 
