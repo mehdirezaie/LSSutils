@@ -2,7 +2,7 @@
 import numpy as np
 
 
-def read_chain(chain_filename, skip=5000, ndim=3, ifnl=0, iscale=[2, ]):
+def read_chain(chain_filename, skip=5000, ndim=3, ifnl=0, iscale=[2, ], debias=None):
     gratio = 1.3
     ch_ = np.load(chain_filename)
     
@@ -17,6 +17,10 @@ def read_chain(chain_filename, skip=5000, ndim=3, ifnl=0, iscale=[2, ]):
     
     for icol in iscale:
         sample[:, icol] *= 1.0e7
+        
+    if debias is not None:
+        sample[:, ifnl] = debias[0]*sample[:, ifnl]+debias[1]
+        map_bf = debias[0]*map_bf + debias[1]
     
     mean_chain = sample[:, ifnl].mean()
     vmin2, vmin1, vmax1, vmax2 = np.percentile(sample[:, ifnl], [2.5, 16, 84, 97.5], axis=ifnl)

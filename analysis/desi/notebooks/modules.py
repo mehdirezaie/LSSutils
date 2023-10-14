@@ -1821,61 +1821,60 @@ def fnltime():
     
 def fnl_magbias_p():
     dirp='/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
-    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
-           'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
-    mc_kw = dict(names=['fnl', 'b', 'n0'], 
-                 labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}'], settings=stg) 
     stats = {}
     list_p = [0.55, 0.7, 0.9, 1.0, 1.2, 1.4, 1.6]
     for p in list_p:
-        d_ = MCMC(f'{dirp}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50_elmin0_p{p}_s0.945.npz', mc_kw=mc_kw)
-        stats[str(p)] = d_.stats
-
+        d_, __ = read_chain(f'{dirp}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50_elmin0_p{p}_s0.945.npz', 
+                       debias=(1.17, 13.95))
+        stats[str(p)] = d_
     stats = pd.DataFrame(stats)    
     fnl_sn = 2*stats.iloc[0, :]/(stats.iloc[3, :]-stats.iloc[2, :])
-    plt.plot(list_p, fnl_sn, marker='o')
-    plt.scatter(list_p[3], fnl_sn[3], 200, marker='*', color='C0')
-    plt.xlabel('$p$')
-    plt.text(0.7, 0.5, '$s=0.945$', color='C0')    
-    plt.ylim(0, 3)
-    plt.ylabel(r'$(f_{\rm NL}$ + Mitigation Systematics)/$\sigma (f_{\rm NL})$')   
-    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_p.pdf', bbox_inches='tight') 
-    print_stats(stats)
     
-    plt.figure()
-    plt.plot(list_p, stats.iloc[0, :], color='C0', marker='o')
-    plt.scatter(list_p[3], stats.iloc[0, 3], 200, marker='*', color='C0')    
-    plt.fill_between(list_p, stats.iloc[4, :], stats.iloc[5, :], alpha=0.05, color='C0')
-    plt.fill_between(list_p, stats.iloc[2, :], stats.iloc[3, :], alpha=0.1, color='C0')
-    plt.xlabel('$p$')
-    plt.ylim(ymin=-10)
-    plt.ylabel(r'$f_{\rm NL}$ + Mitigation Systematics')   
-    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_p2.pdf', bbox_inches='tight') 
+    fig = plt.figure(figsize=(6, 6), constrained_layout=False)
+    gs = GridSpec(2, 1, figure=fig)
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax2 = fig.add_subplot(gs[1, 0])    
+    ax1.plot(list_p, stats.iloc[0, :], color='C0', marker='o')
+    ax1.scatter(list_p[3], stats.iloc[0, 3], 200, marker='*', color='C0')    
+    ax1.fill_between(list_p, stats.iloc[4, :], stats.iloc[5, :], alpha=0.05, color='C0')
+    ax1.fill_between(list_p, stats.iloc[2, :], stats.iloc[3, :], alpha=0.1, color='C0')
+    ax1.set(ylabel=r'$f_{\rm NL}$')
+
+    ax2.plot(list_p, fnl_sn, marker='o')
+    ax2.scatter(list_p[3], fnl_sn[3], 200, marker='*', color='C0')
+    ax2.text(0.2, 0.2, '$s=0.945$', color='C0', transform=ax2.transAxes)    
+    ax2.set(xlabel='$p$', ylim=(1.8, 4.2), ylabel=r'$f_{\rm NL}$/$\sigma (f_{\rm NL})$',
+           xlim=ax1.get_xlim())    
+    ax1.tick_params(labelbottom=False)
+    fig.subplots_adjust(hspace=0.0, wspace=0.02)
+    fig.align_labels()        
+    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_p.pdf', bbox_inches='tight') 
+    print_stats(stats)    
+
+
     
     
     dirp='/fs/ess/PHS0336/data/rongpu/imaging_sys/mcmc/0.57.0/'
-    stg = {'mult_bias_correction_order':0,'smooth_scale_2D':0.15, 
-           'smooth_scale_1D':0.3, 'contours': [0.68, 0.95]}
-    mc_kw = dict(names=['fnl', 'b', 'n0'], 
-                 labels=[r'f_{\rm NL}', 'b', '10^{7}n_{0}'], settings=stg) 
+
     stats = {}
     list_s = ['0.75', '0.80', '0.85', '0.90', '0.945', '1.00', 1.05, '1.10', 1.15, '1.20', 1.25]
 
     for s in list_s:
-        d_ = MCMC(f'{dirp}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s{s}.npz', mc_kw=mc_kw)
-        stats[str(s)] = d_.stats
+        d_,__ = read_chain(f'{dirp}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s{s}.npz', 
+                           debias=(1.17, 13.95))
+        stats[str(s)] = d_
 
     plt.figure()
     stats = pd.DataFrame(stats, index=['Best Fit', 'Mean', '16th', '84th', '2.5th', '97.5th', '-chi2'])
     list_s_v = [float(l) for l in list_s]
     plt.plot(list_s_v, stats.iloc[0, :], marker='o')
-    plt.scatter(list_s_v[5], stats.iloc[0, 5], 200, marker='*', color='C0')
+    plt.scatter(list_s_v[4], stats.iloc[0, 4], 200, marker='*', color='C0')
     plt.fill_between(list_s_v, stats.iloc[4, :], stats.iloc[5, :], alpha=0.05)
     plt.fill_between(list_s_v, stats.iloc[2, :], stats.iloc[3, :], alpha=0.1, color='C0')
     plt.xlabel('$s$')
     plt.text(0.8, 0, '$p=1$', color='C0')
     plt.ylim(ymin=-10)
-    plt.ylabel(r'$f_{\rm NL}$ + Mitigation Systematics')
+    plt.ylabel(r'$f_{\rm NL}$')
     plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/fnl_magbias.pdf', bbox_inches='tight')    
     print_stats(stats)
 
