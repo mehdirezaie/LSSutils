@@ -434,6 +434,7 @@ def plot_clxtest():
     err_dr9known1  = read_clx(f'{d_}cl_lrg_desic_256_linp_known1.npy', ell_edges)[1]
     err_dr9nknown1 = read_clx(f'{d_}cl_lrg_desic_256_dnnp_known1.npy', ell_edges)[1]
     err_dr9nknownp = read_clx(f'{d_}cl_lrg_desic_256_dnnp_knownp.npy', ell_edges)[1]    
+    err_dr9nallp = read_clx(f'{d_}cl_lrg_desic_256_dnnp_allp.npy', ell_edges)[1]    
 
     err_0m = np.percentile(err_0, [97.5, ], axis=0).flatten()
     err_100m = np.percentile(err_100, [97.5, ], axis=0).flatten()
@@ -446,6 +447,7 @@ def plot_clxtest():
     chi2_dr9known1 = ut.chi2_fn(err_dr9known1, icov)
     chi2_dr9nknown1 = ut.chi2_fn(err_dr9nknown1, icov)
     chi2_dr9nknownp = ut.chi2_fn(err_dr9nknownp, icov)
+    chi2_dr9nallp = ut.chi2_fn(err_dr9nallp, icov)
 
     
     labels = ['No Weight', 'Linear Two Maps', 'Linear Three Maps', 'Linear Eight Maps', 
@@ -531,6 +533,9 @@ def plot_clxtest():
 
     ax1.axvline(chi2_dr9nknown1, lw=1, color='C4', ls='--')
     ax1.annotate('Nonlinear Three Maps', (chi2_dr9nknown1-20, 8), rotation=90, fontsize=13, color='C4')
+    
+    #ax1.axvline(chi2_dr9nallp, lw=1, color='C4', ls='--')
+    #ax1.annotate('Nonlinear Nine Maps', (chi2_dr9nallp-20, 8), rotation=90, fontsize=13, color='C4')    
 
     ax1.axvline(chi2_dr9known1, lw=1, color='C2', ls='-.')
     ax1.annotate('Linear Three Maps', (chi2_dr9known1+7, 20), rotation=90, fontsize=13, color='C2')
@@ -539,9 +544,9 @@ def plot_clxtest():
     ax1.annotate('Linear Two Maps', (chi2_dr9known+7, 20), rotation=90, fontsize=13, color='C1')
 
     
-    for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp]:
+    for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp, chi2_dr9nallp]:
         is_gt = np.array(chi2s['fNL=0']) > chi_i
-        print('p-value:', is_gt.mean())
+        print(chi_i, 'p-value:', is_gt.mean())
     np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig8_chi2test_1.txt', 
               [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp])
     np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig8_chi2test_2.txt', [chi2s['fNL=0'], chi2s['fNL=76.92']])
@@ -609,6 +614,7 @@ def plot_nbartest():
     err_dr9known1  = read_nnbar(f'{d_}nbar_lrg_desic_256_linp_known1.npy')
     err_dr9nknown1 = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_known1.npy') 
     err_dr9nknownp = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_knownp.npy') 
+    err_dr9nallp = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_allp.npy') 
     
     chi2_dr9 = ut.chi2_fn(err_dr9, icov)
     chi2_dr9all = ut.chi2_fn(err_dr9all, icov)
@@ -616,6 +622,7 @@ def plot_nbartest():
     chi2_dr9known1 = ut.chi2_fn(err_dr9known1, icov)
     chi2_dr9nknown1 = ut.chi2_fn(err_dr9nknown1, icov)
     chi2_dr9nknownp = ut.chi2_fn(err_dr9nknownp, icov)
+    chi2_dr9nallp = ut.chi2_fn(err_dr9nallp, icov)
     
     err_0m = np.std(err_0,  axis=0)
     err_100m = np.std(err_100, axis=0)
@@ -708,9 +715,9 @@ def plot_nbartest():
     ax1.annotate('Linear Two Maps', (chi2_dr9known+4, 20), rotation=90, fontsize=13, color='C1')
 
 
-    for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp]:
+    for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp, chi2_dr9nallp]:
         is_gt = np.array(chi2s['fNL=0']) > chi_i
-        print('p-value:', is_gt.mean())    
+        print(chi_i, 'p-value:', is_gt.mean())    
 
     np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig8_chi2test2_1.txt',
               [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp])

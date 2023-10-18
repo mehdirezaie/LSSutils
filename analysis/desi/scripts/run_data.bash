@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=nn
 #SBATCH --account=PHS0336 
-#SBATCH --time=05:00:00
+#SBATCH --time=00:10:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=14
+#SBATCH --ntasks-per-node=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -24,15 +24,15 @@ do_fit=false       # linmcmc:20m x 14, nn:20 h x 1 tpn
 do_linsam=false   # 10 min x 1
 do_rfe=false      # 
 do_assign=false   #
-do_nbar=false     # 10 min x 4 tpn
+do_nbar=true     # 10 min x 4 tpn
 do_cl=false       # 20 min x 4 tpn
-do_mcmc=true     # 3 h x 14 tpn
+do_mcmc=false     # 3 h x 14 tpn
 do_mcmc_joint3=false # 5x14
 
 bsize=5000    # 
 target="lrg"  # lrg
 region=desic     # bmzls, ndecalsc, sdecalsc, or desic
-maps=known1       # known, all, known1, known2
+maps=allp       # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
 fnltag="zero"
