@@ -148,28 +148,39 @@ def get_inv(err_tot, return_cov=False):
     return ret
 
 
-def get_chi2pdf(err_tot):
-    
+def get_chi2pdf(err_tot, invcov_=None):
     nmocks, nbins = err_tot.shape
-    hartlapf = (nmocks-1. - 1.) / (nmocks-1. - nbins - 2.) # leave-one-out
-    print(f'nmocks: {nmocks}, nbins: {nbins}')
-    
-    indices = np.arange(nmocks).tolist()
     chi2s = []
     
-    for i in range(nmocks):
+    if invcov_ is None:        
         
-        indices_ = indices.copy()    
-        indices_.pop(i)
+        hartlapf = (nmocks-1. - 1.) / (nmocks-1. - nbins - 2.) # leave-one-out
+        print(f'nmocks: {nmocks}, nbins: {nbins}')
+        indices = np.arange(nmocks).tolist()
+
+        for i in range(nmocks):
+
+            indices_ = indices.copy()    
+            indices_.pop(i)
+
+            nbar_ = err_tot[i, :]
+            err_ = err_tot[indices_, :]    
+
+            covmax_ = np.cov(err_, rowvar=False)
+            invcov_ = np.linalg.inv(covmax_*hartlapf)
+
+            chi2_ = chi2_fn(nbar_, invcov_)
+            chi2s.append(chi2_)       
         
-        nbar_ = err_tot[i, :]
-        err_ = err_tot[indices_, :]    
+    else:
+
+        for i in range(nmocks):
+            
+            nbar_ = err_tot[i, :]
+            chi2_ = chi2_fn(nbar_, invcov_)
+            chi2s.append(chi2_)       
+
         
-        covmax_ = np.cov(err_, rowvar=False)
-        invcov_ = np.linalg.inv(covmax_*hartlapf)
-        
-        chi2_ = chi2_fn(nbar_, invcov_)
-        chi2s.append(chi2_)       
         
     return chi2s
 

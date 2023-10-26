@@ -422,9 +422,14 @@ def plot_clxtest():
     err_0 = read_clxmocks(glob(f'{p}clmock_0_*_lrg_zero_desic_256_noweight.npy'), ell_edges)
     err_100 = read_clxmocks(glob(f'{p}clmock_0_*_lrg_po100_desic_256_noweight.npy'), ell_edges)
 
+    err_0m = np.percentile(err_0, [97.5, ], axis=0).flatten()
+    err_100m = np.percentile(err_100, [97.5, ], axis=0).flatten()
+    icov, cov_0 = ut.get_inv(err_0, return_cov=True)
+    cov_100 = ut.get_inv(err_100, return_cov=True)[1]    
+    
     chi2s = {}
     chi2s['fNL=0'] = ut.get_chi2pdf(err_0)
-    chi2s['fNL=76.92'] = ut.get_chi2pdf(err_100)
+    chi2s['fNL=76.92'] = ut.get_chi2pdf(err_100, invcov_=icov)
 
     
     d_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'
@@ -436,10 +441,7 @@ def plot_clxtest():
     err_dr9nknownp = read_clx(f'{d_}cl_lrg_desic_256_dnnp_knownp.npy', ell_edges)[1]    
     err_dr9nallp = read_clx(f'{d_}cl_lrg_desic_256_dnnp_allp.npy', ell_edges)[1]    
 
-    err_0m = np.percentile(err_0, [97.5, ], axis=0).flatten()
-    err_100m = np.percentile(err_100, [97.5, ], axis=0).flatten()
-    icov, cov_0 = ut.get_inv(err_0, return_cov=True)
-    cov_100 = ut.get_inv(err_100, return_cov=True)[1]
+
 
     chi2_dr9 = ut.chi2_fn(err_dr9, icov)
     chi2_dr9all = ut.chi2_fn(err_dr9all, icov)
@@ -546,7 +548,8 @@ def plot_clxtest():
     
     for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp, chi2_dr9nallp]:
         is_gt = np.array(chi2s['fNL=0']) > chi_i
-        print(chi_i, 'p-value:', is_gt.mean())
+        is_gt2 = np.array(chi2s['fNL=76.92']) > chi_i
+        print(f'{chi_i:.1f}, p-value: {is_gt.mean():.2f}, {is_gt2.mean():.2f}')
     np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig8_chi2test_1.txt', 
               [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp])
     np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig8_chi2test_2.txt', [chi2s['fNL=0'], chi2s['fNL=76.92']])
@@ -663,7 +666,7 @@ def plot_nbartest():
     
     chi2s = {}
     chi2s['fNL=0'] = ut.get_chi2pdf(err_0)
-    chi2s['fNL=76.92'] = ut.get_chi2pdf(err_100)
+    chi2s['fNL=76.92'] = ut.get_chi2pdf(err_100, invcov_=icov)
     
     xlabel = r'Mean Density $\chi^{2}$'
     xlim1 = (20, 240)
@@ -717,8 +720,9 @@ def plot_nbartest():
 
     for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp, chi2_dr9nallp]:
         is_gt = np.array(chi2s['fNL=0']) > chi_i
-        print(chi_i, 'p-value:', is_gt.mean())    
-
+        is_gt2 = np.array(chi2s['fNL=76.92']) > chi_i
+        print(f'{chi_i:.1f}, p-value: {is_gt.mean():.2f}, {is_gt2.mean():.2f}')
+        
     np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig8_chi2test2_1.txt',
               [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp])
     np.savetxt('/users/PHS0336/medirz90/github/dimagfnl/figures/fig8_chi2test2_2.txt', [chi2s['fNL=0'], chi2s['fNL=76.92']])    

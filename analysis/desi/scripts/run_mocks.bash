@@ -23,8 +23,8 @@ do_prep=false        #
 do_nn=false           # 10 h
 do_pullnn=false      # 10 m x 1
 do_regrs=false       # 25 min
-do_nbar=false        # 10 m x 4
-do_cl=true          # 10 m x 4
+do_nbar=true        # 10 m x 4
+do_cl=false          # 10 m x 4
 do_clfull=false      # 10 m x 14
 do_mcmc=false        # 3 h x 14
 do_mcmc_scale=false  #
@@ -39,14 +39,14 @@ do_mcmc_joint3=false # 5x14
 printf -v mockid "%d" $SLURM_ARRAY_TASK_ID
 echo ${mockid}
 bsize=5000
-region=$1 # desic, bmzls, ndecalsc, sdecalsc
+region=desic # desic, bmzls, ndecalsc, sdecalsc
 iscont=0  # redundant, will use zero or czero for null or cont mocks
-maps="known1"       #e.g., "known5" or "all"
+maps=$1       #e.g., "known5" or "all"
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 model=dnnp # dnnp or dnn
 method=${model}_${maps} # noweight, nn_all
 target="lrg"
-fnltag="zero" #zero, po100
+fnltag="po100" #zero, po100
 ver=v3 # 
 root_dir=/fs/ess/PHS0336/data/lognormal/${ver}
 root_dir2=/fs/ess/PHS0336/data/rongpu/imaging_sys
@@ -148,7 +148,7 @@ then
     if [ ! -f $output_path ]
     then
         echo "running w/o weights"
-        #srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
+        srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path}
     fi
 
     if [ -f $input_wsys ]
@@ -156,7 +156,7 @@ then
         # nn weight
         output_path=${root_dir}/clustering/nbarmock_${iscont}_${mockid}_${target}_${fnltag}_${region}_${nside}_${model}_${maps}.npy           
         echo $output_path
-        #srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
+        srun -n 4 python $nbar -d ${input_path} -m ${input_map} -o ${output_path} -s ${input_wsys}
     fi
 fi
 
