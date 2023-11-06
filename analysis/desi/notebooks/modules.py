@@ -77,7 +77,7 @@ def read_clx(fn, bins=None):
         __, cl_ss_ = ut.histogram_cell(cl['cl_ss'][i]['l'], cl['cl_ss'][i]['cl'], bins=bins)
         cl_ss.append(cl_ss_)
         cl_cross.append(cl_sg_**2/cl_ss_)
-    return el_b, np.array(cl_cross).flatten()
+    return el_b, np.log10(np.array(cl_cross).flatten())+16.
 
 
 def read_clxmocks(list_clx, bins=None):
