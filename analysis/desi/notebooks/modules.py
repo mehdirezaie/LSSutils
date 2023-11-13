@@ -86,7 +86,7 @@ def combine_nn(maps, output):
         hpmap[d_['hpix']] += d_['weight'].mean(axis=1)
     hpmap = hpmap / counts
     hpmap[~(counts > 0.0)] = hp.UNSEEN
-    hp.write_map(output, hpmap, fits_IDL=False)
+    hp.write_map(output, hpmap, fits_IDL=False, overwrite=True)
     print(f'wrote {output}')
     
 

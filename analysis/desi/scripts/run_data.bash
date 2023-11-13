@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=linfit
+#SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=20:00:00
+#SBATCH --time=03:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -20,23 +20,24 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
-do_fit=true       # linmcmc:20m x 14, nn:20 h x 1 tpn
+do_fit=false       # linmcmc:20m x 14, nn:20 h x 1 tpn
 do_linsam=false   # 10 min x 1
 do_rfe=false      # 
 do_assign=false   #
 do_nbar=false     # 10 min x 4 tpn
 do_cl=false       # 20 min x 4 tpn
-do_mcmc=false     # 3 h x 14 tpn
+do_mcmc=true     # 3 h x 14 tpn
 do_mcmc_joint3=false # 5x14
 
-bsize=5000    # 
-target="lrg"  # lrg
-region=$1     # bmzls, ndecalsc, sdecalsc, or desic
-maps=$2       # known, all, known1, known2
-tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
-nside=256     # lrg=256, elg=1024
-fnltag="zero"
-model=dnnp    # dnnp, linp
+bsize=5000     # 
+target="lrg"   # lrg
+region=desic      # bmzls, ndecalsc, sdecalsc, or desic
+regions=desic  # selection function region
+maps=allp        # knownp, allp, ..
+tag_d=0.57.0   # 0.57.0 (sv3) or 1.0.0 (main)
+nside=256      # lrg=256, elg=1024
+fnltag="po100"
+model=dnnp     # dnnp, linp
 method=${model}_${maps}       # dnnp_known1, linp_known, or noweight
 lmin=0
 p=1.0
@@ -106,9 +107,7 @@ function get_axes(){
     elif [ $1 = "allpext" ]
     then
         axes=(0 1 2 3 4 5 6 7 8 9 10) # all maps p nstar
-
     fi
-
     echo ${axes[@]}
 }
 
@@ -145,8 +144,8 @@ then
         output_path=${root_dir}/regression/${tag_d}/${model}_${target}_${region}_${nside}_${maps}/
         echo $output_path 
         du -h $input_path
-        srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain
-        #python $linfit -d $input_path -o $output_path -ax ${axes[@]}
+        #srun -n 1 python $nnfit -i ${input_path} -o ${output_path} -ax ${axes[@]} -bs ${bsize} --model $model --loss $loss --nn_structure ${nns[@]} -lr $lr --eta_min $etamin -ne $nepoch -k -nc $nchain
+        python $linfit -d $input_path -o $output_path -ax ${axes[@]}
 fi
 
 
@@ -157,6 +156,7 @@ then
     echo $output_path
     python $linsam -o $output_path -m $maps -ax $axes
 fi
+
 
 if [ "${do_nbar}" = true ]
 then
@@ -171,7 +171,7 @@ then
     fi
     
     output_path=${root_dir}/clustering/${tag_d}/nbar_${target}_${region}_${nside}_${model}_${maps}.npy
-    selection=${root_dir}/regression/${tag_d}/${model}_${target}_desic_${maps}.hp${nside}.fits
+    selection=${root_dir}/regression/${tag_d}/${model}_${target}_${regions}_${maps}.hp${nside}.fits
     du -h $selection
     echo $output_path
     srun -n 4 python $nbar -d ${input_path} -o ${output_path} -s ${selection}            
@@ -191,7 +191,7 @@ then
     fi
 
     output_path=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${model}_${maps}.npy
-    selection=${root_dir}/regression/${tag_d}/${model}_${target}_desic_${maps}.hp${nside}.fits
+    selection=${root_dir}/regression/${tag_d}/${model}_${target}_${regions}_${maps}.hp${nside}.fits
     du -h $selection
     echo $output_path
     srun -n 4 python $cl -d ${input_path} -o ${output_path} -s ${selection}           

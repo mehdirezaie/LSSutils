@@ -39,7 +39,11 @@ def loglike(theta, y, x, w):
     '''The natural logarithm of the Poisson likelihood.'''
     md = modelp(x, *theta)
     res = (y*np.log(w*md)) - w*md
-    return (w*res).sum()
+    lk = (w*res).sum()
+    if ~np.isfinite(lk):
+        return -np.inf
+    else:
+        return lk
 
 
 from argparse import ArgumentParser
