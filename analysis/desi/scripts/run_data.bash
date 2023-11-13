@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=nn
+#SBATCH --job-name=linfit
 #SBATCH --account=PHS0336 
-#SBATCH --time=00:10:00
+#SBATCH --time=20:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=mr095415@ohio.edu
 
@@ -20,19 +20,19 @@ cd ${HOME}/github/LSSutils/analysis/desi/scripts/
 
 do_prep=false     # 20 min x 1 tpn
 do_lr=false       # 20 min x 1 tpn
-do_fit=false       # linmcmc:20m x 14, nn:20 h x 1 tpn
+do_fit=true       # linmcmc:20m x 14, nn:20 h x 1 tpn
 do_linsam=false   # 10 min x 1
 do_rfe=false      # 
 do_assign=false   #
-do_nbar=true     # 10 min x 4 tpn
+do_nbar=false     # 10 min x 4 tpn
 do_cl=false       # 20 min x 4 tpn
 do_mcmc=false     # 3 h x 14 tpn
 do_mcmc_joint3=false # 5x14
 
 bsize=5000    # 
 target="lrg"  # lrg
-region=desic     # bmzls, ndecalsc, sdecalsc, or desic
-maps=allp       # known, all, known1, known2
+region=$1     # bmzls, ndecalsc, sdecalsc, or desic
+maps=$2       # known, all, known1, known2
 tag_d=0.57.0  # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256     # lrg=256, elg=1024
 fnltag="zero"
@@ -40,7 +40,7 @@ model=dnnp    # dnnp, linp
 method=${model}_${maps}       # dnnp_known1, linp_known, or noweight
 lmin=0
 p=1.0
-s=$1
+s=0.945
 loss=pnll
 nns=(4 20)
 nepoch=70  # v0 with 71
@@ -103,6 +103,10 @@ function get_axes(){
     elif [ $1 = "allp" ]
     then
         axes=(0 1 2 3 4 5 6 7 8) # all maps p nstar
+    elif [ $1 = "allpext" ]
+    then
+        axes=(0 1 2 3 4 5 6 7 8 9 10) # all maps p nstar
+
     fi
 
     echo ${axes[@]}
