@@ -984,10 +984,10 @@ def plot_mcmc_data():
                     mc_kw=mc_kw, read_kw=read_kw)
     desi_lin3 = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_known1_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
                      mc_kw=mc_kw, read_kw=read_kw)
-    #desi_lin4 = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_knownp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
-    #                 mc_kw=mc_kw, read_kw=read_kw)
-    #desi_lin9 = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_allp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
-    #                 mc_kw=mc_kw, read_kw=read_kw)    
+    desi_lin4 = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_knownp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw)
+    desi_lin9 = MCMC(f'{p}logmcmc_lrg_zero_desic_linp_allp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw)    
     
     
     desi_nn3 = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
@@ -996,25 +996,57 @@ def plot_mcmc_data():
                     mc_kw=mc_kw, read_kw=read_kw)       
     desi_nn9 = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
                     mc_kw=mc_kw, read_kw=read_kw)  
+    desi_nn9_cov = MCMC(f'{p}logmcmc_lrg_po100_desic_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw)  
+    desi_nn9_imag = MCMC(f'{p}logmcmc_lrg_zero_desicl_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw)      
+    desi_nn9_frac = MCMC(f'{p}logmcmc_lrg_zero_desicf_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw)      
+
+    
     bmzls_nn3 = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.951.npz', 
                     mc_kw=mc_kw, read_kw=read_kw)   
     bmzls_nn4 = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_knownp_steps10k_walkers50_elmin0_p1.0_s0.951.npz', 
                     mc_kw=mc_kw, read_kw=read_kw)   
     bmzls_nn9 = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.951.npz', 
                     mc_kw=mc_kw, read_kw=read_kw)  
+    bmzls_nn9_imag = MCMC(f'{p}logmcmc_lrg_zero_bmzlsl_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.951.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw)  
+    bmzls_nn9_frac = MCMC(f'{p}logmcmc_lrg_zero_bmzlsf_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.951.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw)  
+    
+    
+    
+    
     ndec_nn3 = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
                     mc_kw=mc_kw, read_kw=read_kw)   
     ndec_nn4 = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_knownp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
                     mc_kw=mc_kw, read_kw=read_kw)   
     ndec_nn9 = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
-                    mc_kw=mc_kw, read_kw=read_kw)      
+                    mc_kw=mc_kw, read_kw=read_kw) 
+    ndec_nn9_imag = MCMC(f'{p}logmcmc_lrg_zero_ndecalscl_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw) 
+    ndec_nn9_frac = MCMC(f'{p}logmcmc_lrg_zero_ndecalscf_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw) 
+    ndec_nn9_nodec = MCMC(f'{p}logmcmc_lrg_zero_ndecals_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw)    
+    ndec_nn11 = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_allpext_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw)     
+    
     sdec_nn3 = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
                     mc_kw=mc_kw, read_kw=read_kw)   
     sdec_nn4 = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_knownp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
                     mc_kw=mc_kw, read_kw=read_kw)   
     sdec_nn9 = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
                     mc_kw=mc_kw, read_kw=read_kw)      
-    
+    sdec_nn9_imag = MCMC(f'{p}logmcmc_lrg_zero_sdecalscl_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw) 
+    sdec_nn9_frac = MCMC(f'{p}logmcmc_lrg_zero_sdecalscf_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw) 
+    sdec_nn9_nodec = MCMC(f'{p}logmcmc_lrg_zero_sdecals_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw)
+    sdec_nn11 = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_allpext_steps10k_walkers50_elmin0_p1.0_s0.943.npz', 
+                    mc_kw=mc_kw, read_kw=read_kw)      
     
     desi_nn3_calib = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
                     mc_kw=mc_kw, read_kw=dict(ndim=3, iscale=[2], debias=(1.17, 13.95)))   
@@ -1022,66 +1054,52 @@ def plot_mcmc_data():
                     mc_kw=mc_kw, read_kw=dict(ndim=3, iscale=[2], debias=(1.32, 26.97)))       
     desi_nn9_calib = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
                     mc_kw=mc_kw, read_kw=dict(ndim=3, iscale=[2], debias=(2.35, 63.5)))  
-    
-    
-    
-#     dsl  = MCMC(f'{p}logmcmc_lrg_zero_desicl_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)         
-#     dsf  = MCMC(f'{p}logmcmc_lrg_zero_desicf_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)           
-#     dss  = MCMC(f'{p}logmcmc_lrg_po100_desic_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)      
-#     dsp  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     dskp  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_knownp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     knn1_s = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_known1debiased_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     dsp_s  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_allpdebiased_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     dskp_s  = MCMC(f'{p}logmcmc_lrg_zero_desic_dnnp_knownpdebiased_steps10k_walkers50_elmin0_p1.0_s0.945.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     #knn1joint = MCMC(f'{p}logmcmc_lrg_zero_bmzlsndecalscsdecalsc_dnnp_known1_steps10k_walkers50_elmin0.npz', mc_kw=mc_kwj, read_kw=read_kwj)
 
-#     knn1b = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.951.npz', mc_kw=mc_kw, read_kw=read_kw)                
-#     bml   = MCMC(f'{p}logmcmc_lrg_zero_bmzlsl_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.951.npz', mc_kw=mc_kw, read_kw=read_kw)  
-#     bmf   = MCMC(f'{p}logmcmc_lrg_zero_bmzlsf_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.951.npz', mc_kw=mc_kw, read_kw=read_kw)  
-#     bmp  = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.951.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     bmkp  = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_knownp_steps10k_walkers50_elmin0_p1.0_s0.951.npz', mc_kw=mc_kw, read_kw=read_kw)
-    
-#     knn1n = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     ndce  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_known1ext_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)    
-#     nd    = MCMC(f'{p}logmcmc_lrg_zero_ndecals_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)            
-#     ndl   = MCMC(f'{p}logmcmc_lrg_zero_ndecalscl_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     ndf   = MCMC(f'{p}logmcmc_lrg_zero_ndecalscf_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     ndp  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     ndkp  = MCMC(f'{p}logmcmc_lrg_zero_ndecalsc_dnnp_knownp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
-    
-#     knn1s = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)    
-#     sdce  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_known1ext_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)  
-#     sd    = MCMC(f'{p}logmcmc_lrg_zero_sdecals_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)            
-#     sdl   = MCMC(f'{p}logmcmc_lrg_zero_sdecalscl_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     sdf   = MCMC(f'{p}logmcmc_lrg_zero_sdecalscf_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     sdp  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
-#     sdkp  = MCMC(f'{p}logmcmc_lrg_zero_sdecalsc_dnnp_knownp_steps10k_walkers50_elmin0_p1.0_s0.943.npz', mc_kw=mc_kw, read_kw=read_kw)
     
     stats1 = {}
-    stats1['DESI & No Weight'] = desi_now.stats
+    stats1['DESI & No Weight'] = desi_now.stats   
     stats1['DESI & Nonlinear Three Maps'] = desi_nn3_calib.stats    
     stats1['DESI & Nonlinear Four Maps'] = desi_nn4_calib.stats    
-    stats1['DESI & Nonlinear Nine Maps'] = desi_nn9_calib.stats    
+    stats1['DESI & Nonlinear Nine Maps'] = desi_nn9_calib.stats  
+
 
 
     
     stats = {}
     stats['DESI & No Weight'] = desi_now.stats
+    stats['DESI & Linear Three Maps'] = desi_lin3.stats    
+    stats['DESI & Linear Four Maps'] = desi_lin4.stats    
+    stats['DESI & Linear Nine Maps'] = desi_lin9.stats       
     stats['DESI & Nonlinear Three Maps'] = desi_nn3.stats    
     stats['DESI & Nonlinear Four Maps'] = desi_nn4.stats    
     stats['DESI & Nonlinear Nine Maps'] = desi_nn9.stats    
+    stats['DESI (imag. cut) & Nonlinear Nine Maps'] = desi_nn9_imag.stats    
+    stats['DESI (comp. cut) & Nonlinear Nine Maps'] = desi_nn9_frac.stats        
+    stats[r'DESI & Nonlinear Nine Maps+$f_{\rm NL}=76.92$ Cov'] = desi_nn9_cov.stats
+    
+    
     
     stats['BASS+MzLS & Nonlinear Three Maps'] = bmzls_nn3.stats    
     stats['BASS+MzLS & Nonlinear Four Maps'] = bmzls_nn4.stats    
     stats['BASS+MzLS & Nonlinear Nine Maps'] = bmzls_nn9.stats  
+    stats['BASS+MzLS (imag. cut) & Nonlinear Nine Maps'] = bmzls_nn9_imag.stats    
+    stats['BASS+MzLS (comp. cut) & Nonlinear Nine Maps'] = bmzls_nn9_frac.stats            
     
     stats['DECaLS North & Nonlinear Three Maps'] = ndec_nn3.stats    
     stats['DECaLS North & Nonlinear Four Maps'] = ndec_nn4.stats    
     stats['DECaLS North & Nonlinear Nine Maps'] = ndec_nn9.stats  
+    stats['DECaLS North (imag. cut) & Nonlinear Nine Maps'] = ndec_nn9_imag.stats    
+    stats['DECaLS North (comp. cut) & Nonlinear Nine Maps'] = ndec_nn9_frac.stats  
+    stats['DECaLS North (no DEC cut) & Nonlinear Nine Maps'] = ndec_nn9_nodec.stats      
+    stats['DECaLS North & Nonlinear 11 Maps'] = ndec_nn11.stats     
     
     stats['DECaLS South & Nonlinear Three Maps'] = sdec_nn3.stats    
     stats['DECaLS South & Nonlinear Four Maps'] = sdec_nn4.stats    
     stats['DECaLS South & Nonlinear Nine Maps'] = sdec_nn9.stats      
+    stats['DECaLS South (imag. cut) & Nonlinear Nine Maps'] = sdec_nn9_imag.stats    
+    stats['DECaLS South (comp. cut) & Nonlinear Nine Maps'] = sdec_nn9_frac.stats 
+    stats['DECaLS South (no DEC cut) & Nonlinear Nine Maps'] = sdec_nn9_nodec.stats          
+    stats['DECaLS South & Nonlinear 11 Maps'] = sdec_nn11.stats              
     
 #     stats['DESI                      & Linear Eight Maps'] = po.stats    
 #     stats['DESI                      & Linear Two Maps'] = kn.stats    
