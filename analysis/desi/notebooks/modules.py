@@ -2,6 +2,7 @@ import sys
 import numpy as np
 import fitsio as ft
 import healpy as hp
+import seaborn as sns
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -63,7 +64,7 @@ def read_clx(fn, bins=None):
         __, cl_ss_ = ut.histogram_cell(cl['cl_ss'][i]['l'], cl['cl_ss'][i]['cl'], bins=bins)
         cl_ss.append(cl_ss_)
         cl_cross.append(cl_sg_**2/cl_ss_)
-    return el_b, np.log10(np.array(cl_cross).flatten())+16.
+    return el_b, np.array(cl_cross).flatten()
 
 
 def read_clxmocks(list_clx, bins=None):
@@ -1882,4 +1883,166 @@ def mask_2pf():
         
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/mask_2pf.pdf', bbox_inches='tight')    
     
+
+def compute_chi2():
+    # test delta or ratio of chi2
+    ell_edges = ut.ell_edges[:10]
+
+
+    d_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'
+    err_no = read_clx(f'{d_}cl_lrg_desic_256_noweight.npy', ell_edges)[1]
+    err_d3 = read_clx(f'{d_}cl_lrg_desic_256_dnnp_known1.npy', ell_edges)[1]
+    err_d4 = read_clx(f'{d_}cl_lrg_desic_256_dnnp_knownp.npy', ell_edges)[1]    
+    err_d9 = read_clx(f'{d_}cl_lrg_desic_256_dnnp_allp.npy', ell_edges)[1]
+
+    p = '/fs/ess/PHS0336/data/lognormal/v3/clustering/'
+    err = read_clxmocks([f'{p}clmock_0_{i}_lrg_zero_desic_256_noweight.npy' for i in range(1, 1001)], ell_edges)
+    err3 = read_clxmocks([f'{p}clmock_0_{i}_lrg_zero_desic_256_dnnp_known1.npy' for i in range(1, 1001)], ell_edges)
+    err4 = read_clxmocks([f'{p}clmock_0_{i}_lrg_zero_desic_256_dnnp_knownp.npy' for i in range(1, 1001)], ell_edges)
+    err9 = read_clxmocks([f'{p}clmock_0_{i}_lrg_zero_desic_256_dnnp_allp.npy' for i in range(1, 1001)], ell_edges)
+
+    errp = read_clxmocks([f'{p}clmock_0_{i}_lrg_po100_desic_256_noweight.npy' for i in range(1, 1001)], ell_edges)
+    errp3 = read_clxmocks([f'{p}clmock_0_{i}_lrg_po100_desic_256_dnnp_known1.npy' for i in range(1, 1001)], ell_edges)
+    errp4 = read_clxmocks([f'{p}clmock_0_{i}_lrg_po100_desic_256_dnnp_knownp.npy' for i in range(1, 1001)], ell_edges)
+    errp9 = read_clxmocks([f'{p}clmock_0_{i}_lrg_po100_desic_256_dnnp_allp.npy' for i in range(1, 1001)], ell_edges)
+
+    inv_cov = ut.get_inv(err)[0]
+    inv_cov3 = ut.get_inv(err3)[0]
+    inv_cov4 = ut.get_inv(err4)[0]
+    inv_cov9 = ut.get_inv(err9)[0]
+
+    inv_covp = ut.get_inv(errp)[0]
+    inv_covp3 = ut.get_inv(errp3)[0]
+    inv_covp4 = ut.get_inv(errp4)[0]
+    inv_covp9 = ut.get_inv(errp9)[0]
+
+
+    chi = ut.get_chi2pdf(err)
+    chi3 = ut.get_chi2pdf(err3)
+    chi4 = ut.get_chi2pdf(err4)
+    chi9 = ut.get_chi2pdf(err9)
+
+    chip = ut.get_chi2pdf(errp)
+    chip3 = ut.get_chi2pdf(errp3)
+    chip4 = ut.get_chi2pdf(errp4)
+    chip9 = ut.get_chi2pdf(errp9)
+
+
+
+    chid = ut.chi2_fn(err_no, inv_cov)
+    chidp = ut.chi2_fn(err_no, inv_covp)
+
+    chid3 = ut.chi2_fn(err_d3, inv_cov3)
+    chidp3 = ut.chi2_fn(err_d3, inv_covp3)
+
+    chid4 = ut.chi2_fn(err_d4, inv_cov4)
+    chidp4 = ut.chi2_fn(err_d4, inv_covp4)
+
+    chid9 = ut.chi2_fn(err_d9, inv_cov9)
+    chidp9 = ut.chi2_fn(err_d9, inv_covp9)
+
+
+    dchi = [[chid, chidp], [chid3, chidp3], [chid4, chidp4], [chid9, chidp9]]
+    nchi = [chi, chi3, chi4, chi9]
+    pchi = [chip, chip3, chip4, chip9]
+
+    np.savez('clx_chi2_v2.npz', **{'dchi':dchi,
+                                      'nchi':nchi,
+                                      'pchi':pchi})
+
+
+    d_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'
+    err_no = read_nnbar(f'{d_}nbar_lrg_desic_256_noweight.npy')
+    err_d3 = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_known1.npy')
+    err_d4 = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_knownp.npy')    
+    err_d9 = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_allp.npy')
+
+    p = '/fs/ess/PHS0336/data/lognormal/v3/clustering/'
+    err = read_nbmocks([f'{p}nbarmock_0_{i}_lrg_zero_desic_256_noweight.npy' for i in range(1, 1001)])
+    err3 = read_nbmocks([f'{p}nbarmock_0_{i}_lrg_zero_desic_256_dnnp_known1.npy' for i in range(1, 1001)])
+    err4 = read_nbmocks([f'{p}nbarmock_0_{i}_lrg_zero_desic_256_dnnp_knownp.npy' for i in range(1, 1001)])
+    err9 = read_nbmocks([f'{p}nbarmock_0_{i}_lrg_zero_desic_256_dnnp_allp.npy' for i in range(1, 1001)])
+
+    errp = read_nbmocks([f'{p}nbarmock_0_{i}_lrg_po100_desic_256_noweight.npy' for i in range(1, 1001)])
+    errp3 = read_nbmocks([f'{p}nbarmock_0_{i}_lrg_po100_desic_256_dnnp_known1.npy' for i in range(1, 1001)])
+    errp4 = read_nbmocks([f'{p}nbarmock_0_{i}_lrg_po100_desic_256_dnnp_knownp.npy' for i in range(1, 1001)])
+    errp9 = read_nbmocks([f'{p}nbarmock_0_{i}_lrg_po100_desic_256_dnnp_allp.npy' for i in range(1, 1001)])
+
+    inv_cov = ut.get_inv(err)[0]
+    inv_cov3 = ut.get_inv(err3)[0]
+    inv_cov4 = ut.get_inv(err4)[0]
+    inv_cov9 = ut.get_inv(err9)[0]
+
+    inv_covp = ut.get_inv(errp)[0]
+    inv_covp3 = ut.get_inv(errp3)[0]
+    inv_covp4 = ut.get_inv(errp4)[0]
+    inv_covp9 = ut.get_inv(errp9)[0]
+
+
+    chi = ut.get_chi2pdf(err)
+    chi3 = ut.get_chi2pdf(err3)
+    chi4 = ut.get_chi2pdf(err4)
+    chi9 = ut.get_chi2pdf(err9)
+
+    chip = ut.get_chi2pdf(errp)
+    chip3 = ut.get_chi2pdf(errp3)
+    chip4 = ut.get_chi2pdf(errp4)
+    chip9 = ut.get_chi2pdf(errp9)
+
+
+
+    chid = ut.chi2_fn(err_no, inv_cov)
+    chidp = ut.chi2_fn(err_no, inv_covp)
+
+    chid3 = ut.chi2_fn(err_d3, inv_cov3)
+    chidp3 = ut.chi2_fn(err_d3, inv_covp3)
+
+    chid4 = ut.chi2_fn(err_d4, inv_cov4)
+    chidp4 = ut.chi2_fn(err_d4, inv_covp4)
+
+    chid9 = ut.chi2_fn(err_d9, inv_cov9)
+    chidp9 = ut.chi2_fn(err_d9, inv_covp9)
+
+
+    dchi = [[chid, chidp], [chid3, chidp3], [chid4, chidp4], [chid9, chidp9]]
+    nchi = [chi, chi3, chi4, chi9]
+    pchi = [chip, chip3, chip4, chip9]
+
+    np.savez('nbr_chi2_v2.npz', **{'dchi':dchi,
+                                      'nchi':nchi,
+                                      'pchi':pchi})    
     
+def chi2_tests():
+    nbchi = np.load('nbr_chi2_v2.npz')
+    cxchi = np.load('clx_chi2_v2.npz')
+
+    fg, (ax1, ax2) = plt.subplots(ncols=2, figsize=(10, 4), sharey=False)
+    labels = ['No Weight', '+ 3 Maps', '+ 4 Maps', '+ 9 Maps']
+    for i in range(4):
+        sns.kdeplot(nbchi['nchi'][i], ax=ax1, color=colors[i], bw=0.2, label=labels[i], ls='-')
+        sns.kdeplot(nbchi['pchi'][i], ax=ax1, color=colors[i], bw=0.2, ls='--', alpha=0.5)        
+        if i>0:
+            ax1.axvline(nbchi['dchi'][i][0], color=colors[i], ls='-')
+            ax1.axvline(nbchi['dchi'][i][1], color=colors[i], ls='--')
+
+        sns.kdeplot(cxchi['nchi'][i], ax=ax2, color=colors[i], bw=0.2, label=labels[i], ls='-')
+        sns.kdeplot(cxchi['pchi'][i], ax=ax2, color=colors[i], bw=0.2, ls='--', alpha=0.5)        
+        if i>0:
+            ax2.axvline(cxchi['dchi'][i][0], color=colors[i], ls='-')
+            ax2.axvline(cxchi['dchi'][i][1], color=colors[i], ls='--')
+
+    ax2.plot([400, 500], [0.007, 0.007], ls='-')
+    ax2.annotate(r'$f_{\rm NL}=0$', (360, 0.0073))
+    ax2.plot([560, 660], [0.007, 0.007], ls='--', color='C0')
+    ax2.annotate(r'or 76.9', (510, 0.0074))
+
+    fg.subplots_adjust(wspace=0.01)        
+    txt = ax1.legend(bbox_to_anchor=(0., 1., 2., 0.1), mode='expand', ncol=4)
+    for i, txti in enumerate(txt.get_texts()):
+        txti.set_color(colors[i])
+
+    ax1.set(yticks=[], xlabel='Mean Density $\chi^{2}$')#, xlim=(18, 105))
+    ax2.set(yticks=[], xlabel='Cross Power Spectrum $\chi^{2}$', ylabel='')#, xlim=(3250, 4100))
+    for a in [ax1, ax2]:a.set_ylim(ymin=0)
+
+    fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2_tests.pdf', bbox_inches='tight')    
