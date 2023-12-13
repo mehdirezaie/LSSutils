@@ -385,8 +385,10 @@ def plot_corrmax():
     
     
 def plot_clxtest():
+    
     names = [r'EBV', r'nStar']+[fr'depth$_{b}$' for b in ['g', 'r', 'z', '{w1}']]\
             + [fr'psfsize$_{b}$' for b in ['g', 'r', 'z']]    
+    
     ell_edges = ut.ell_edges[:10]
     print(f'ell edges: {ell_edges}')
 
@@ -405,37 +407,28 @@ def plot_clxtest():
 
     
     d_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'
-    el_b, err_dr9  = read_clx(f'{d_}cl_lrg_desic_256_noweight.npy', ell_edges)
-    err_dr9all     = read_clx(f'{d_}cl_lrg_desic_256_linp_all.npy', ell_edges)[1]
-    err_dr9known   = read_clx(f'{d_}cl_lrg_desic_256_linp_known.npy', ell_edges)[1]
-    err_dr9known1  = read_clx(f'{d_}cl_lrg_desic_256_linp_known1.npy', ell_edges)[1]
-    err_dr9nknown1 = read_clx(f'{d_}cl_lrg_desic_256_dnnp_known1.npy', ell_edges)[1]
-    err_dr9nknownp = read_clx(f'{d_}cl_lrg_desic_256_dnnp_knownp.npy', ell_edges)[1]    
-    err_dr9nallp = read_clx(f'{d_}cl_lrg_desic_256_dnnp_allp.npy', ell_edges)[1]    
-
-
-
-    chi2_dr9 = ut.chi2_fn(err_dr9, icov)
-    chi2_dr9all = ut.chi2_fn(err_dr9all, icov)
-    chi2_dr9known = ut.chi2_fn(err_dr9known, icov)
-    chi2_dr9known1 = ut.chi2_fn(err_dr9known1, icov)
-    chi2_dr9nknown1 = ut.chi2_fn(err_dr9nknown1, icov)
-    chi2_dr9nknownp = ut.chi2_fn(err_dr9nknownp, icov)
-    chi2_dr9nallp = ut.chi2_fn(err_dr9nallp, icov)
-
+    el_b, err_now  = read_clx(f'{d_}cl_lrg_desic_256_noweight.npy', ell_edges)
+    err_l2 = read_clx(f'{d_}cl_lrg_desic_256_linp_known.npy', ell_edges)[1]
+    err_l3 = read_clx(f'{d_}cl_lrg_desic_256_linp_known1.npy', ell_edges)[1]    
+    err_l9 = read_clx(f'{d_}cl_lrg_desic_256_linp_allp.npy', ell_edges)[1]
+    err_n3 = read_clx(f'{d_}cl_lrg_desic_256_dnnp_known1.npy', ell_edges)[1]
+    err_n4 = read_clx(f'{d_}cl_lrg_desic_256_dnnp_knownp.npy', ell_edges)[1]    
+    err_n9 = read_clx(f'{d_}cl_lrg_desic_256_dnnp_allp.npy', ell_edges)[1]    
     
-    labels = ['No Weight', 'Linear Two Maps', 'Linear Three Maps', 'Linear Eight Maps', 
-              'Nonlinear Three Maps', 'Nonlinear Four Maps']    
+    labels = ['No Weight', 'Nonlinear Three Maps', 'Nonlinear Nine Maps',
+              'Linear Two Maps', 'Linear Three Maps', 'Linear Nine Maps']    
     
     fg, ax = plt.subplots(ncols=3, nrows=3, 
                              figsize=(12, 9), sharey=True, sharex=True)
     ax = ax.flatten()
     fg.subplots_adjust(wspace=0.02, hspace=0.02)
     
-    for j, err_j in enumerate([err_dr9, err_dr9known, err_dr9known1, err_dr9all,
-                               err_dr9nknown1, err_dr9nknownp]):
+    colors_ = [colors[j] for j in [0, 1, 3, 5, 6, 4]]
+    for j, err_j in enumerate([err_now, 
+                               err_n3, err_n9, 
+                               err_l2, err_l3, err_l9]):
         for i, ax_i in enumerate(ax):
-            ax[i].semilogy(el_b, err_j[i*9:(i+1)*9], label=labels[j])
+            ax[i].semilogy(el_b, err_j[i*9:(i+1)*9], label=labels[j], ls='-', color=colors_[j])
 
 
     for i, ax_i in enumerate(ax):
@@ -451,7 +444,7 @@ def plot_clxtest():
                     mode="expand", borderaxespad=0)
 
     for i, lgn_tx in enumerate(lgnd.get_texts()):
-        lgn_tx.set_color('C%d'%i)
+        lgn_tx.set_color(colors_[i])
     
     ax[0].set_ylim(9.5e-9, 1.2e-4)
     ax[3].set_ylabel(r'$\tilde{C}_{x, \ell}$') 
@@ -459,61 +452,61 @@ def plot_clxtest():
     plt.show()
     
     
-    xlabel = r'Cross Spectrum $\chi^{2}$'
-    xlim1 = (-10, 450)
-    xlim2 = (19970, 20110)
-    ylim = (0., 120.)
+#     xlabel = r'Cross Spectrum $\chi^{2}$'
+#     xlim1 = (-10, 450)
+#     xlim2 = (19970, 20110)
+#     ylim = (0., 120.)
 
-    fig = plt.figure()
-    fig.subplots_adjust(wspace=0.03)
-    gs  = GridSpec(1, 2, width_ratios=[3, 1], figure=fig)
-    ax1 = plt.subplot(gs[0])
-    ax2 = plt.subplot(gs[1])
+#     fig = plt.figure()
+#     fig.subplots_adjust(wspace=0.03)
+#     gs  = GridSpec(1, 2, width_ratios=[3, 1], figure=fig)
+#     ax1 = plt.subplot(gs[0])
+#     ax2 = plt.subplot(gs[1])
 
-    ax1.tick_params(direction='in', axis='both', right=False)
-    ax2.tick_params(direction='in', axis='both', which='both', left=False, right=True)
+#     ax1.tick_params(direction='in', axis='both', right=False)
+#     ax2.tick_params(direction='in', axis='both', which='both', left=False, right=True)
 
-    ax1.spines['right'].set_visible(False)
-    ax2.spines['left'].set_visible(False)
-    ax1.set(xlim=xlim1, ylim=ylim, xlabel=xlabel)
-    ax2.set(xlim=xlim2, ylim=ylim)#, xticks=xticks2)
-    ax2.set_yticklabels([])
-    d = 0.01
-    kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
-    ax1.plot((1 - d/2, 1 + d/2), (-d, +d), **kwargs)  # bottom-left diagonal
-    ax1.plot((1 - d/2, 1 + d/2), (1-d, 1+d), **kwargs)  # bottom-left diagonal
-    kwargs.update(transform=ax2.transAxes)            # switch to the bottom axes
-    ax2.plot((-d/2, +d/2), (-d, +d), **kwargs)        # top-left diagonal
-    ax2.plot((-d/2, +d/2), (1-d, 1+d), **kwargs)        # top-left diagonal
+#     ax1.spines['right'].set_visible(False)
+#     ax2.spines['left'].set_visible(False)
+#     ax1.set(xlim=xlim1, ylim=ylim, xlabel=xlabel)
+#     ax2.set(xlim=xlim2, ylim=ylim)#, xticks=xticks2)
+#     ax2.set_yticklabels([])
+#     d = 0.01
+#     kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
+#     ax1.plot((1 - d/2, 1 + d/2), (-d, +d), **kwargs)  # bottom-left diagonal
+#     ax1.plot((1 - d/2, 1 + d/2), (1-d, 1+d), **kwargs)  # bottom-left diagonal
+#     kwargs.update(transform=ax2.transAxes)            # switch to the bottom axes
+#     ax2.plot((-d/2, +d/2), (-d, +d), **kwargs)        # top-left diagonal
+#     ax2.plot((-d/2, +d/2), (1-d, 1+d), **kwargs)        # top-left diagonal
 
-    ls = ['-', '--']
-    names = ['$f_\mathrm{NL}$=0', '$f_\mathrm{NL}$=76.9']
-    for i, (__, chi2_i) in enumerate(chi2s.items()):
-        print(np.max(chi2_i), np.min(chi2_i))
-        ax1.hist(chi2_i, histtype='step', bins=58, 
-                 ls=ls[i], label=names[i], range=(0, 550.), color='grey') 
-    lgn = ax1.legend(title='Clean Mocks', frameon=True)
-    for i,txt in enumerate(lgn.get_texts()):
-        txt.set_color('grey')
+#     ls = ['-', '--']
+#     names = ['$f_\mathrm{NL}$=0', '$f_\mathrm{NL}$=76.9']
+#     for i, (__, chi2_i) in enumerate(chi2s.items()):
+#         print(np.max(chi2_i), np.min(chi2_i))
+#         ax1.hist(chi2_i, histtype='step', bins=58, 
+#                  ls=ls[i], label=names[i], range=(0, 550.), color='grey') 
+#     lgn = ax1.legend(title='Clean Mocks', frameon=True)
+#     for i,txt in enumerate(lgn.get_texts()):
+#         txt.set_color('grey')
 
-    ax2.axvline(chi2_dr9, lw=1)
-    ax2.annotate('No Weight', (chi2_dr9+7, 20), rotation=90, fontsize=13)
+#     ax2.axvline(chi2_dr9, lw=1)
+#     ax2.annotate('No Weight', (chi2_dr9+7, 20), rotation=90, fontsize=13)
 
-    ax1.axvline(chi2_dr9nknown1, lw=1, color='C4', ls='--')
-    ax1.annotate('Nonlinear Three Maps', (chi2_dr9nknown1-20, 8), rotation=90, fontsize=13, color='C4')
+#     ax1.axvline(chi2_dr9nknown1, lw=1, color='C4', ls='--')
+#     ax1.annotate('Nonlinear Three Maps', (chi2_dr9nknown1-20, 8), rotation=90, fontsize=13, color='C4')
 
-    ax1.axvline(chi2_dr9known1, lw=1, color='C2', ls='-.')
-    ax1.annotate('Linear Three Maps', (chi2_dr9known1+7, 20), rotation=90, fontsize=13, color='C2')
+#     ax1.axvline(chi2_dr9known1, lw=1, color='C2', ls='-.')
+#     ax1.annotate('Linear Three Maps', (chi2_dr9known1+7, 20), rotation=90, fontsize=13, color='C2')
 
-    ax1.axvline(chi2_dr9known, lw=1, color='C1', ls='--')
-    ax1.annotate('Linear Two Maps', (chi2_dr9known+7, 20), rotation=90, fontsize=13, color='C1')
+#     ax1.axvline(chi2_dr9known, lw=1, color='C1', ls='--')
+#     ax1.annotate('Linear Two Maps', (chi2_dr9known+7, 20), rotation=90, fontsize=13, color='C1')
 
     
-    for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp, chi2_dr9nallp]:
-        is_gt = np.array(chi2s['fNL=0']) > chi_i
-        is_gt2 = np.array(chi2s['fNL=76.92']) > chi_i
-        print(f'{chi_i:.1f}, p-value: {is_gt.mean():.2f}, {is_gt2.mean():.2f}')
-    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test.pdf', bbox_inches='tight')         
+#     for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp, chi2_dr9nallp]:
+#         is_gt = np.array(chi2s['fNL=0']) > chi_i
+#         is_gt2 = np.array(chi2s['fNL=76.92']) > chi_i
+#         print(f'{chi_i:.1f}, p-value: {is_gt.mean():.2f}, {is_gt2.mean():.2f}')
+#     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test.pdf', bbox_inches='tight')         
 
 
 def test_chi2lmax():
@@ -569,37 +562,32 @@ def plot_nbartest():
     cov_100 = ut.get_inv(err_100, return_cov=True)[1]
     
     d_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'    
-    xbins, err_dr9 = read_nnbar(f'{d_}nbar_lrg_desic_256_noweight.npy', return_bins=True)
-    err_dr9all     = read_nnbar(f'{d_}nbar_lrg_desic_256_linp_all.npy')
-    err_dr9known   = read_nnbar(f'{d_}nbar_lrg_desic_256_linp_known.npy')
-    err_dr9known1  = read_nnbar(f'{d_}nbar_lrg_desic_256_linp_known1.npy')
-    err_dr9nknown1 = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_known1.npy') 
-    err_dr9nknownp = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_knownp.npy') 
-    err_dr9nallp = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_allp.npy') 
+    xbins, err_now  = read_nnbar(f'{d_}nbar_lrg_desic_256_noweight.npy', return_bins=True)
+    err_l2 = read_nnbar(f'{d_}nbar_lrg_desic_256_linp_known.npy')
+    err_l3 = read_nnbar(f'{d_}nbar_lrg_desic_256_linp_known1.npy')   
+    err_l9 = read_nnbar(f'{d_}nbar_lrg_desic_256_linp_allp.npy')
+    err_n3 = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_known1.npy')
+    err_n4 = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_knownp.npy')    
+    err_n9 = read_nnbar(f'{d_}nbar_lrg_desic_256_dnnp_allp.npy')
     
-    chi2_dr9 = ut.chi2_fn(err_dr9, icov)
-    chi2_dr9all = ut.chi2_fn(err_dr9all, icov)
-    chi2_dr9known = ut.chi2_fn(err_dr9known, icov)
-    chi2_dr9known1 = ut.chi2_fn(err_dr9known1, icov)
-    chi2_dr9nknown1 = ut.chi2_fn(err_dr9nknown1, icov)
-    chi2_dr9nknownp = ut.chi2_fn(err_dr9nknownp, icov)
-    chi2_dr9nallp = ut.chi2_fn(err_dr9nallp, icov)
-    
+        
     err_0m = np.std(err_0,  axis=0)
     err_100m = np.std(err_100, axis=0)
     
-    labels = ['No Weight', 'Linear Two Maps', 'Linear Three Maps', 'Linear Eight Maps',
-              'Nonlinear Three Maps', 'Nonlinear Four Maps']
+    labels = ['No Weight', 'Nonlinear Three Maps', 'Nonlinear Nine Maps',
+              'Linear Two Maps', 'Linear Three Maps', 'Linear Nine Maps']  
     
     fg, ax = plt.subplots(ncols=3, nrows=3, figsize=(12, 9), sharey='row')
     ax = ax.flatten()
     fg.subplots_adjust(wspace=0.02, hspace=0.35)
 
-    for j, err_j in enumerate([err_dr9, err_dr9known, err_dr9known1, err_dr9all,
-                               err_dr9nknown1, err_dr9nknownp]):
+    colors_ = [colors[j] for j in [0, 1, 3, 5, 6, 4]]
+    
+    for j, err_j in enumerate([err_now, 
+                               err_n3, err_n9, 
+                               err_l2, err_l3, err_l9]):
         for i, ax_i in enumerate(ax):
-            ax[i].plot(xbins[i], err_j[i*8:(i+1)*8], label=labels[j])
-
+            ax[i].plot(xbins[i], err_j[i*8:(i+1)*8], label=labels[j], ls='-', color=colors_[j])
 
     for i, ax_i in enumerate(ax):
         ax_i.fill_between(xbins[i], -err_100m[i*8:(i+1)*8], err_100m[i*8:(i+1)*8], 
@@ -614,72 +602,72 @@ def plot_nbartest():
                     mode="expand", borderaxespad=0)
 
     for i, lgn_tx in enumerate(lgnd.get_texts()):
-        lgn_tx.set_color('C%d'%i)
+        lgn_tx.set_color(colors_[i])
     fg.align_ylabels()
     fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/nbar_mocks.pdf', bbox_inches='tight')    
     plt.show()
     
     
-    chi2s = {}
-    chi2s['fNL=0'] = ut.get_chi2pdf(err_0)
-    chi2s['fNL=76.92'] = ut.get_chi2pdf(err_100, invcov_=icov)
+#     chi2s = {}
+#     chi2s['fNL=0'] = ut.get_chi2pdf(err_0)
+#     chi2s['fNL=76.92'] = ut.get_chi2pdf(err_100, invcov_=icov)
     
-    xlabel = r'Mean Density $\chi^{2}$'
-    xlim1 = (20, 240)
-    xlim2 = (630, 710)
-    ylim = (0., 120.)
+#     xlabel = r'Mean Density $\chi^{2}$'
+#     xlim1 = (20, 240)
+#     xlim2 = (630, 710)
+#     ylim = (0., 120.)
 
-    fig = plt.figure()
-    fig.subplots_adjust(wspace=0.03)
-    gs  = GridSpec(1, 2, width_ratios=[3, 1], figure=fig)
-    ax1 = plt.subplot(gs[0])
-    ax2 = plt.subplot(gs[1])
+#     fig = plt.figure()
+#     fig.subplots_adjust(wspace=0.03)
+#     gs  = GridSpec(1, 2, width_ratios=[3, 1], figure=fig)
+#     ax1 = plt.subplot(gs[0])
+#     ax2 = plt.subplot(gs[1])
 
-    ax1.tick_params(direction='in', axis='both', right=False)
-    ax2.tick_params(direction='in', axis='both', which='both', left=False, right=True)
+#     ax1.tick_params(direction='in', axis='both', right=False)
+#     ax2.tick_params(direction='in', axis='both', which='both', left=False, right=True)
 
-    ax1.spines['right'].set_visible(False)
-    ax2.spines['left'].set_visible(False)
-    ax1.set(xlim=xlim1, ylim=ylim, xlabel=xlabel)
-    ax2.set(xlim=xlim2, ylim=ylim)#, xticks=xticks2)
-    ax2.set_yticklabels([])
-    d = 0.01
-    kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
-    ax1.plot((1 - d/2, 1 + d/2), (-d, +d), **kwargs)  # bottom-left diagonal
-    ax1.plot((1 - d/2, 1 + d/2), (1-d, 1+d), **kwargs)  # bottom-left diagonal
-    kwargs.update(transform=ax2.transAxes)            # switch to the bottom axes
-    ax2.plot((-d/2, +d/2), (-d, +d), **kwargs)        # top-left diagonal
-    ax2.plot((-d/2, +d/2), (1-d, 1+d), **kwargs)        # top-left diagonal
+#     ax1.spines['right'].set_visible(False)
+#     ax2.spines['left'].set_visible(False)
+#     ax1.set(xlim=xlim1, ylim=ylim, xlabel=xlabel)
+#     ax2.set(xlim=xlim2, ylim=ylim)#, xticks=xticks2)
+#     ax2.set_yticklabels([])
+#     d = 0.01
+#     kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
+#     ax1.plot((1 - d/2, 1 + d/2), (-d, +d), **kwargs)  # bottom-left diagonal
+#     ax1.plot((1 - d/2, 1 + d/2), (1-d, 1+d), **kwargs)  # bottom-left diagonal
+#     kwargs.update(transform=ax2.transAxes)            # switch to the bottom axes
+#     ax2.plot((-d/2, +d/2), (-d, +d), **kwargs)        # top-left diagonal
+#     ax2.plot((-d/2, +d/2), (1-d, 1+d), **kwargs)        # top-left diagonal
 
-    ls = ['-', '--']
-    names = ['$f_\mathrm{NL}$=0', '$f_\mathrm{NL}$=76.9']
-    for i, (__, chi2_i) in enumerate(chi2s.items()):
-        print(np.max(chi2_i), np.min(chi2_i))
-        ax1.hist(chi2_i, histtype='step', bins=65, 
-                 ls=ls[i], label=names[i], range=(30., 160.), color='grey') 
-    lgn = ax1.legend(title='Clean Mocks', frameon=True)
-    for i,txt in enumerate(lgn.get_texts()):
-        txt.set_color('grey')
+#     ls = ['-', '--']
+#     names = ['$f_\mathrm{NL}$=0', '$f_\mathrm{NL}$=76.9']
+#     for i, (__, chi2_i) in enumerate(chi2s.items()):
+#         print(np.max(chi2_i), np.min(chi2_i))
+#         ax1.hist(chi2_i, histtype='step', bins=65, 
+#                  ls=ls[i], label=names[i], range=(30., 160.), color='grey') 
+#     lgn = ax1.legend(title='Clean Mocks', frameon=True)
+#     for i,txt in enumerate(lgn.get_texts()):
+#         txt.set_color('grey')
 
-    ax2.axvline(chi2_dr9, lw=1)
-    ax2.annotate('No Weight', (chi2_dr9+5, 20), rotation=90, fontsize=13)
+#     ax2.axvline(chi2_dr9, lw=1)
+#     ax2.annotate('No Weight', (chi2_dr9+5, 20), rotation=90, fontsize=13)
 
-    ax1.axvline(chi2_dr9nknown1, lw=1, color='C4', ls='--')
-    ax1.annotate('Nonlinear\n Three Maps', (chi2_dr9nknown1-9, 78), rotation=90, fontsize=13, color='C4')
+#     ax1.axvline(chi2_dr9nknown1, lw=1, color='C4', ls='--')
+#     ax1.annotate('Nonlinear\n Three Maps', (chi2_dr9nknown1-9, 78), rotation=90, fontsize=13, color='C4')
 
-    ax1.axvline(chi2_dr9known1, lw=1, color='C2', ls='-.')
-    ax1.annotate('Linear Three Maps', (chi2_dr9known1+4, 20), rotation=90, fontsize=13, color='C2')
+#     ax1.axvline(chi2_dr9known1, lw=1, color='C2', ls='-.')
+#     ax1.annotate('Linear Three Maps', (chi2_dr9known1+4, 20), rotation=90, fontsize=13, color='C2')
 
-    ax1.axvline(chi2_dr9known, lw=1, color='C1', ls='--')
-    ax1.annotate('Linear Two Maps', (chi2_dr9known+4, 20), rotation=90, fontsize=13, color='C1')
+#     ax1.axvline(chi2_dr9known, lw=1, color='C1', ls='--')
+#     ax1.annotate('Linear Two Maps', (chi2_dr9known+4, 20), rotation=90, fontsize=13, color='C1')
 
 
-    for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp, chi2_dr9nallp]:
-        is_gt = np.array(chi2s['fNL=0']) > chi_i
-        is_gt2 = np.array(chi2s['fNL=76.92']) > chi_i
-        print(f'{chi_i:.1f}, p-value: {is_gt.mean():.2f}, {is_gt2.mean():.2f}')
+#     for chi_i in [chi2_dr9, chi2_dr9known, chi2_dr9known1, chi2_dr9all, chi2_dr9nknown1, chi2_dr9nknownp, chi2_dr9nallp]:
+#         is_gt = np.array(chi2s['fNL=0']) > chi_i
+#         is_gt2 = np.array(chi2s['fNL=76.92']) > chi_i
+#         print(f'{chi_i:.1f}, p-value: {is_gt.mean():.2f}, {is_gt2.mean():.2f}')
         
-    fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test2.pdf', bbox_inches='tight')    
+#     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test2.pdf', bbox_inches='tight')    
  
             
 def plot_clhist():
@@ -1313,9 +1301,9 @@ def plot_dr9cl():
     el_g = np.arange(300)
 
     plt.figure(figsize=(6, 5))
-    for i, (n, nm) in enumerate(zip(['noweight', 'dnnp_known1', 'dnnp_knownp', 'dnnp_allp'],
+    for i, (n, nm) in enumerate(zip(['noweight', 'dnnp_known1', 'dnnp_knownp', 'dnnp_allp', 'linp_allp'],
                                     ['No Weight', 'Nonlinear Three Maps', 'Nonlinear Four Maps', 
-                                     'Nonlinear Nine Maps'])):
+                                     'Nonlinear Nine Maps', 'Linear Nine Maps'])):
         
         cl_d = np.load(f'{data_path}clustering/0.57.0/cl_lrg_desic_256_{n}.npy',allow_pickle=True).item()
         cl_b = np.log10(ut.histogram_cell(cl_d['cl_gg']['l'], cl_d['cl_gg']['cl'], bins=ut.ell_edges)[1])
@@ -2017,7 +2005,7 @@ def chi2_tests():
     cxchi = np.load('clx_chi2_v2.npz')
 
     fg, (ax1, ax2) = plt.subplots(ncols=2, figsize=(10, 4), sharey=False)
-    labels = ['No Weight', '+ 3 Maps', '+ 4 Maps', '+ 9 Maps']
+    labels = ['No Weight', 'Nonlinear Three Maps', 'Nonlinear Four Maps', 'Nonlinear Nine Maps']
     for i in range(4):
         sns.kdeplot(nbchi['nchi'][i], ax=ax1, color=colors[i], bw=0.2, label=labels[i], ls='-')
         sns.kdeplot(nbchi['pchi'][i], ax=ax1, color=colors[i], bw=0.2, ls='--', alpha=0.5)        
