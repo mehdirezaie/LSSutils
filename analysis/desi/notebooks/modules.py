@@ -508,47 +508,6 @@ def plot_clxtest():
 #         print(f'{chi_i:.1f}, p-value: {is_gt.mean():.2f}, {is_gt2.mean():.2f}')
 #     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2test.pdf', bbox_inches='tight')         
 
-
-def test_chi2lmax():
-    chi2_mocks = []
-    chi2_data  = []
-    ell_maxes = []
-    p_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'
-    p = '/fs/ess/PHS0336/data/lognormal/v3/clustering/'
-    
-    for m in [10, 12, 14, 16, 18]:
-        
-        ell_edges = ut.ell_edges[:m]
-        ell_maxes.append(ell_edges.max())        
-        
-        err_0 = read_clxmocks(glob(f'{p}clmock_0_*_lrg_zero_desic_256_noweight.npy'), bins=ell_edges)
-        err_dr9known1 = read_clx(f'{p_}cl_lrg_desic_256_linp_known1.npy', ell_edges)[1]
-        err_dr9nknown1 = read_clx(f'{p_}cl_lrg_desic_256_dnnp_known1.npy', ell_edges)[1]
-        
-        chi2_mocks.append(ut.get_chi2pdf(err_0))
-        icov, cov_0 = ut.get_inv(err_0, return_cov=True)
-        chi2_data.append(ut.chi2_fn(err_dr9known1, icov))
-        chi2_data.append(ut.chi2_fn(err_dr9nknown1, icov))     
-        
-    chi2_mocks = np.array(chi2_mocks)
-    chi2_data = np.array(chi2_data).reshape(-1, 2)
-    chi2_min, chi2_16, chi2_median, chi2_84, chi2_max = np.percentile(chi2_mocks, [2.5, 16, 50, 84, 97.5], axis=1)
-    
-    plt.fill_between(ell_maxes, chi2_min, chi2_max, alpha=0.03, color='C0')
-    plt.fill_between(ell_maxes, chi2_16, chi2_84, alpha=0.06, color='C0')
-    
-    plt.plot(ell_maxes, chi2_median, label='Mocks Median', lw=1, color='C0')
-    plt.scatter(ell_maxes, chi2_data[:, 0],  marker='x', alpha=0.5, color='C2')
-    plt.scatter(ell_maxes, chi2_data[:, 1], marker='s', alpha=1.0, color='C4')
-    lgn = plt.legend(loc=4)
-
-    plt.text(28, 310, 'Linear Three Maps', color='C2', fontsize=13)
-    plt.text(40, 175, 'Nonlinear Three Maps', color='C4', fontsize=13)
-    plt.text(70, 100, r'Mocks 68\% (95\%)', color='C0', alpha=0.4, fontsize=13)
-    plt.xlabel(r'$\ell_{\rm max}$')
-    plt.ylabel(r'Cross Spectrum $\chi^{2}$')
-    
-    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2lmax.pdf', bbox_inches='tight')    
         
     
     
@@ -1871,6 +1830,47 @@ def mask_2pf():
         
     fig.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/mask_2pf.pdf', bbox_inches='tight')    
     
+    
+def test_chi2lmax():
+    chi2_mocks = []
+    chi2_data  = []
+    ell_maxes = []
+    
+    p_ = '/fs/ess/PHS0336/data/rongpu/imaging_sys/clustering/0.57.0/'
+    p = '/fs/ess/PHS0336/data/lognormal/v3/clustering/'
+    
+    for m in [10, 12, 14, 16, 18]:
+        
+        ell_edges = ut.ell_edges[:m]
+        ell_maxes.append(ell_edges.max())        
+        
+        err9 = read_clxmocks([f'{p}clmock_0_{i}_lrg_zero_desic_256_dnnp_allp.npy' for i in range(1, 1001)], ell_edges)
+        err_d9 = read_clx(f'{p_}cl_lrg_desic_256_dnnp_allp.npy', ell_edges)[1]
+        
+        chi2_mocks.append(ut.get_chi2pdf(err9))
+        inv_cov9 = ut.get_inv(err9)[0]
+        chi2_data.append(ut.chi2_fn(err_d9, inv_cov9))
+        
+    chi2_mocks = np.array(chi2_mocks)
+    chi2_data = np.array(chi2_data)
+    chi2_min, chi2_16, chi2_median, chi2_84, chi2_max = np.percentile(chi2_mocks, [2.5, 16, 50, 84, 97.5], axis=1)
+    
+    plt.fill_between(ell_maxes, chi2_min, chi2_max, alpha=0.05, color='grey')
+    plt.fill_between(ell_maxes, chi2_16, chi2_84, alpha=0.1, color='grey')
+    
+    plt.plot(ell_maxes, chi2_median, label='Mocks Median', lw=1, color='grey')
+    plt.scatter(ell_maxes, chi2_data,  marker='o', color=colors[3])
+    #plt.scatter(ell_maxes, chi2_data[:, 1], marker='s', alpha=1.0, color='C4')
+    lgn = plt.legend(loc=4)
+
+    #plt.text(28, 310, 'Linear Three Maps', color='C2', fontsize=13)
+    plt.text(40, 310, 'Nonlinear Nine Maps', color=colors[3], fontsize=13)
+    plt.text(70, 100, r'Mocks 68\% (95\%)', color='grey', alpha=0.4, fontsize=13)
+    plt.xlabel(r'$\ell_{\rm max}$')
+    plt.ylabel(r'Cross Spectrum $\chi^{2}$')
+    
+    plt.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2lmax.pdf', bbox_inches='tight')        
+    
 
 def compute_chi2():
     # test delta or ratio of chi2
@@ -2034,3 +2034,5 @@ def chi2_tests():
     for a in [ax1, ax2]:a.set_ylim(ymin=0)
 
     fg.savefig(f'/users/PHS0336/medirz90/github/dimagfnl/figures/chi2_tests.pdf', bbox_inches='tight')    
+    
+    
