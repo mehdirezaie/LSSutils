@@ -949,7 +949,9 @@ def plot_mcmc_data():
     desi_nn9_imag = MCMC(f'{p}logmcmc_lrg_zero_desicl_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
                     mc_kw=mc_kw, read_kw=read_kw)      
     desi_nn9_frac = MCMC(f'{p}logmcmc_lrg_zero_desicf_dnnp_allp_steps10k_walkers50_elmin0_p1.0_s0.945.npz', 
-                    mc_kw=mc_kw, read_kw=read_kw)      
+                    mc_kw=mc_kw, read_kw=read_kw)   
+    desi_nn9_join = MCMC(f'{p}logmcmc_lrg_zero_bmzlsndecalscsdecalsc_dnnp_allp_steps10k_walkers50_elmin0.npz', 
+                    mc_kw=mc_kwj, read_kw=read_kwj)    
 
     
     bmzls_nn3 = MCMC(f'{p}logmcmc_lrg_zero_bmzls_dnnp_known1_steps10k_walkers50_elmin0_p1.0_s0.951.npz', 
@@ -1024,6 +1026,7 @@ def plot_mcmc_data():
     stats['DESI (imag. cut) & Nonlinear Nine Maps'] = desi_nn9_imag.stats    
     stats['DESI (comp. cut) & Nonlinear Nine Maps'] = desi_nn9_frac.stats        
     stats[r'DESI & Nonlinear Nine Maps+$f_{\rm NL}=76.92$ Cov'] = desi_nn9_cov.stats
+    stats['DESI (BASS+MzLS+DECaLS) & Nonlinear Nine Maps'] = desi_nn9_join.stats    
     
     
     

@@ -389,32 +389,6 @@ class SurveySpectrum(Spectrum, WindowSHT):
         
         return clm[el]
     
-    
-class SurveySpectrumFast(Spectrum):
-    
-    def __init__(self, *arrays, **kwargs):
-        Spectrum.__init__(self, *arrays, **kwargs)
-        
-    def add_window(self, path_window, cl_mask):
-        self.mixm = np.load(path_window)
-        self.nell, self.nellp = self.mixm.shape
-        self.el_model = np.arange(self.nellp)
-        self.cl_mask = cl_mask
-        
-    def apply_ic(self, cl_model):
-        lmax = len(cl_model)
-        return cl_model - cl_model[0]*(self.cl_mask[:lmax]/self.cl_mask[0])
-
-    def __call__(self, el, fnl=0.0, b=1.0, noise=0.0):
-        
-        cl_ = Spectrum.__call__(self, self.el_model, fnl=fnl, b=b, noise=noise)   
-        
-        clm_ = self.mixm.dot(cl_)
-        lmax = max(el)+1
-        clm = self.apply_ic(clm_[:lmax])
-        
-        return clm[el]    
-    
 
 # class SpectrumOld:
 #     """

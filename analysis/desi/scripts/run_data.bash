@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=mcmc
 #SBATCH --account=PHS0336 
-#SBATCH --time=03:00:00
+#SBATCH --time=3:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=14
 #SBATCH --mail-type=ALL
@@ -26,8 +26,9 @@ do_rfe=false      #
 do_assign=false   #
 do_nbar=false     # 10 min x 4 tpn
 do_cl=false       # 20 min x 4 tpn
-do_mcmc=true     # 3 h x 14 tpn
+do_mcmc=false     # 3 h x 14 tpn
 do_mcmc_joint3=false # 5x14
+do_mcmc_test=true # 3 h x 14 tpn
 
 bsize=5000     # 
 target="lrg"   # lrg
@@ -36,7 +37,7 @@ regions=desic  # selection function region
 maps=allp        # knownp, allp, ..
 tag_d=0.57.0   # 0.57.0 (sv3) or 1.0.0 (main)
 nside=256      # lrg=256, elg=1024
-fnltag="po100"
+fnltag="zero"
 model=dnnp     # dnnp, linp
 method=${model}_${maps}       # dnnp_known1, linp_known, or noweight
 lmin=0
@@ -63,6 +64,7 @@ mcmclog=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_logfast.py
 mcmcf=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_frac.py
 mcmc_joint=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_joint.py
 mcmc_joint3=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_joint3.py
+mcmctest=${HOME}/github/LSSutils/analysis/desi/scripts/run_mcmc_testwindow.py
 
 function get_lr(){
     if [ $1 = "lrg" ]
@@ -212,9 +214,9 @@ fi
 
 if [ "${do_mcmc_joint3}" = true ]
 then
-    region=$1
-    region1=$2
-    region2=$3
+    region='bmzls'
+    region1='ndecalsc'
+    region2='sdecalsc'
 
     path_cl=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${method}.npy
     path_cov=${mock_dir}/clustering/logclmock_0_${target}_${fnltag}_${region}_256_noweight_cov.npz
@@ -231,7 +233,18 @@ then
     du -h $path_cl2 $path_cov2
     echo $target $region $reion1 $region2 $maps $output_mcmc
 
-    python $mcmc_joint3 $path_cl $path_cl1 $path_cl2 $path_cov $path_cov1 $path_cov2 $region $region1 $region2 $output_mcmc 1.0
+    python $mcmc_joint3 --path_cl $path_cl $path_cl1 $path_cl2 --path_cov $path_cov $path_cov1 $path_cov2 --region $region $region1 $region2 --output $output_mcmc --scale --p 1.0 --s 0.951 0.943 0.943
 fi
 
 
+if [ "${do_mcmc_test}" = true ]
+then
+    window=$1
+    path_cl=${root_dir}/clustering/${tag_d}/cl_${target}_${region}_${nside}_${method}.npy
+    path_cov=${mock_dir}/clustering/logclmock_0_${target}_${fnltag}_${region}_256_noweight_cov.npz
+    output_mcmc=${root_dir}/mcmc/${tag_d}/logmcmc_${target}_${fnltag}_${region}_${method}_steps10k_walkers50_elmin${lmin}_p${p}_s${s}_${window}.npz  
+    
+    du -h $path_cl $path_cov
+    echo $target $region $maps $output_mcmc
+    python $mcmctest --path_cl $path_cl --path_cov $path_cov --region $region --output $output_mcmc --scale --elmin $lmin --p $p --s $s --model $window
+fi

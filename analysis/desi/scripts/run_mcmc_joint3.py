@@ -67,14 +67,13 @@ def read_mask(region):
 # --- inputs
 from argparse import ArgumentParser
 ap = ArgumentParser(description='MCMC')
-ap.add_argument('--path_cl', nargs=*, required=True)
-ap.add_argument('--path_cov', nargs=*, required=True)
-ap.add_argument('--region', nargs=*, required=True)
+ap.add_argument('--path_cl', nargs=3, required=True)
+ap.add_argument('--path_cov', nargs=3, required=True)
+ap.add_argument('--region', nargs=3, required=True)
 ap.add_argument('--output', required=True)
 ap.add_argument('--scale', action='store_true')
-ap.add_argument('--elmin', default=0, type=int)
 ap.add_argument('--p', default=1.0, type=float)
-ap.add_argument('--s', nargs=*, default=[0.945, 0.945, 0.945], type=float)
+ap.add_argument('--s', nargs=3, default=[0.945, 0.945, 0.945], type=float)
 ns = ap.parse_args()
 
 for (key, value) in ns.__dict__.items():
